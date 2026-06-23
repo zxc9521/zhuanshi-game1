@@ -58,24 +58,24 @@ hr{border:0;border-top:1px solid var(--line);margin:10px 0}
   min-height:360px;
   background:#0b101b;
 }
-.map-hero::before{
-  content:"";
+.map-bg-img{
   position:absolute;
   inset:0;
-  background-image:var(--map-bg);
-  background-size:cover;
-  background-position:center;
-  opacity:.42;
-  filter:saturate(.9) contrast(1.08);
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  opacity:.55;
+  filter:saturate(.95) contrast(1.08);
   transform:scale(1.02);
+  z-index:0;
 }
 .map-hero::after{
   content:"";
   position:absolute;
   inset:0;
   background:
-    radial-gradient(circle at center,rgba(9,11,18,.12),rgba(9,11,18,.78) 68%),
-    linear-gradient(180deg,rgba(9,11,18,.35),rgba(9,11,18,.88));
+    radial-gradient(circle at center,rgba(9,11,18,.08),rgba(9,11,18,.08) 70%),
+    linear-gradient(180deg,rgba(9,11,18,.22),rgba(9,11,18,.68));
 }
 .map-hero-content{
   position:relative;
@@ -1742,7 +1742,8 @@ function renderHome(){
   const attrs=totalAttrs();
   const need=cultivationNeed();
 
-return `<div class="map-hero" style="--map-bg:url(&quot;${map.image||""}&quot;)">
+return `<div class="map-hero">
+    ${map.image?`<img class="map-bg-img" src="${map.image}" alt="${map.name}" onerror="console.warn('地图背景缺失：${map.image}');this.remove()">`:""}
     <div class="map-hero-content">
       <div class="map-title-line">
         <div>
