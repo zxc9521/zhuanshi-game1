@@ -49,6 +49,77 @@ hr{border:0;border-top:1px solid var(--line);margin:10px 0}
 .bar{height:12px;background:#0a0f1b;border:1px solid #293653;border-radius:99px;overflow:hidden}
 .bar>span{display:block;height:100%;background:linear-gradient(90deg,#51d27a,#ffd36a)}
 .hpbar>span{background:linear-gradient(90deg,#ff5353,#ffb86c)}
+.map-hero{
+  position:relative;
+  overflow:hidden;
+  border-radius:14px;
+  border:1px solid var(--line);
+  margin-bottom:12px;
+  min-height:360px;
+  background:#0b101b;
+}
+.map-hero::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background-image:var(--map-bg);
+  background-size:cover;
+  background-position:center;
+  opacity:.42;
+  filter:saturate(.9) contrast(1.08);
+  transform:scale(1.02);
+}
+.map-hero::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at center,rgba(9,11,18,.12),rgba(9,11,18,.78) 68%),
+    linear-gradient(180deg,rgba(9,11,18,.35),rgba(9,11,18,.88));
+}
+.map-hero-content{
+  position:relative;
+  z-index:1;
+  padding:12px;
+}
+.map-title-line{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+}
+.map-name{
+  font-size:22px;
+  font-weight:800;
+  color:var(--gold);
+  text-shadow:0 2px 8px rgba(0,0,0,.55);
+}
+.map-subtitle{
+  color:var(--cyan);
+  font-size:13px;
+}
+.monster-art{
+  width:100%;
+  max-height:260px;
+  object-fit:contain;
+  display:block;
+  margin:6px auto 10px;
+  background:radial-gradient(circle at center,rgba(119,230,255,.08),rgba(0,0,0,0));
+  border-radius:12px;
+}
+.monster-art-missing{
+  height:180px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px dashed #405073;
+  border-radius:12px;
+  color:var(--muted);
+  background:#0b101b;
+  margin:6px 0 10px;
+}
 .tabs-note{font-size:13px;color:var(--muted)}
 .mail-unread{color:var(--gold);font-weight:bold}
 @media(max-width:820px){.grid{grid-template-columns:1fr}.nav{position:static}.nav button{display:inline-block;width:auto}.kv{grid-template-columns:92px 1fr}}
@@ -116,12 +187,54 @@ CONFIG.maps=[
   ["赤霄裂谷","焦玉坡","焚碑窟","鸣雷峡","赤霄裂尊"],
   ["玄垣星野","落星丘","尘光林","古轨原","玄垣星兽"],
   ["无相劫门","静劫廊","虚命桥","问终台","无相劫主"]
-].map((row,index)=>({id:index,name:row[0],zones:row.slice(1,4),boss:row[4]}));
+].map((row,index)=>({
+  id:index,
+  name:row[0],
+  zones:row.slice(1,4),
+  boss:row[4],
+  image:[
+    "assets/images/maps/wugu_huangyuan.webp",
+    "assets/images/maps/qingjin_shanmai.webp",
+    "assets/images/maps/lanxing_huze.webp",
+    "assets/images/maps/heiyao_gucheng.webp",
+    "assets/images/maps/shuangwen_tianjie.webp",
+    "assets/images/maps/huiming_haiyan.webp",
+    "assets/images/maps/chixiao_liegu.webp",
+    "assets/images/maps/xuanyuan_xingye.webp",
+    "assets/images/maps/wuxiang_jiemen.webp"
+  ][index]
+}));
 
 CONFIG.monsterNames=[
   "腐灯游魂","裂甲石奴","青鬃食露兽","玄斑毒蛾","抱月纸妖","断角魇鹿",
   "灰鳞穴蛇","铜喙山魈","赤羽焰鸦","白骨铃童","沉砂鬼蚌","雾面狐灵"
 ];
+CONFIG.monsterImages={
+  "腐灯游魂":"assets/images/monsters/normal/fudeng_youhun.webp",
+  "裂甲石奴":"assets/images/monsters/normal/liejia_shinu.webp",
+  "青鬃食露兽":"assets/images/monsters/normal/qingzong_shilushou.webp",
+  "玄斑毒蛾":"assets/images/monsters/normal/xuanban_due.webp",
+  "抱月纸妖":"assets/images/monsters/normal/baoyue_zhiyao.webp",
+  "断角魇鹿":"assets/images/monsters/normal/duanjiao_yanlu.webp",
+  "灰鳞穴蛇":"assets/images/monsters/normal/huilin_xueshe.webp",
+  "铜喙山魈":"assets/images/monsters/normal/tonghui_shanxiao.webp",
+  "赤羽焰鸦":"assets/images/monsters/normal/chiyu_yanya.webp",
+  "白骨铃童":"assets/images/monsters/normal/baigu_lingtong.webp",
+  "沉砂鬼蚌":"assets/images/monsters/normal/chensha_guibang.webp",
+  "雾面狐灵":"assets/images/monsters/normal/wumian_huling.webp"
+};
+
+CONFIG.bossImages={
+  "雾骨魇主":"assets/images/monsters/boss/wugu_yanzhu.webp",
+  "青烬岩君":"assets/images/monsters/boss/qingjin_yanjun.webp",
+  "澜星水魈":"assets/images/monsters/boss/lanxing_shuixiao.webp",
+  "黑曜城灵":"assets/images/monsters/boss/heiyao_chengling.webp",
+  "霜纹天将":"assets/images/monsters/boss/shuangwen_tianjiang.webp",
+  "晦明潮皇":"assets/images/monsters/boss/huiming_chaohuang.webp",
+  "赤霄裂尊":"assets/images/monsters/boss/chixiao_liezun.webp",
+  "玄垣星兽":"assets/images/monsters/boss/xuanyuan_xingshou.webp",
+  "无相劫主":"assets/images/monsters/boss/wuxiang_jiezhu.webp"
+};
 
 CONFIG.equipSlots=["武器","头盔","上身","下装","鞋","护臂","项链","手镯1","手镯2","戒指1","戒指2","戒指3"];
 
@@ -767,8 +880,10 @@ function currentMonster(isBoss=false){
   const mapIndex=STATE.progress.map;
   const zoneIndex=STATE.progress.zone;
   const base=30*Math.pow(2.05,mapIndex)*(1+zoneIndex*.22)*(isBoss?5.5:1);
+  const monsterName=isBoss?CONFIG.maps[mapIndex].boss:CONFIG.monsterNames[(mapIndex*3+zoneIndex)%CONFIG.monsterNames.length];
   return {
-    name:isBoss?CONFIG.maps[mapIndex].boss:CONFIG.monsterNames[(mapIndex*3+zoneIndex)%CONFIG.monsterNames.length],
+    name:monsterName,
+    image:isBoss?CONFIG.bossImages[monsterName]:CONFIG.monsterImages[monsterName],
     hp:Math.floor(base*8),
     atk:Math.floor(base*.9),
     def:Math.floor(base*.32),
@@ -1619,6 +1734,7 @@ function renderPage(tab){
 function renderHome(){
   const map=CONFIG.maps[STATE.progress.map];
   const monster=currentMonster(false);
+  const bossMonster=currentMonster(true);
   const monsterHp=STATE.currentMonsterHp||monster.hp;
   const monsterMax=STATE.currentMonsterMaxHp||monster.hp;
   const nextReady=STATE.progress.kills[STATE.progress.zone]>=30&&STATE.progress.zone<2;
@@ -1626,8 +1742,18 @@ function renderHome(){
   const attrs=totalAttrs();
   const need=cultivationNeed();
 
-  return `<div class="panel">
-    <h2>主页 · 挂机试炼</h2>
+return `<div class="map-hero" style="--map-bg:url(&quot;${map.image||""}&quot;)">
+    <div class="map-hero-content">
+      <div class="map-title-line">
+        <div>
+          <div class="map-name">${map.name}</div>
+          <div class="map-subtitle">当前试炼地图 · ${map.zones[STATE.progress.zone]}</div>
+        </div>
+        <div>
+          <span class="badge">境界：${currentRealmTitle()}</span>
+          <span class="badge">击杀：${STATE.progress.kills[STATE.progress.zone]}/30</span>
+        </div>
+      </div>
     <div class="cards">
       <div class="card">
         <h3>当前位置</h3>
@@ -1648,8 +1774,9 @@ function renderHome(){
         <p class="muted">已通关小地图可随时回去刷材料；未通关层需要按顺序推进。</p>
       </div>
 
-      <div class="card">
+            <div class="card">
         <h3>当前怪物</h3>
+        ${monster.image?`<img class="monster-art" src="${monster.image}" alt="${monster.name}" onerror="this.outerHTML='<div class=&quot;monster-art-missing&quot;>怪物图片缺失：${monster.name}</div>'">`:`<div class="monster-art-missing">暂无怪物图片：${monster.name}</div>`}
         <div class="kv">
           <b>名称</b><span>${monster.name}</span>
           <b>生命</b><span>${fmt(monsterHp)} / ${fmt(monsterMax)}</span>
@@ -1661,6 +1788,17 @@ function renderHome(){
         <div class="bar hpbar"><span style="width:${Math.max(0,Math.min(100,monsterHp/monsterMax*100))}%"></span></div>
       </div>
 
+      <div class="card">
+        <h3>本层 Boss</h3>
+        ${bossMonster.image?`<img class="monster-art" src="${bossMonster.image}" alt="${bossMonster.name}" onerror="this.outerHTML='<div class=&quot;monster-art-missing&quot;>Boss 图片缺失：${bossMonster.name}</div>'">`:`<div class="monster-art-missing">暂无 Boss 图片：${bossMonster.name}</div>`}
+        <div class="kv">
+          <b>名称</b><span>${bossMonster.name}</span>
+          <b>生命</b><span>${fmt(bossMonster.hp)}</span>
+          <b>攻击</b><span>${fmt(bossMonster.atk)}</span>
+          <b>防御</b><span>${fmt(bossMonster.def)}</span>
+          <b>速度</b><span>${fmt(bossMonster.speed)}</span>
+        </div>
+      </div>
       <div class="card">
         <h3>角色状态</h3>
         <div class="kv">
@@ -1691,6 +1829,7 @@ function renderHome(){
         <hr>
         <div class="muted">今日仙缘：${fmt(STATE.progress.dailyXianyuan)}，后续联网由服务端校验软上限与异常掉落。</div>
       </div>
+    </div>
     </div>
   </div>
   <div class="panel"><h3>挂机战斗日志</h3><div class="log">${STATE.logs.join("<br>")}</div></div>`;
