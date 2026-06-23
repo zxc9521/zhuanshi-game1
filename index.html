@@ -1,0 +1,2184 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>转世之修仙系统</title>
+<style>
+:root{
+  --bg:#090b12;--panel:#121826;--panel2:#182033;--panel3:#101725;--line:#26324d;
+  --text:#d9e6ff;--muted:#8fa3c8;--gold:#ffd36a;--red:#ff6b6b;
+  --green:#7dff9e;--cyan:#77e6ff;--purple:#d997ff;--orange:#ffb86c;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at top,#18223a,#070911 55%);color:var(--text);font-family:"Microsoft YaHei",system-ui,sans-serif}
+button,input,select{font:inherit}
+button{cursor:pointer;border:1px solid #405073;background:#1c2740;color:var(--text);border-radius:8px;padding:7px 10px;margin:2px}
+button:hover{background:#28375a}
+button:disabled{opacity:.45;cursor:not-allowed}
+input,select{background:#101827;color:var(--text);border:1px solid #405073;border-radius:7px;padding:6px}
+.app{max-width:1480px;margin:auto;padding:12px}
+.top{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px;background:linear-gradient(90deg,#101827,#17223a);border:1px solid var(--line);border-radius:14px}
+.title{font-size:24px;font-weight:800;color:var(--gold)}
+.notice{font-size:13px;color:var(--cyan);line-height:1.5}
+.badge{display:inline-block;padding:3px 7px;border-radius:99px;background:#24314f;border:1px solid #405073;margin:2px;color:#dce8ff}
+.warn{color:var(--orange)}
+.grid{display:grid;grid-template-columns:210px 1fr;gap:12px;margin-top:12px}
+.nav{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px;position:sticky;top:8px;height:max-content}
+.nav button{display:block;width:100%;margin:5px 0;text-align:left}
+.nav button.active{background:#31446f;border-color:#6b85c8;color:#fff}
+.subnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.subnav button.active{background:#40588e;border-color:#7f9fea}
+.main{min-height:720px}
+.panel{background:rgba(18,24,38,.94);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px;box-shadow:0 10px 28px rgba(0,0,0,.22)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px}
+h2,h3{margin:0 0 10px;color:#fff}
+hr{border:0;border-top:1px solid var(--line);margin:10px 0}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:4px 8px;font-size:14px}
+.log{height:310px;overflow:auto;background:#080c14;border:1px solid #25314c;border-radius:10px;padding:8px;font-size:13px;line-height:1.65}
+.small-log{height:220px;overflow:auto;background:#080c14;border:1px solid #25314c;border-radius:10px;padding:8px;font-size:13px;line-height:1.65}
+.log .crit{color:var(--gold)}.log .bad{color:var(--red)}.log .good{color:var(--green)}.log .blue{color:var(--cyan)}
+.list{max-height:430px;overflow:auto}
+.item{padding:8px;border:1px solid #2b3858;border-radius:10px;background:#11192a;margin:6px 0}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.right{float:right}
+.muted{color:var(--muted)}
+.gold{color:var(--gold)}.red{color:var(--red)}.green{color:var(--green)}.cyan{color:var(--cyan)}.purple{color:var(--purple)}
+.q0{color:#9aa6b2}.q1{color:#e8e8e8}.q2{color:#74ff92}.q3{color:#6bb9ff}.q4{color:#c47cff}.q5{color:#ffbc52}.q6{color:#ff6df2}
+.bar{height:12px;background:#0a0f1b;border:1px solid #293653;border-radius:99px;overflow:hidden}
+.bar>span{display:block;height:100%;background:linear-gradient(90deg,#51d27a,#ffd36a)}
+.hpbar>span{background:linear-gradient(90deg,#ff5353,#ffb86c)}
+.tabs-note{font-size:13px;color:var(--muted)}
+.mail-unread{color:var(--gold);font-weight:bold}
+@media(max-width:820px){.grid{grid-template-columns:1fr}.nav{position:static}.nav button{display:inline-block;width:auto}.kv{grid-template-columns:92px 1fr}}
+</style>
+</head>
+<body>
+<div id="app" class="app"></div>
+
+<script>
+/*
+《转世之修仙系统》单文件完整原型
+定位：
+1. 公益网页挂机文字修仙游戏。
+2. 无真实充值入口。
+3. 仙缘仅由游戏内挂机、Boss、副本、活动、邮件等玩法获得。
+4. 首充、月卡、VIP、累充、成长基金均为仙缘模拟激活。
+5. 所有活动、兑换码、首充、累充、成长基金、VIP、月卡奖励全部通过邮件发放。
+6. 第一阶段使用 localStorage，本文件结构便于后续迁移到 Node.js + WebSocket + 服务端权威结算。
+*/
+const $=s=>document.querySelector(s);
+const now=()=>Date.now();
+const fmt=n=>Math.floor(n||0).toLocaleString();
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const chance=p=>Math.random()<p;
+const uid=p=>p+"_"+Math.random().toString(36).slice(2,10)+"_"+Date.now().toString(36);
+
+const CONFIG={};
+
+CONFIG.qualities=[
+  {name:"破碎",className:"q0",multiplier:.55},
+  {name:"普通",className:"q1",multiplier:1},
+  {name:"优秀",className:"q2",multiplier:1.45},
+  {name:"精良",className:"q3",multiplier:2.05},
+  {name:"卓越",className:"q4",multiplier:3.2},
+  {name:"传说",className:"q5",multiplier:5.2},
+  {name:"神话",className:"q6",multiplier:8.8}
+];
+
+CONFIG.grades=[
+  {name:"下品",multiplier:1},
+  {name:"中品",multiplier:1.18},
+  {name:"上品",multiplier:1.42}
+];
+
+CONFIG.realms=["炼气","筑基","金丹","元婴","化神","炼虚","合体","大乘","渡劫"];
+CONFIG.subRealms=["一层","二层","三层","四层","五层","六层","七层","八层","九层","十层","小圆满","大圆满"];
+
+CONFIG.realmConfigs=CONFIG.realms.map((realm,index)=>({
+  id:index,
+  name:realm,
+  lifeBonus:90+index*80,
+  attrPointBonus:5+index*8,
+  needBase:Math.floor(80*Math.pow(3.05,index)),
+  breakthroughPill:index===0?null:realm+"破境丹"
+}));
+
+CONFIG.maps=[
+  ["雾骨荒原","残碑坡","冷萤谷","碎月滩","雾骨魇主"],
+  ["青烬山脉","松火岭","赤苔洞","眠蛇涧","青烬岩君"],
+  ["澜星湖泽","银藻洲","镜水湾","沉星潭","澜星水魈"],
+  ["黑曜古城","断钟街","玄瓦巷","无灯台","黑曜城灵"],
+  ["霜纹天阶","雪纹径","寒钟坪","白魄台","霜纹天将"],
+  ["晦明海眼","潮骨礁","暗珠沟","归墟口","晦明潮皇"],
+  ["赤霄裂谷","焦玉坡","焚碑窟","鸣雷峡","赤霄裂尊"],
+  ["玄垣星野","落星丘","尘光林","古轨原","玄垣星兽"],
+  ["无相劫门","静劫廊","虚命桥","问终台","无相劫主"]
+].map((row,index)=>({id:index,name:row[0],zones:row.slice(1,4),boss:row[4]}));
+
+CONFIG.monsterNames=[
+  "腐灯游魂","裂甲石奴","青鬃食露兽","玄斑毒蛾","抱月纸妖","断角魇鹿",
+  "灰鳞穴蛇","铜喙山魈","赤羽焰鸦","白骨铃童","沉砂鬼蚌","雾面狐灵"
+];
+
+CONFIG.equipSlots=["武器","头盔","上身","下装","鞋","护臂","项链","手镯1","手镯2","戒指1","戒指2","戒指3"];
+
+CONFIG.blueEffects=[
+  {name:"澄心净焰",description:"回合开始小概率净化一个异常",type:"cleanse"},
+  {name:"覆潮灵膜",description:"开局获得护盾",type:"shield"},
+  {name:"返魄微光",description:"攻击后小额回血",type:"heal"},
+  {name:"折锋玄响",description:"受到攻击时概率反伤",type:"thorns"},
+  {name:"断禁寒芒",description:"命中时概率封灵",type:"seal"},
+  {name:"踏星先机",description:"战斗开局提速",type:"speed"},
+  {name:"碎罡暗纹",description:"攻击概率破甲",type:"break"},
+  {name:"双影回刃",description:"攻击概率连击",type:"combo"}
+];
+
+CONFIG.spiritRoots=[
+  {name:"金",description:"概率破甲",type:"break"},
+  {name:"木",description:"概率回血",type:"heal"},
+  {name:"水",description:"概率冰缓",type:"slow"},
+  {name:"火",description:"概率灼烧",type:"burn"},
+  {name:"土",description:"概率护盾",type:"shield"},
+  {name:"风",description:"概率提速",type:"speed"},
+  {name:"雷",description:"概率麻痹",type:"stun"}
+];
+
+CONFIG.skills=[
+  {id:"sk1",name:"照夜指",kind:"功法",quality:"黄",tier:"下阶",unlock:4,description:"凝光成指，造成精神伤害",multiplier:1.25},
+  {id:"sk2",name:"折岚步",kind:"功法",quality:"玄",tier:"中阶",unlock:10,description:"疾步压制，附带提速",multiplier:1.15},
+  {id:"sk3",name:"沉碑劲",kind:"功法",quality:"玄",tier:"上阶",unlock:14,description:"重击破防，力量加成",multiplier:1.45},
+  {id:"sk4",name:"眠火诀",kind:"功法",quality:"地",tier:"下阶",unlock:20,description:"持续灼烧，适合持久战",multiplier:1.22},
+  {id:"sk5",name:"碎潮诀",kind:"功法",quality:"地",tier:"中阶",unlock:28,description:"灵力震荡，概率降低敌方抗性",multiplier:1.55},
+  {id:"mind1",name:"归息玄篇",kind:"心法",quality:"黄",tier:"上阶",unlock:0,description:"随境界提升生命与耐力"},
+  {id:"mind2",name:"星藏静录",kind:"心法",quality:"玄",tier:"中阶",unlock:12,description:"提升精神、灵力与寿命上限"},
+  {id:"god1",name:"问劫一闪",kind:"神技",quality:"天",tier:"下阶",unlock:36,description:"稀有神技，斩杀濒危敌人",multiplier:2.8,spiritCost:120}
+];
+
+CONFIG.materials=(()=>{
+  const herb=["雾纹草","青焰芝","听霜花","眠星藤","赤露参","玄尾兰","月砂莲","白烛苔","折光果","归息叶","冷萤蕊","玉髓菇","风铃芽","碎霞根"];
+  const ore=["黑曜砂","澜星铁","赤雷晶","玄垣铜","雪魄银","碎月玉","沉钟石","青烬矿","无灯玄铁","虚命晶","碧鳞钢","焦玉髓","空纹石","寒枝金"];
+  const beast=["魇鹿角","毒蛾粉","焰鸦羽","穴蛇胆","山魈牙","鬼蚌珠","狐灵尾","石奴核心","水魈鳞","星兽骨","潮皇须","劫主残壳","铃童骨片","裂尊血晶"];
+  const wonder=["无相尘","问终露","归墟盐","古轨星屑","晦明珠","劫火灰","静劫沙","镜水泪","霜纹絮","残碑墨","眠蛇蜕","冷月髓","天阶雪","暗珠泪"];
+  const wood=["青烬木","霜铃枝","玄垣槐","赤霄根","无灯柏","潮骨藤","白魄竹","银藻木","焦玉木","碎星枝","雾骨木","归息桑","镜湾柳","黑曜松"];
+  const liquid=["冷萤液","赤露髓","澜星泉","晦明潮浆","眠火蜜","霜魄露","无相清液","玄瓦药汁","青苔灵液","归墟重水","碎月银浆","问终甘露","古轨星液","断钟铜露"];
+  return [...herb,...ore,...beast,...wonder,...wood,...liquid].map((name,index)=>({
+    id:"mat"+index,
+    name,
+    type:index<14?"药草":index<28?"灵矿":index<42?"妖兽材料":index<56?"天地奇物":index<70?"灵木":"灵液",
+    realm:Math.floor(index/10)%9,
+    quality:index%7,
+    use:["炼丹","锻造","任务","活动兑换"][index%4]
+  }));
+})();
+
+const EXTRA_MATERIAL_NAMES=[
+  ["破碎","枯火藤","裂纹石髓","残鳞骨片","灰露草","浊泉砂","断脉木","冷灰晶","蚀月苔"],
+  ["普通","青灯花","雾银砂","赤尾兽牙","松岚叶","石乳珠","白纹木","浅潮液","玄针草"],
+  ["优秀","星痕芝","碧焰铜","玉角兽筋","沉香灵枝","寒露髓","金纹贝","月脉花","灵犀砂"],
+  ["精良","霜魄兰","赤霞晶","玄甲兽核","九节青木","归潮灵液","紫纹铁","听雪果","照影石"],
+  ["卓越","无垢莲心","雷纹秘银","苍羽妖骨","星沉古木","琉璃灵泉","黑曜玉髓","焚心芝","澄海珠"],
+  ["传说","太微星砂","天烬凰羽","万年霜髓","玄黄根","无相灵液","渡厄青金","归墟龙骨","照劫花"],
+  ["神话","劫初道尘","太虚源露","混元灵木心","九曜神砂","无垠星髓","天命玄晶","归一仙液","寂灭金莲"]
+];
+
+EXTRA_MATERIAL_NAMES.forEach((group,qualityIndex)=>{
+  group.slice(1).forEach((name,innerIndex)=>{
+    CONFIG.materials.push({
+      id:"extra_mat_"+qualityIndex+"_"+innerIndex,
+      name,
+      type:["药草","灵矿","妖兽材料","天地奇物","灵木","灵液","奇珍"][innerIndex%7],
+      realm:Math.min(8,Math.floor((qualityIndex+innerIndex)/2)),
+      quality:qualityIndex,
+      use:["炼丹","锻造","任务","活动兑换"][innerIndex%4]
+    });
+  });
+});
+CONFIG.xianyuanTiers=[6,12,30,68,128,256,328,512,648,1280,2000,3000,5000,10000];
+CONFIG.xianyuanWeights=[2400,1800,1200,800,420,260,160,90,55,20,10,5,2,1];
+
+CONFIG.xianyuanBoxes=[
+  {name:"破碎仙缘箱",quality:0,bonus:0},
+  {name:"普通仙缘箱",quality:1,bonus:.2},
+  {name:"优秀仙缘箱",quality:2,bonus:.55},
+  {name:"精良仙缘箱",quality:3,bonus:1.1},
+  {name:"卓越仙缘箱",quality:4,bonus:2.2},
+  {name:"传说仙缘箱",quality:5,bonus:4.5},
+  {name:"神话仙缘箱",quality:6,bonus:8}
+];
+
+CONFIG.pills=[
+  {name:"回春丹",type:"恢复生命",realm:0,baseCost:200},
+  {name:"续命丹",type:"增加寿命",realm:0,baseCost:800},
+  {name:"凝血丹",type:"恢复生命",realm:0,baseCost:350},
+  {name:"壮骨丹",type:"永久力量",realm:0,baseCost:1200},
+  {name:"醒神丹",type:"永久精神",realm:0,baseCost:1200},
+  {name:"纳灵丹",type:"永久灵力",realm:0,baseCost:1200},
+  {name:"固甲丹",type:"永久耐力",realm:0,baseCost:1200},
+  {name:"清抗丹",type:"永久抗性",realm:0,baseCost:1200},
+  {name:"轻身丹",type:"永久速度",realm:1,baseCost:8000},
+  {name:"双倍修行丹",type:"修行倍率",realm:0,baseCost:1800,duration:30*60*1000,multiplier:2},
+  {name:"三倍修行丹",type:"修行倍率",realm:1,baseCost:5200,duration:30*60*1000,multiplier:3},
+  {name:"筑基破境丹",type:"突破丹",realm:0,baseCost:2500},
+  {name:"金丹破境丹",type:"突破丹",realm:1,baseCost:9000},
+  {name:"元婴破境丹",type:"突破丹",realm:2,baseCost:26000},
+  {name:"化神破境丹",type:"突破丹",realm:3,baseCost:80000},
+  {name:"炼虚破境丹",type:"突破丹",realm:4,baseCost:220000},
+  {name:"合体破境丹",type:"突破丹",realm:5,baseCost:650000},
+  {name:"大乘破境丹",type:"突破丹",realm:6,baseCost:1800000},
+  {name:"渡劫破境丹",type:"突破丹",realm:7,baseCost:5200000}
+];
+
+CONFIG.alchemyFurnaces=[
+  {name:"裂纹陶炉",quality:0,successBonus:0.00,materialReturn:0.00,price:3000},
+  {name:"青铜药炉",quality:1,successBonus:0.04,materialReturn:0.02,price:12000},
+  {name:"玄纹丹炉",quality:2,successBonus:0.08,materialReturn:0.04,price:50000},
+  {name:"赤霞灵炉",quality:3,successBonus:0.13,materialReturn:0.07,price:180000},
+  {name:"星砂宝炉",quality:4,successBonus:0.20,materialReturn:0.10,price:700000},
+  {name:"无垢仙炉",quality:5,successBonus:0.30,materialReturn:0.15,price:2500000},
+  {name:"太微神炉",quality:6,successBonus:0.45,materialReturn:0.22,price:9000000}
+];
+
+CONFIG.moreSkills=[
+  {id:"sk6",name:"寒灯掌",kind:"功法",quality:"玄",tier:"下阶",unlock:8,description:"掌劲如寒灯，稳定造成力量伤害",multiplier:1.32,spiritCost:0},
+  {id:"sk7",name:"流砂印",kind:"功法",quality:"玄",tier:"中阶",unlock:12,description:"砂印压身，概率降低敌方速度",multiplier:1.38,spiritCost:0},
+  {id:"sk8",name:"碎玉鸣",kind:"功法",quality:"地",tier:"下阶",unlock:18,description:"音震碎玉，精神伤害较高",multiplier:1.62,spiritCost:0},
+  {id:"sk9",name:"照海枪诀",kind:"功法",quality:"地",tier:"中阶",unlock:24,description:"连绵攻势，适合挂机推图",multiplier:1.72,spiritCost:0},
+  {id:"sk10",name:"玄烬轮",kind:"功法",quality:"天",tier:"下阶",unlock:32,description:"玄火绕身，爆发伤害较高",multiplier:2.05,spiritCost:0},
+
+  {id:"mind3",name:"寒泉养命录",kind:"心法",quality:"玄",tier:"上阶",unlock:8,description:"提升生命和寿命上限"},
+  {id:"mind4",name:"青垣定息经",kind:"心法",quality:"地",tier:"下阶",unlock:16,description:"提升耐力、抗性与少量修为获取"},
+  {id:"mind5",name:"赤微观神篇",kind:"心法",quality:"地",tier:"中阶",unlock:24,description:"提升精神、灵力和神技伤害"},
+  {id:"mind6",name:"无尘归元书",kind:"心法",quality:"天",tier:"下阶",unlock:36,description:"全面提升基础属性，极难获得"},
+
+  {id:"god2",name:"裂星一念",kind:"神技",quality:"地",tier:"上阶",unlock:18,description:"消耗大量灵力，造成高额精神伤害",multiplier:3.2,spiritCost:80},
+  {id:"god3",name:"断潮天问",kind:"神技",quality:"天",tier:"下阶",unlock:30,description:"消耗大量灵力，概率封灵并造成巨额伤害",multiplier:4.2,spiritCost:160},
+  {id:"god4",name:"归墟照影",kind:"神技",quality:"天",tier:"中阶",unlock:42,description:"消耗巨量灵力，低血量时伤害提升",multiplier:5.5,spiritCost:300}
+];
+
+CONFIG.moreSkills.forEach(skill=>{
+  if(!CONFIG.skills.some(item=>item.id===skill.id)){
+    CONFIG.skills.push(skill);
+  }
+});
+CONFIG.vip=[
+  {level:0,need:0,bonus:0,bag:0,store:0,dungeon:0,alchemy:0,forge:0},
+  {level:1,need:30,bonus:.02,bag:10,store:10,dungeon:0,alchemy:.005,forge:.005},
+  {level:2,need:128,bonus:.035,bag:20,store:20,dungeon:1,alchemy:.01,forge:.01},
+  {level:3,need:328,bonus:.05,bag:35,store:35,dungeon:1,alchemy:.015,forge:.015},
+  {level:4,need:648,bonus:.065,bag:50,store:50,dungeon:1,alchemy:.02,forge:.02},
+  {level:5,need:1280,bonus:.08,bag:70,store:80,dungeon:2,alchemy:.025,forge:.025},
+  {level:6,need:2000,bonus:.095,bag:90,store:110,dungeon:2,alchemy:.03,forge:.03},
+  {level:7,need:3000,bonus:.11,bag:120,store:150,dungeon:2,alchemy:.035,forge:.035},
+  {level:8,need:5000,bonus:.125,bag:150,store:190,dungeon:3,alchemy:.04,forge:.04},
+  {level:9,need:8000,bonus:.14,bag:190,store:240,dungeon:3,alchemy:.045,forge:.045},
+  {level:10,need:12000,bonus:.155,bag:240,store:300,dungeon:3,alchemy:.05,forge:.05},
+  {level:11,need:18000,bonus:.17,bag:300,store:370,dungeon:4,alchemy:.055,forge:.055},
+  {level:12,need:26000,bonus:.185,bag:370,store:450,dungeon:4,alchemy:.06,forge:.06},
+  {level:13,need:38000,bonus:.20,bag:450,store:540,dungeon:4,alchemy:.065,forge:.065},
+  {level:14,need:52000,bonus:.22,bag:540,store:650,dungeon:5,alchemy:.07,forge:.07},
+  {level:15,need:70000,bonus:.25,bag:660,store:800,dungeon:5,alchemy:.08,forge:.08}
+];
+
+CONFIG.activities=[
+  {id:"newbie",name:"新手礼包",type:"gift",mailTemplate:"mail_newbie",once:true},
+  {id:"beta",name:"内测礼包",type:"gift",mailTemplate:"mail_beta",once:true},
+  {id:"first6",name:"首充礼包 6 仙缘",type:"first",cost:6,mailTemplate:"mail_first6",once:true},
+  {id:"first30",name:"30 仙缘礼包",type:"first",cost:30,mailTemplate:"mail_first30",once:true}
+];
+
+CONFIG.cumulativeTiers=[6,30,68,128,328,648,1280,3000,5000,10000];
+
+CONFIG.mailTemplates={
+  mail_newbie:{
+    title:"新手礼包已送达",
+    body:"初入尘途，先收下这份新手物资。本奖励通过邮件发放。",
+    attachment:{coin:6000,items:[["回春丹",8],["普通生命晶石",10],["破碎仙缘箱",1],["低级装备箱",1],["新手套装箱",1]]}
+  },
+  mail_beta:{
+    title:"内测礼包已送达",
+    body:"感谢参与公益内测。本游戏无真实充值入口，所有仙缘均由玩法掉落。",
+    attachment:{yuanbao:388,items:[["普通仙缘箱",1],["随机灵石",3],["照夜指残页",5]]}
+  },
+  mail_first6:{
+    title:"首充礼包 6 仙缘奖励",
+    body:"你已使用游戏内掉落仙缘激活首充礼包 6 仙缘档。本游戏无真实充值入口。",
+    attachment:{yuanbao:600,coin:5000,items:[["优秀仙缘箱",1],["凝血丹",2]]}
+  },
+  mail_first30:{
+    title:"30 仙缘礼包奖励",
+    body:"你已使用游戏内掉落仙缘激活 30 仙缘礼包。本游戏无真实充值入口。",
+    attachment:{yuanbao:3000,items:[["精良仙缘箱",1],["低级装备箱",2],["双倍修行丹",1]]}
+  },
+  mail_test:{
+    title:"兑换码测试礼包已送达",
+    body:"TEST666 全资源测试礼包已投递。请从附件领取，领取动作会写入本地流水。",
+    attachment:{
+      coin:999999,
+      yuanbao:99999,
+      xianyuan:9999,
+      cult:99999,
+      systemPoint:999,
+      items:[
+        ["神话仙缘箱",3],["传说仙缘箱",3],["卓越仙缘箱",5],["普通生命晶石",30],
+        ["随机灵石",50],["低级装备箱",20],["锻造石",200],["回春丹",50],["续命丹",20],
+        ["双倍修行丹",10],["三倍修行丹",5],["筑基破境丹",5],["金丹破境丹",5],
+        ["元婴破境丹",3],["裂纹陶炉",1],["玄纹丹炉",1]
+      ]
+    }
+  },
+  mail_month_buy:{
+    title:"月卡即时奖励",
+    body:"月卡已由游戏内仙缘激活，无真实充值。即时 3000 元宝请领取。",
+    attachment:{yuanbao:3000}
+  },
+  mail_month_daily:{
+    title:"月卡每日奖励",
+    body:"今日月卡元宝已送达。",
+    attachment:{yuanbao:300}
+  },
+  mail_vip:{
+    title:"VIP 等级礼包",
+    body:"VIP 礼包通过邮件发放。公益服特权偏便利，不制造不可追赶断层。",
+    attachment:{yuanbao:500,items:[["普通仙缘箱",1]]}
+  },
+  mail_cumulative:{
+    title:"仙缘累充奖励",
+    body:"仙缘累充达标。提醒：仙缘来自游戏掉落，不可交易、提现或现实货币兑换。",
+    attachment:{yuanbao:888,items:[["优秀仙缘箱",1],["随机材料包",2]]}
+  },
+  mail_fund_base:{
+    title:"成长基金基础档奖励",
+    body:"大境界成长基金基础档奖励已送达。",
+    attachment:{coin:5000,yuanbao:200,items:[["回春丹",3]]}
+  },
+  mail_fund_advanced:{
+    title:"成长基金进阶档奖励",
+    body:"成长基金进阶档奖励已送达。进阶档由 98 仙缘激活，无真实充值。",
+    attachment:{coin:12000,yuanbao:1200,items:[["优秀仙缘箱",1],["随机灵石",5]]}
+  },
+  mail_rush:{
+    title:"冲级活动奖励",
+    body:"每三个小境界可领取一次的冲级奖励已送达。",
+    attachment:{coin:3000,yuanbao:150,items:[["破碎仙缘箱",1]]}
+  },
+  mail_system_exchange:{
+    title:"系统商城兑换奖励",
+    body:"系统点商城兑换奖励已送达。限时或活动类兑换统一通过邮件发放。",
+    attachment:{items:[["普通仙缘箱",1]]}
+  }
+};
+
+function createDefaultState(){
+  return {
+    version:3,
+    tab:"主页",
+    activityTab:"礼包",
+    bagTab:"全部",
+    skillTab:"功法",
+    running:false,
+    hideLog:false,
+    autoHeal:true,
+    autoHealPct:35,
+    currentMonsterHp:null,
+    currentMonsterMaxHp:0,
+    buffs:{cultMultiplier2Until:0,cultMultiplier3Until:0},
+    player:{
+      name:"无名道友",
+      realm:0,
+      subRealm:0,
+      cultivation:0,
+      life:100,
+      lifeMax:100,
+      lifespan:90,
+      lifespanMax:90,
+      attrs:{力量:12,精神:12,灵力:20,耐力:10,抗性:8,速度:10},
+      points:0,
+      root:null,
+      dying:false
+    },
+    resources:{coin:0,yuanbao:0,xianyuan:0,systemPoint:0},
+    progress:{
+      map:0,
+      zone:0,
+      kills:[0,0,0],
+      clearedZones:{},
+      bossKilled:[],
+      recentXianyuan:[],
+      dailyXianyuan:0,
+      lastDay:new Date().toDateString()
+    },
+    equipped:Object.fromEntries(CONFIG.equipSlots.map(slot=>[slot,null])),
+    bag:[],
+    store:[],
+    alchemy:{furnace:null,failCompensation:0},
+    skills:{owned:["mind1"],equipped:[],proficiency:{},activeMind:null},
+    mails:[],
+    logs:["<span class='cyan'>欢迎来到《转世之修仙系统》：公益文字修仙，无真实充值入口。</span>"],
+    useLogs:[],
+    activity:{
+      claimed:{},
+      codes:{},
+      cumulativeClaimed:{},
+      growthFundAdvancedActive:false,
+      growthFundBaseClaimed:{},
+      growthFundAdvancedClaimed:{},
+      rushClaimed:{}
+    },
+    vip:{level:0,exp:0,cumulative:0,claimed:{},daily:null},
+    month:{active:false,start:0,lastDaily:null},
+    system:{path:null,tasks:[],shopBought:{}},
+    dungeon:{used:{},running:null},
+    flow:[]
+  };
+}
+
+let STATE=loadState();
+
+function loadState(){
+  const base=createDefaultState();
+  try{
+    const saved=JSON.parse(localStorage.getItem("zs_xxxt_save"));
+    if(!saved)return base;
+
+    if(!saved.resources&&saved.res)saved.resources=saved.res;
+
+    if(!saved.player&&saved.p){
+      saved.player={
+        name:saved.p.name||base.player.name,
+        realm:saved.p.realm||0,
+        subRealm:saved.p.sub??0,
+        cultivation:saved.p.cult||0,
+        life:saved.p.life||100,
+        lifeMax:saved.p.lifeMax||100,
+        lifespan:saved.p.age||90,
+        lifespanMax:saved.p.ageMax||90,
+        attrs:saved.p.attrs||base.player.attrs,
+        points:saved.p.points||0,
+        root:saved.p.root||null,
+        dying:!!saved.p.dying
+      };
+    }
+
+    if(!saved.progress&&saved.prog){
+      saved.progress={
+        map:saved.prog.map||0,
+        zone:saved.prog.zone||0,
+        kills:saved.prog.kills||[0,0,0],
+        clearedZones:saved.prog.cleared||{},
+        bossKilled:[],
+        recentXianyuan:saved.prog.recent||[],
+        dailyXianyuan:saved.prog.dailyXY||0,
+        lastDay:saved.prog.lastDay||new Date().toDateString()
+      };
+    }
+
+    if(!saved.equipped&&saved.eq)saved.equipped=saved.eq;
+    if(!saved.bag)saved.bag=[];
+    if(!saved.store)saved.store=[];
+    if(!saved.mails)saved.mails=[];
+    if(!saved.logs)saved.logs=base.logs;
+    if(!saved.useLogs)saved.useLogs=[];
+    if(!saved.buffs)saved.buffs=base.buffs;
+    if(!saved.alchemy)saved.alchemy=base.alchemy;
+    if(!saved.activity)saved.activity=base.activity;
+    if(!saved.vip)saved.vip=base.vip;
+    if(!saved.month)saved.month=base.month;
+    if(!saved.system)saved.system=base.system;
+    if(!saved.dungeon)saved.dungeon=base.dungeon;
+    if(!saved.flow)saved.flow=[];
+    if(saved.skills&&saved.skills.equipped&&saved.skills.equipped.length===1&&saved.skills.equipped[0]==="sk1"&&!saved.skills.manualSkillFixed){
+      saved.skills.equipped=[];
+      saved.skills.manualSkillFixed=true;
+    }
+
+    return mergeState(base,saved);
+  }catch(error){
+    console.error("读取存档失败，已使用新存档：",error);
+    return base;
+  }
+}
+
+function mergeState(base,saved){
+  if(Array.isArray(base))return Array.isArray(saved)?saved:base;
+  if(base&&typeof base==="object"){
+    const output={...base};
+    Object.keys(saved||{}).forEach(key=>{
+      output[key]=mergeState(base[key],saved[key]);
+    });
+    return output;
+  }
+  return saved===undefined?base:saved;
+}
+
+function saveState(){
+  localStorage.setItem("zs_xxxt_save",JSON.stringify(STATE));
+}
+
+function pushLog(text){
+  STATE.logs.unshift(text);
+  STATE.logs=STATE.logs.slice(0,180);
+  saveState();
+}
+
+function pushUseLog(text){
+  STATE.useLogs.unshift(new Date().toLocaleTimeString()+" ｜ "+text);
+  STATE.useLogs=STATE.useLogs.slice(0,80);
+  saveState();
+}
+
+function pushFlow(type,data){
+  STATE.flow.unshift({id:uid("flow"),time:now(),type,data});
+  STATE.flow=STATE.flow.slice(0,400);
+}
+
+function currentRealmTitle(){
+  return `${CONFIG.realms[STATE.player.realm]}${CONFIG.subRealms[STATE.player.subRealm]}`;
+}
+
+function cultivationNeed(realm=STATE.player.realm,subRealm=STATE.player.subRealm){
+  return Math.floor(CONFIG.realmConfigs[realm].needBase*Math.pow(1.32,subRealm));
+}
+
+function getCultivationMultiplier(){
+  const time=now();
+  let multiplier=1;
+  if(STATE.buffs.cultMultiplier2Until>time) multiplier=Math.max(multiplier,2);
+  if(STATE.buffs.cultMultiplier3Until>time) multiplier=Math.max(multiplier,3);
+  if(STATE.system.path==="苦修") multiplier*=1.35;
+  multiplier*=1+(STATE.system.cultShopBonus||0);
+  return multiplier;
+}
+
+function totalAttrs(){
+  const attrs={
+    生命:STATE.player.lifeMax,
+    力量:STATE.player.attrs.力量,
+    精神:STATE.player.attrs.精神,
+    灵力:STATE.player.attrs.灵力,
+    耐力:STATE.player.attrs.耐力,
+    抗性:STATE.player.attrs.抗性,
+    速度:STATE.player.attrs.速度
+  };
+  Object.values(STATE.equipped).filter(Boolean).forEach(equip=>{
+    for(const key in equip.attrs) attrs[key]=(attrs[key]||0)+equip.attrs[key];
+  });
+  const vipConfig=CONFIG.vip[STATE.vip.level]||CONFIG.vip[0];
+  const monthBonus = STATE.month.active ? .02 : 0;
+  for(const key in attrs) attrs[key]=Math.floor(attrs[key]*(1+(vipConfig.bonus||0)+monthBonus));
+  return attrs;
+}
+
+function weightedPick(values,weights){
+  let total=weights.reduce((sum,value)=>sum+value,0);
+  let roll=Math.random()*total;
+  for(let index=0;index<values.length;index++){
+    roll-=weights[index];
+    if(roll<=0)return values[index];
+  }
+  return values[0];
+}
+
+function guessItemType(name){
+  if(name.includes("仙缘箱"))return "仙缘箱";
+  if(name.includes("丹"))return "丹药";
+  if(name.includes("灵石"))return "灵石";
+  if(name.includes("生命晶石"))return "道具";
+  if(name.includes("炉"))return "炼丹炉";
+  if(name.includes("材料")||CONFIG.materials.some(material=>material.name===name))return "材料";
+  if(name.includes("装备箱"))return "礼包";
+  if(name.includes("残页"))return "功法残页";
+  return "道具";
+}
+
+function addItem(name,count=1,type=guessItemType(name),extra={}){
+  const stack=STATE.bag.find(item=>item.name===name&&item.type===type&&!item.unique);
+  if(stack) stack.count+=count;
+  else STATE.bag.push({id:uid("item"),name,count,type,...extra});
+}
+
+function cleanBag(){
+  STATE.bag=STATE.bag.filter(item=>item.count>0);
+}
+
+function gainXianyuan(amount,source){
+  const today=new Date().toDateString();
+  if(STATE.progress.lastDay!==today){
+    STATE.progress.dailyXianyuan=0;
+    STATE.progress.lastDay=today;
+  }
+  STATE.resources.xianyuan+=amount;
+  STATE.progress.dailyXianyuan+=amount;
+  STATE.progress.recentXianyuan.unshift(`+${amount} 仙缘：${source}`);
+  STATE.progress.recentXianyuan=STATE.progress.recentXianyuan.slice(0,8);
+  pushFlow("xianyuan_gain",{amount,source});
+  if(amount>=648){
+    pushLog(`<span class="crit">系统公告：${STATE.player.name} 获得 ${amount} 仙缘！仙缘仅由游戏内玩法掉落。</span>`);
+  }
+}
+
+function gainReward(attachment,source="未知"){
+  if(!attachment)return true;
+  if(attachment.coin) STATE.resources.coin+=attachment.coin;
+  if(attachment.yuanbao) STATE.resources.yuanbao+=attachment.yuanbao;
+  if(attachment.xianyuan) gainXianyuan(attachment.xianyuan,source);
+  if(attachment.cult) STATE.player.cultivation+=attachment.cult;
+  if(attachment.systemPoint) STATE.resources.systemPoint+=attachment.systemPoint;
+  if(attachment.items) attachment.items.forEach(([name,count])=>addItem(name,count,guessItemType(name)));
+  pushFlow("reward_claim",{source,attachment});
+  saveState();
+  return true;
+}
+
+function sendMail(templateId,source="system",extraAttachment=null){
+  const template=CONFIG.mailTemplates[templateId];
+  if(!template)return;
+  const attachment=extraAttachment||JSON.parse(JSON.stringify(template.attachment||{}));
+  STATE.mails.unshift({
+    id:uid("mail"),
+    title:template.title,
+    body:template.body,
+    from:"天道系统",
+    created:now(),
+    expire:now()+1000*86400*30,
+    read:false,
+    claimed:false,
+    type:source,
+    source,
+    attachment
+  });
+  pushFlow("mail_send",{templateId,source,attachment});
+  pushLog(`<span class="gold">系统邮件：</span>${template.title}`);
+  saveState();
+}
+
+function claimMail(mailId){
+  const mail=STATE.mails.find(item=>item.id===mailId);
+  if(!mail||mail.claimed)return;
+  mail.read=true;
+  gainReward(mail.attachment,"邮件:"+mail.title);
+  mail.claimed=true;
+  pushFlow("mail_claim",{mailId,title:mail.title});
+  pushLog(`<span class="good">领取邮件附件：</span>${mail.title}`);
+  saveState();
+  render();
+}
+
+function claimAllMail(){
+  STATE.mails.filter(mail=>!mail.claimed&&mail.expire>now()).forEach(mail=>{
+    mail.read=true;
+    gainReward(mail.attachment,"邮件:"+mail.title);
+    mail.claimed=true;
+    pushFlow("mail_claim",{mailId:mail.id,title:mail.title});
+  });
+  pushLog(`<span class="good">已一键领取全部可领取邮件附件。</span>`);
+  saveState();
+  render();
+}
+
+function createEquip(realm=STATE.player.realm,slot=pick(CONFIG.equipSlots),identified=true){
+  const qualityIndex=weightedPick([0,1,2,3,4,5,6],[360,300,180,90,40,12,3]);
+  const gradeIndex=weightedPick([0,1,2],[60,30,10]);
+  const quality=CONFIG.qualities[qualityIndex];
+  const grade=CONFIG.grades[gradeIndex];
+  const base=10+realm*15;
+  const isAttack=["武器","项链","手镯1","手镯2"].includes(slot);
+  const isDefense=["头盔","上身","下装","护臂"].includes(slot);
+  const isSpeed=slot==="鞋";
+  const attrs={};
+  const multiplier=quality.multiplier*grade.multiplier;
+  if(isAttack){
+    attrs.力量=Math.floor(base*multiplier*rnd(8,13)/10);
+    attrs.精神=Math.floor(base*multiplier*rnd(5,10)/10);
+  }else if(isDefense){
+    attrs.耐力=Math.floor(base*multiplier*rnd(8,13)/10);
+    attrs.抗性=Math.floor(base*multiplier*rnd(5,10)/10);
+    attrs.生命=Math.floor(base*multiplier*8);
+  }else if(isSpeed){
+    attrs.速度=Math.max(1,Math.floor((2+realm)*multiplier));
+  }else{
+    attrs.灵力=Math.floor(base*multiplier*2);
+    attrs.生命=Math.floor(base*multiplier*5);
+  }
+  const blue=chance(.035+qualityIndex*.008)?pick(CONFIG.blueEffects):null;
+  return {
+    id:uid("equip"),
+    name:`${pick(["碎星","寒碑","青烬","澜影","玄垣","照夜","晦明"])}${slot}`,
+    slot,
+    realm,
+    quality:qualityIndex,
+    grade:gradeIndex,
+    attrs,
+    blue,
+    identified
+  };
+}
+function createNoviceEquip(slot){
+  const attrs={};
+  if(["武器","项链","手镯1","手镯2"].includes(slot)){
+    attrs.力量=18;
+    attrs.精神=12;
+  }else if(["头盔","上身","下装","护臂"].includes(slot)){
+    attrs.生命=90;
+    attrs.耐力=12;
+    attrs.抗性=8;
+  }else if(slot==="鞋"){
+    attrs.速度=4;
+    attrs.生命=40;
+  }else{
+    attrs.生命=60;
+    attrs.灵力=20;
+  }
+  return {
+    id:uid("equip"),
+    name:"安尘新手"+slot,
+    slot,
+    realm:0,
+    quality:2,
+    grade:1,
+    attrs,
+    blue:null,
+    identified:true,
+    novice:true
+  };
+}
+
+function openNoviceSuitBox(item){
+  item.count--;
+  CONFIG.equipSlots.forEach(slot=>{
+    const equip=createNoviceEquip(slot);
+    if(!STATE.equipped[slot]){
+      STATE.equipped[slot]=equip;
+    }else{
+      STATE.store.push(equip);
+    }
+  });
+  pushUseLog("开启新手套装箱，获得安尘新手套装。已自动穿戴空槽位。");
+  pushLog("<span class='good'>新手套装已装备，炼气期生存能力大幅提升。</span>");
+}
+
+function equipScore(equip){
+  return (equip.quality+1)*1000+(equip.grade+1)*180+Object.values(equip.attrs).reduce((a,b)=>a+b,0)+equip.realm*120+(equip.blue?500:0);
+}
+
+function currentMonster(isBoss=false){
+  const mapIndex=STATE.progress.map;
+  const zoneIndex=STATE.progress.zone;
+  const base=30*Math.pow(2.05,mapIndex)*(1+zoneIndex*.22)*(isBoss?5.5:1);
+  return {
+    name:isBoss?CONFIG.maps[mapIndex].boss:CONFIG.monsterNames[(mapIndex*3+zoneIndex)%CONFIG.monsterNames.length],
+    hp:Math.floor(base*8),
+    atk:Math.floor(base*.9),
+    def:Math.floor(base*.32),
+    res:Math.floor(base*.24),
+    speed:Math.floor(8+mapIndex*3+zoneIndex+(isBoss?8:0)),
+    boss:isBoss
+  };
+}
+
+function battle(isBoss=false){
+  const attrs=totalAttrs();
+  const monster=currentMonster(isBoss);
+  if(!STATE.currentMonsterHp||STATE.currentMonsterHp<=0||isBoss){
+    STATE.currentMonsterHp=monster.hp;
+    STATE.currentMonsterMaxHp=monster.hp;
+  }
+  let playerHp=STATE.player.life;
+  let monsterHp=STATE.currentMonsterHp;
+  let round=0;
+  let battleLogs=[];
+  let playerShield=0;
+  let monsterSeal=0;
+  let monsterBurn=0;
+  const blueEffects=Object.values(STATE.equipped).filter(Boolean).map(equip=>equip.blue).filter(Boolean);
+
+  if(blueEffects.some(effect=>effect.type==="shield")){
+    playerShield+=Math.floor(attrs.生命*.12);
+    battleLogs.push(`<span class="blue">蓝字·覆潮灵膜：开局护盾 ${playerShield}</span>`);
+  }
+  if(blueEffects.some(effect=>effect.type==="speed")) attrs.速度+=8;
+
+  while(playerHp>0&&monsterHp>0&&round<20){
+    round++;
+    if(monsterBurn>0){
+      const burnDamage=Math.floor(attrs.精神*.18);
+      monsterHp-=burnDamage;
+      monsterBurn--;
+      battleLogs.push(`第${round}回合：灼烧造成 ${burnDamage} 伤害。`);
+    }
+
+    const playerAttack=()=>{
+      const skillId=STATE.skills.equipped.length?STATE.skills.equipped[0]:null;
+const skill=skillId?CONFIG.skills.find(item=>item.id===skillId):null;
+let damage;
+let attackName="体术攻击";
+
+if(skill){
+  const spiritCost=skill.kind==="神技" ? (skill.spiritCost||100) : 0;
+  const currentSpirit=STATE.player.currentSpirit ?? attrs.灵力;
+
+  if(spiritCost>0&&currentSpirit<spiritCost){
+    damage=Math.max(1,Math.floor(attrs.力量*.9-monster.def*.35));
+    battleLogs.push(`<span class="warn">灵力不足，神技释放失败，改用体术攻击。</span>`);
+  }else{
+    if(spiritCost>0){
+      STATE.player.currentSpirit=currentSpirit-spiritCost;
+    }
+    STATE.skills.proficiency[skillId]=(STATE.skills.proficiency[skillId]||0)+1;
+    const proficiencyBonus=Math.min(.35,(STATE.skills.proficiency[skillId]||0)/1200);
+    damage=Math.max(1,Math.floor((attrs.力量*.7+attrs.精神*.55)*((skill.multiplier||1)+proficiencyBonus)-monster.def*.45));
+    attackName=skill.name;
+  }
+}else{
+  damage=Math.max(1,Math.floor(attrs.力量*.9-monster.def*.35));
+}
+
+      if(chance(.08+attrs.速度/1200)){
+        damage=Math.floor(damage*1.8);
+        battleLogs.push(`<span class="crit">暴击！</span>`);
+      }
+
+      monsterHp-=damage;
+      battleLogs.push(attackName==="体术攻击"
+  ? `第${round}回合：你以体术攻击 ${monster.name}，造成 ${damage} 伤害。`
+  : `第${round}回合：你施展 ${attackName}，对 ${monster.name} 造成 ${damage} 伤害。`
+);
+
+      if(STATE.player.root&&chance(.08)){
+        const root=pick(STATE.player.root);
+        if(root.type==="burn"){
+          monsterBurn=2;
+          battleLogs.push(`<span class="blue">${root.name}灵根触发：灼烧。</span>`);
+        }
+        if(root.type==="heal"){
+          const heal=Math.floor(attrs.生命*.04);
+          playerHp=Math.min(STATE.player.lifeMax,playerHp+heal);
+          battleLogs.push(`<span class="good">${root.name}灵根触发：回血 ${heal}。</span>`);
+        }
+        if(root.type==="shield"){
+          playerShield+=Math.floor(attrs.生命*.06);
+          battleLogs.push(`<span class="blue">${root.name}灵根触发：护盾。</span>`);
+        }
+        if(root.type==="stun"&&chance(.45)){
+          monsterSeal=1;
+          battleLogs.push(`<span class="crit">${root.name}灵根触发：麻痹敌人。</span>`);
+        }
+      }
+
+      if(blueEffects.some(effect=>effect.type==="combo")&&chance(.08)){
+        const comboDamage=Math.floor(damage*.45);
+        monsterHp-=comboDamage;
+        battleLogs.push(`<span class="blue">蓝字·双影回刃：追加 ${comboDamage}</span>`);
+      }
+      if(blueEffects.some(effect=>effect.type==="heal")&&chance(.12)){
+        const heal=Math.floor(attrs.生命*.03);
+        playerHp=Math.min(STATE.player.lifeMax,playerHp+heal);
+        battleLogs.push(`<span class="good">蓝字回血 ${heal}</span>`);
+      }
+    };
+
+    const monsterAttack=()=>{
+      if(monsterSeal>0){
+        monsterSeal--;
+        battleLogs.push(`<span class="blue">${monster.name} 被封灵，行动失败。</span>`);
+        return;
+      }
+      let damage=Math.max(1,Math.floor(monster.atk-attrs.耐力*.35-attrs.抗性*.18));
+      if(isBoss&&round>8){
+        damage=Math.floor(damage*1.35);
+        battleLogs.push(`<span class="bad">Boss 狂暴！</span>`);
+      }
+      if(playerShield>0){
+        const blocked=Math.min(playerShield,damage);
+        playerShield-=blocked;
+        damage-=blocked;
+      }
+      playerHp-=damage;
+      battleLogs.push(`第${round}回合：${monster.name} 反击，造成 ${damage} 伤害。`);
+      if(blueEffects.some(effect=>effect.type==="thorns")&&chance(.1)){
+        const thornsDamage=Math.floor(damage*.4);
+        monsterHp-=thornsDamage;
+        battleLogs.push(`<span class="blue">蓝字反伤 ${thornsDamage}</span>`);
+      }
+    };
+
+    if(attrs.速度>=monster.speed){
+      playerAttack();
+      if(monsterHp>0)monsterAttack();
+    }else{
+      monsterAttack();
+      if(playerHp>0)playerAttack();
+    }
+  }
+
+  STATE.player.life=Math.max(0,playerHp);
+  STATE.currentMonsterHp=Math.max(0,monsterHp);
+  const win=monsterHp<=0;
+
+  if(win){
+    STATE.currentMonsterHp=null;
+    rewardBattle(isBoss);
+    battleLogs.push(`<span class="good">战斗胜利。</span>`);
+  }else if(playerHp<=0){
+    STATE.player.lifespan-=isBoss?2:1;
+    if(STATE.player.lifespan<=0){
+      STATE.player.dying=true;
+      battleLogs.push(`<span class="bad">寿命归零，进入濒死/轮回待定状态。</span>`);
+    }else{
+      battleLogs.push(`<span class="bad">战斗失败，寿命受损。</span>`);
+    }
+  }
+
+  if(!STATE.hideLog) battleLogs.reverse().forEach(pushLog);
+  tryBreakthrough(false);
+  saveState();
+}
+
+function rewardBattle(isBoss){
+  const mapIndex=STATE.progress.map;
+  const zoneIndex=STATE.progress.zone;
+  const monthMultiplier=STATE.month.active?1.5:1;
+  const cultivationMultiplier=getCultivationMultiplier();
+  const cultivation=Math.floor((8+mapIndex*22+zoneIndex*6)*(isBoss?5:1)*monthMultiplier*cultivationMultiplier);
+  const coin=Math.floor((30+mapIndex*55+zoneIndex*15)*(isBoss?12:1)*monthMultiplier);
+
+  STATE.player.cultivation+=cultivation;
+  STATE.resources.coin+=coin;
+
+  if(!isBoss){
+    STATE.progress.kills[zoneIndex]++;
+    if(STATE.progress.kills[zoneIndex]>=30) STATE.progress.clearedZones[`${mapIndex}_${zoneIndex}`]=true;
+    if(chance(.22*(STATE.month.active?2:1))) STATE.store.push(createEquip(mapIndex));
+  }else{
+    STATE.store.push(createEquip(mapIndex,pick(CONFIG.equipSlots),true));
+  }
+
+  if(chance(isBoss ? .95 : .45)){
+    const material=pick(CONFIG.materials.filter(item=>item.realm<=mapIndex+1));
+    addItem(material.name,isBoss?rnd(2,5):1,"材料");
+  }
+
+ if(chance(isBoss ? .12 : .012)){
+    const amount=weightedPick(CONFIG.xianyuanTiers,CONFIG.xianyuanWeights.map((weight,index)=>isBoss&&index>3?weight*1.15:weight));
+    gainXianyuan(amount,isBoss?"Boss 掉落":"挂机掉落");
+  }
+
+  if(chance(isBoss ? .08 : .003)){
+    const boxIndex=Math.min(6,weightedPick([0,1,2,3,4,5,6],[420,250,140,70,30,8,2])+(isBoss?1:0));
+    addItem(CONFIG.xianyuanBoxes[boxIndex].name,1,"仙缘箱");
+  }
+
+  if(isBoss){
+    STATE.progress.bossKilled.push(STATE.progress.map);
+    STATE.progress.clearedZones[`${STATE.progress.map}_boss`]=true;
+    if(STATE.progress.map<CONFIG.maps.length-1){
+      STATE.progress.map++;
+      STATE.progress.zone=0;
+      STATE.progress.kills=[0,0,0];
+      STATE.currentMonsterHp=null;
+      pushLog(`<span class="crit">你踏入新的试炼地图：${CONFIG.maps[STATE.progress.map].name}</span>`);
+    }
+  }
+}
+
+function tick(){
+  if(!STATE.running||STATE.player.dying)return;
+  if(STATE.autoHeal&&STATE.player.life/STATE.player.lifeMax*100<STATE.autoHealPct){
+    const crystal=STATE.bag.find(item=>item.name.includes("生命晶石")&&item.count>0);
+    if(crystal){
+      crystal.count--;
+      STATE.player.life=Math.min(STATE.player.lifeMax,STATE.player.life+Math.floor(STATE.player.lifeMax*.45));
+      pushUseLog("自动消耗生命晶石恢复生命");
+      pushLog(`<span class="good">自动消耗生命晶石恢复生命。</span>`);
+    }
+  }
+  battle(false);
+   if(STATE.tab==="背包"){
+    return;
+  }
+  if(["INPUT","TEXTAREA","SELECT"].includes(document.activeElement?.tagName)){
+    return;
+  }
+  safeRender();
+}
+setInterval(tick,3200);
+setInterval(()=>{
+  STATE.player.lifespan=Math.max(0,STATE.player.lifespan-.002);
+  if(STATE.player.lifespan<=0) STATE.player.dying=true;
+  saveState();
+},10000);
+
+function tryBreakthrough(manual=true){
+  let need=cultivationNeed();
+  while(STATE.player.cultivation>=need&&STATE.player.subRealm<11){
+    STATE.player.cultivation-=need;
+    STATE.player.subRealm++;
+    STATE.player.points+=3+STATE.player.realm;
+    STATE.player.lifeMax+=10+STATE.player.realm*4;
+    STATE.player.life=STATE.player.lifeMax;
+    STATE.player.lifespanMax+=2;
+    STATE.player.lifespan+=2;
+    pushLog(`<span class="gold">突破成功：${currentRealmTitle()}，获得属性点。</span>`);
+
+    if(STATE.player.realm===1&&!STATE.player.root){
+      const count=weightedPick([1,2,3,4],[15,35,35,15]);
+      STATE.player.root=[...CONFIG.spiritRoots].sort(()=>Math.random()-.5).slice(0,count);
+      pushLog(`<span class="cyan">筑基灵根显现：${STATE.player.root.map(item=>item.name).join("、")}</span>`);
+    }
+    need=cultivationNeed();
+  }
+
+  if(manual&&STATE.player.subRealm>=11){
+    const nextRealm=CONFIG.realms[STATE.player.realm+1];
+    if(!nextRealm)return alert("已至当前版本最高境界。");
+    const pillName=nextRealm+"破境丹";
+    const pill=STATE.bag.find(item=>item.name===pillName&&item.count>0);
+    if(!pill)return alert("大圆满突破需要："+pillName);
+    pill.count--;
+
+   let probability=.48+STATE.player.attrs.精神/1000+(STATE.player.root?.length===1 ? .08 : 0);
+    const furnace=CONFIG.alchemyFurnaces.find(item=>item.name===STATE.alchemy.furnace);
+    if(furnace) probability+=furnace.successBonus*.2;
+
+    if(chance(probability)){
+      STATE.player.realm++;
+      STATE.player.subRealm=0;
+      STATE.player.points+=10+STATE.player.realm*3;
+      STATE.player.lifespanMax+=CONFIG.realmConfigs[STATE.player.realm].lifeBonus;
+      STATE.player.lifespan=STATE.player.lifespanMax;
+      STATE.player.lifeMax+=80+STATE.player.realm*30;
+      STATE.player.life=STATE.player.lifeMax;
+      pushLog(`<span class="crit">大境界突破成功：${currentRealmTitle()}！</span>`);
+    }else{
+      STATE.player.subRealm=Math.max(0,STATE.player.subRealm-2);
+      pushLog(`<span class="bad">突破失败，跌落两个小境界。</span>`);
+    }
+  }
+    cleanBag();
+  saveState();
+  if(manual){
+    render();
+  }
+}
+
+function openXianyuanBox(item){
+  const box=CONFIG.xianyuanBoxes.find(box=>item.name===box.name);
+  if(!box)return;
+  item.count--;
+  const weights=CONFIG.xianyuanWeights.map((weight,index)=>weight*(1+index*box.bonus));
+  const amount=weightedPick(CONFIG.xianyuanTiers,weights);
+  gainXianyuan(amount,item.name);
+  pushUseLog(`开启 ${item.name}，获得 ${amount} 仙缘`);
+  pushLog(`<span class="gold">开启 ${item.name}，获得 ${amount} 仙缘。</span>`);
+    cleanBag();
+  saveState();
+  safeRender();
+}
+
+function useItem(item){
+  if(!item)return;
+  if(item.type==="仙缘箱") return openXianyuanBox(item);
+if(item.name==="新手套装箱") {
+  openNoviceSuitBox(item);
+    cleanBag();
+  saveState();
+  safeRender();
+  return;
+}
+
+  if(item.name.includes("装备箱")){
+    item.count--;
+    STATE.store.push(createEquip(STATE.player.realm));
+    pushUseLog("开启装备箱，装备进入储物戒");
+  }else if(item.name.includes("灵石")){
+    item.count--;
+    const cultivation=120*(STATE.player.realm+1);
+    STATE.player.cultivation+=cultivation;
+    pushUseLog(`使用灵石，获得修为 ${cultivation}`);
+  }else if(item.name==="双倍修行丹"){
+    item.count--;
+    STATE.buffs.cultMultiplier2Until=now()+30*60*1000;
+    pushUseLog("使用双倍修行丹，修为获取效率 ×2，持续半小时");
+  }else if(item.name==="三倍修行丹"){
+    item.count--;
+    STATE.buffs.cultMultiplier3Until=now()+30*60*1000;
+    pushUseLog("使用三倍修行丹，修为获取效率 ×3，持续半小时");
+  }else if(item.name.includes("回春")||item.name.includes("凝血")){
+    item.count--;
+    const heal=Math.floor(STATE.player.lifeMax*.35);
+    STATE.player.life=Math.min(STATE.player.lifeMax,STATE.player.life+heal);
+    pushUseLog(`服用 ${item.name}，恢复生命 ${heal}`);
+  }else if(item.name.includes("续命")){
+    item.count--;
+    STATE.player.lifespan+=10;
+    STATE.player.lifespanMax+=10;
+    pushUseLog("服用续命丹，寿命 +10");
+  }else if(item.type==="炼丹炉"){
+    STATE.alchemy.furnace=item.name;
+    pushUseLog(`装备炼丹炉：${item.name}`);
+  }else if(item.name.includes("破境丹")){
+    alert("破境丹在人物页大圆满突破时自动消耗。");
+  }else{
+    alert("该道具暂未开放使用。");
+  }
+    cleanBag();
+  saveState();
+  safeRender();
+}
+
+function bestEquip(){
+  STATE.store.filter(equip=>equip.identified).forEach(equip=>{
+    if(!STATE.equipped[equip.slot]||equipScore(equip)>equipScore(STATE.equipped[equip.slot])){
+      if(STATE.equipped[equip.slot]) STATE.store.push(STATE.equipped[equip.slot]);
+      STATE.equipped[equip.slot]=equip;
+      STATE.store=STATE.store.filter(item=>item.id!==equip.id);
+    }
+  });
+  saveState();
+  render();
+}
+
+function identifyAll(){
+  STATE.store.forEach(equip=>equip.identified=true);
+  pushLog("已鉴定储物戒内全部装备。");
+  saveState();
+  render();
+}
+
+function dismantle(qualityLimit=1){
+  let count=0;
+  STATE.store=STATE.store.filter(equip=>{
+    if(!equip.identified||equip.quality>qualityLimit)return true;
+    count++;
+    STATE.resources.coin+=50*(equip.realm+1);
+    addItem("锻造石",1+equip.quality,"材料");
+    return false;
+  });
+  pushLog(`分解装备 ${count} 件，未鉴定装备自动跳过。`);
+  saveState();
+  render();
+}
+
+function getForgeCost(slot){
+  const realm=STATE.player.realm;
+  const materialPool=CONFIG.materials.filter(material=>material.realm<=realm+1);
+  const mainMaterial=materialPool.length?materialPool[(realm+slot.length)%materialPool.length]:CONFIG.materials[0];
+  const secondMaterial=materialPool.length?materialPool[(realm*3+slot.length)%materialPool.length]:CONFIG.materials[1];
+  return {
+    coin:500*(realm+1),
+    materials:[
+      {name:mainMaterial.name,count:2+realm},
+      {name:secondMaterial.name,count:1+Math.floor(realm/2)},
+      {name:"锻造石",count:2+realm}
+    ]
+  };
+}
+
+function hasForgeCost(cost){
+  if(STATE.resources.coin<cost.coin)return false;
+  return cost.materials.every(costItem=>{
+    const bagItem=STATE.bag.find(item=>item.name===costItem.name&&item.count>=costItem.count);
+    return !!bagItem;
+  });
+}
+
+function consumeForgeCost(cost){
+  STATE.resources.coin-=cost.coin;
+  cost.materials.forEach(costItem=>{
+    const bagItem=STATE.bag.find(item=>item.name===costItem.name);
+    if(bagItem)bagItem.count-=costItem.count;
+  });
+  cleanBag();
+}
+
+function forge(){
+  const slot=document.getElementById("forgeSlot")?.value||"武器";
+  const cost=getForgeCost(slot);
+  if(!hasForgeCost(cost)){
+    alert("锻造材料不足。请查看锻造页显示的材料需求。");
+    return;
+  }
+
+  consumeForgeCost(cost);
+
+  const vipBonus=CONFIG.vip[STATE.vip.level]?.forge||0;
+  const probability=.62+(STATE.system.path==="炼器" ? .18 : 0)+vipBonus+(STATE.system.forgeShopBonus||0);
+
+  if(chance(probability)){
+    const equip=createEquip(STATE.player.realm,slot,false);
+    STATE.store.push(equip);
+    pushLog(`<span class="good">锻造成功：${equip.name}，已进入储物戒待鉴定。</span>`);
+  }else{
+    let returnRate=STATE.month.active ? .6 : 0;
+    if(returnRate){
+      STATE.resources.coin+=Math.floor(cost.coin*returnRate);
+      cost.materials.forEach(costItem=>{
+        addItem(costItem.name,Math.floor(costItem.count*returnRate),guessItemType(costItem.name));
+      });
+    }
+    pushLog(`<span class="bad">锻造失败。${returnRate?"月卡返还 60% 资源。":""}</span>`);
+  }
+
+  saveState();
+  render();
+}
+
+function alchemy(){
+  const pillName=$("#pillSelect")?.value||"回春丹";
+  const pillConfig=CONFIG.pills.find(item=>item.name===pillName);
+  const cost=Math.floor((pillConfig?.baseCost||200)*(1+STATE.player.realm*.25));
+  if(STATE.resources.coin<cost)return alert("铜币不足。");
+  STATE.resources.coin-=cost;
+
+  const furnace=CONFIG.alchemyFurnaces.find(item=>item.name===STATE.alchemy.furnace);
+  const vipBonus=CONFIG.vip[STATE.vip.level]?.alchemy||0;
+  let probability=pillName.includes("破境") ? .45 : .68;
+  probability += STATE.system.path === "炼丹" ? .15 : 0;
+  probability+=furnace?furnace.successBonus:0;
+  probability+=vipBonus+(STATE.system.alchemyShopBonus||0);
+  probability+=Math.min(.15,STATE.alchemy.failCompensation);
+
+  if(chance(probability)){
+    addItem(pillName,1,"丹药");
+    STATE.alchemy.failCompensation=Math.max(0,STATE.alchemy.failCompensation-.04);
+    pushLog(`<span class="good">炼丹成功：${pillName}</span>`);
+  }else{
+    STATE.alchemy.failCompensation+=.03;
+    let returnRate = STATE.month.active ? .6 : 0;
+    if(furnace) returnRate=Math.max(returnRate,furnace.materialReturn);
+    if(returnRate) STATE.resources.coin+=Math.floor(cost*returnRate);
+    pushLog(`<span class="bad">炼丹失败。${returnRate?`返还 ${Math.round(returnRate*100)}% 铜币。`:""}</span>`);
+  }
+  saveState();
+  render();
+}
+
+function activateXianyuanTier(amount){
+  if(STATE.resources.xianyuan<amount)return alert("仙缘不足。仙缘只能通过挂机、Boss、副本、活动掉落获得。");
+  STATE.resources.xianyuan-=amount;
+  STATE.resources.yuanbao+=amount*100;
+  STATE.vip.exp+=amount;
+  STATE.vip.cumulative+=amount;
+  pushFlow("xianyuan_spend",{amount,usage:"模拟充值档位"});
+  pushLog(`<span class="crit">${STATE.player.name} 使用游戏内仙缘激活 ${amount} 档位！本游戏无真实充值入口。</span>`);
+  updateVip();
+  saveState();
+  render();
+}
+
+function updateVip(){
+  const oldLevel=STATE.vip.level;
+  CONFIG.vip.forEach(vip=>{if(STATE.vip.exp>=vip.need)STATE.vip.level=vip.level;});
+  if(STATE.vip.level>oldLevel){
+    sendMail("mail_vip","vip_upgrade",{yuanbao:500*STATE.vip.level,items:[["普通仙缘箱",STATE.vip.level]]});
+  }
+}
+
+function claimActivity(activityId){
+  const activity=CONFIG.activities.find(item=>item.id===activityId);
+  if(!activity)return;
+  if(activity.once&&STATE.activity.claimed[activityId])return alert("已领取。");
+  if(activity.cost){
+    if(STATE.resources.xianyuan<activity.cost)return alert("仙缘不足。这里没有真实充值入口，请通过玩法掉落获得仙缘。");
+    STATE.resources.xianyuan-=activity.cost;
+    STATE.vip.exp+=activity.cost;
+    STATE.vip.cumulative+=activity.cost;
+    updateVip();
+    pushFlow("xianyuan_spend",{amount:activity.cost,usage:activity.name});
+  }
+  STATE.activity.claimed[activityId]=true;
+  sendMail(activity.mailTemplate,"activity:"+activityId);
+  pushFlow("activity_claim",{activityId});
+  saveState();
+  render();
+}
+
+function redeemCode(){
+  const code=($("#codeInput").value||"").trim().toUpperCase();
+  if(code!=="TEST666")return alert("兑换码不存在。");
+  if(STATE.activity.codes[code])return alert("该角色已兑换。");
+  STATE.activity.codes[code]=true;
+  sendMail("mail_test","code:"+code);
+  pushFlow("code_claim",{code});
+  saveState();
+  render();
+}
+
+function buyMonthCard(){
+  if(STATE.resources.xianyuan<30)return alert("仙缘不足，月卡只能用游戏内掉落仙缘激活。");
+  STATE.resources.xianyuan-=30;
+  STATE.month.active=true;
+  STATE.month.start=now();
+  STATE.vip.exp+=30;
+  STATE.vip.cumulative+=30;
+  updateVip();
+  sendMail("mail_month_buy","month_card");
+  pushFlow("xianyuan_spend",{amount:30,usage:"月卡"});
+  saveState();
+  render();
+}
+
+function claimMonthDaily(){
+  const today=new Date().toDateString();
+  if(!STATE.month.active)return alert("未激活月卡。");
+  if(STATE.month.lastDaily===today)return alert("今日已领取。");
+  STATE.month.lastDaily=today;
+  sendMail("mail_month_daily","month_daily");
+  saveState();
+  render();
+}
+
+function claimCumulative(amount){
+  if(STATE.vip.cumulative<amount)return alert("仙缘累充未达标。");
+  if(STATE.activity.cumulativeClaimed[amount])return alert("已领取。");
+  STATE.activity.cumulativeClaimed[amount]=true;
+  sendMail("mail_cumulative","cumulative:"+amount,{yuanbao:amount*10,items:[["优秀仙缘箱",Math.max(1,Math.floor(amount/328))],["随机材料包",2]]});
+  saveState();
+  render();
+}
+
+function activateGrowthFundAdvanced(){
+  if(STATE.activity.growthFundAdvancedActive)return alert("进阶档已激活。");
+  if(STATE.resources.xianyuan<98)return alert("仙缘不足。进阶档需要 98 仙缘。");
+  STATE.resources.xianyuan-=98;
+  STATE.activity.growthFundAdvancedActive=true;
+  STATE.vip.exp+=98;
+  STATE.vip.cumulative+=98;
+  updateVip();
+  pushFlow("xianyuan_spend",{amount:98,usage:"成长基金进阶档"});
+  pushLog(`<span class="gold">成长基金进阶档已激活，所有奖励仍通过邮件领取。</span>`);
+  saveState();
+  render();
+}
+
+function claimGrowthFund(kind,realmIndex){
+  if(STATE.player.realm<realmIndex)return alert("尚未达到该大境界。");
+  if(kind==="advanced"&&!STATE.activity.growthFundAdvancedActive)return alert("请先激活进阶档。");
+  const claimedMap=kind==="base"?STATE.activity.growthFundBaseClaimed:STATE.activity.growthFundAdvancedClaimed;
+  if(claimedMap[realmIndex])return alert("已领取。");
+  claimedMap[realmIndex]=true;
+  const templateId=kind==="base"?"mail_fund_base":"mail_fund_advanced";
+  const multiplier=realmIndex+1;
+  sendMail(templateId,`growth_fund:${kind}:${realmIndex}`,{
+    coin:(kind==="base"?5000:12000)*multiplier,
+    yuanbao:(kind==="base"?200:1200)*multiplier,
+    items:[[kind==="base"?"普通仙缘箱":"优秀仙缘箱",1],["随机灵石",Math.max(1,realmIndex+1)]]
+  });
+  saveState();
+  render();
+}
+
+function claimRushReward(totalSubRealm){
+  const currentTotal=STATE.player.realm*12+STATE.player.subRealm+1;
+  if(currentTotal<totalSubRealm)return alert("小境界未达到。");
+  if(STATE.activity.rushClaimed[totalSubRealm])return alert("已领取。");
+  STATE.activity.rushClaimed[totalSubRealm]=true;
+  sendMail("mail_rush","rush:"+totalSubRealm,{
+    coin:3000*totalSubRealm,
+    yuanbao:150*totalSubRealm,
+    items:[["破碎仙缘箱",1+Math.floor(totalSubRealm/12)],["回春丹",2]]
+  });
+  saveState();
+  render();
+}
+
+function chooseSystemPath(path){
+  if(STATE.system.path)return;
+  STATE.system.path=path;
+  refreshSystemTasks();
+  pushLog(`你选择了系统道路：${path}`);
+  saveState();
+  render();
+}
+
+function refreshSystemTasks(){
+  const path=STATE.system.path||"苦修";
+  STATE.system.tasks=[
+    {
+      id:uid("task"),
+      name:path==="炼丹"?"炼制任意丹药 1 次":path==="炼器"?"锻造任意装备 1 次":"击败任意怪物 10 只",
+      state:"可领取",
+      reward:{systemPoint:20,coin:1000}
+    },
+    {
+      id:uid("task"),
+      name:"公益宣言确认：仙缘不充值",
+      state:"可领取",
+      reward:{systemPoint:10,items:[["破碎仙缘箱",1]]}
+    }
+  ];
+}
+function getSystemShopGoods(){
+  const path=STATE.system.path||"苦修";
+  const common=[
+    {id:"sys_xy_box",name:"普通仙缘箱",cost:80,type:"mail",attachment:{items:[["普通仙缘箱",1]]}},
+    {id:"sys_life_crystal",name:"普通生命晶石×5",cost:25,type:"direct",reward:{items:[["普通生命晶石",5]]}},
+    {id:"sys_coin_pack",name:"铜币袋",cost:20,type:"direct",reward:{coin:5000*(STATE.player.realm+1)}}
+  ];
+  if(path==="炼丹"){
+    return common.concat([
+      {id:"alchemy_rate_1",name:"炼丹心得：成功率永久 +1%",cost:120,type:"permanent",field:"alchemyShopBonus",value:.01},
+      {id:"herb_box_30",name:"随机天材地宝×30",cost:90,type:"direct",reward:{items:[["随机材料包",30]]}},
+      {id:"formula_page",name:"丹方残页×10",cost:60,type:"direct",reward:{items:[["丹方残页",10]]}}
+    ]);
+  }
+  if(path==="炼器"){
+    return common.concat([
+      {id:"forge_rate_1",name:"炼器心得：成功率永久 +1%",cost:120,type:"permanent",field:"forgeShopBonus",value:.01},
+      {id:"forge_stone_lot",name:"锻造石刮刮乐",cost:70,type:"direct",reward:{items:[["锻造石",rnd(20,80)]]}},
+      {id:"identify_pack",name:"鉴定符×20",cost:45,type:"direct",reward:{items:[["鉴定符",20]]}}
+    ]);
+  }
+  return common.concat([
+    {id:"cult_rate_1",name:"苦修心得：修为获取永久 +2%",cost:150,type:"permanent",field:"cultShopBonus",value:.02},
+    {id:"spirit_stone_30",name:"随机灵石×30",cost:90,type:"direct",reward:{items:[["随机灵石",30]]}},
+    {id:"double_cult",name:"双倍修行丹×2",cost:70,type:"direct",reward:{items:[["双倍修行丹",2]]}}
+  ]);
+}
+
+function buySystemShopGood(goodId){
+  const goods=getSystemShopGoods();
+  const good=goods.find(item=>item.id===goodId);
+  if(!good)return;
+  if(STATE.resources.systemPoint<good.cost)return alert("系统点不足。");
+  const boughtKey=STATE.system.path+"_"+good.id;
+  if(good.type==="permanent"&&STATE.system.shopBought[boughtKey])return alert("该永久加成已兑换。");
+
+  STATE.resources.systemPoint-=good.cost;
+
+  if(good.type==="mail"){
+    sendMail("mail_system_exchange","system_shop:"+good.id,good.attachment);
+  }else if(good.type==="direct"){
+    gainReward(good.reward,"系统点商城:"+good.name);
+    pushLog(`<span class="good">系统点商城兑换：${good.name}</span>`);
+  }else if(good.type==="permanent"){
+    STATE.system.shopBought[boughtKey]=true;
+    STATE.system[good.field]=(STATE.system[good.field]||0)+good.value;
+    pushLog(`<span class="gold">永久加成生效：${good.name}</span>`);
+  }
+
+  pushFlow("system_shop_buy",{goodId,cost:good.cost,path:STATE.system.path});
+  saveState();
+  render();
+}
+
+function claimSystemTask(taskId){
+  const task=STATE.system.tasks.find(item=>item.id===taskId);
+  if(!task||task.state==="已完成")return;
+  gainReward(task.reward,"系统任务");
+  task.state="已完成";
+  pushLog(`完成系统任务：${task.name}`);
+  saveState();
+  render();
+}
+
+function runDungeon(type){
+  const today=new Date().toDateString();
+  const key=today+"_"+type;
+  if(STATE.dungeon.used[key])return alert("今日该副本次数已用。");
+  STATE.dungeon.used[key]=true;
+  const reward={coin:2000*(STATE.player.realm+1),cult:600*(STATE.player.realm+1),items:[[type+"宝箱",1]]};
+  if(type.includes("仙缘")) reward.items.push(["普通仙缘箱",1]);
+  if(type.includes("活动")) sendMail("mail_cumulative","dungeon_activity",reward);
+  else gainReward(reward,"副本:"+type);
+  pushLog(`完成十分钟${type}副本的快速结算。`);
+  saveState();
+  render();
+}
+
+function addPoint(attr){
+  if(STATE.player.points<=0)return;
+  STATE.player.points--;
+  STATE.player.attrs[attr]++;
+  if(attr==="耐力"||attr==="抗性") STATE.player.lifeMax+=2;
+  saveState();
+  render();
+}
+
+function buyShopItem(name,price,type="道具",count=1){
+  if(STATE.resources.yuanbao<price)return alert("元宝不足。");
+  STATE.resources.yuanbao-=price;
+  addItem(name,count,type);
+  pushUseLog(`商城购买：${name} ×${count}`);
+  pushFlow("shop_buy",{name,price,type,count});
+  saveState();
+  render();
+}
+
+function attachmentText(attachment){
+  if(!attachment)return"无";
+  const list=[];
+  if(attachment.coin)list.push("铜币×"+fmt(attachment.coin));
+  if(attachment.yuanbao)list.push("元宝×"+fmt(attachment.yuanbao));
+  if(attachment.xianyuan)list.push("仙缘×"+fmt(attachment.xianyuan));
+  if(attachment.cult)list.push("修为×"+fmt(attachment.cult));
+  if(attachment.systemPoint)list.push("系统点×"+fmt(attachment.systemPoint));
+  if(attachment.items)list.push(...attachment.items.map(item=>item[0]+"×"+item[1]));
+  return list.join("，");
+}
+
+function equipHtml(equip){
+  return `<div>
+    <b class="${CONFIG.qualities[equip.quality].className}">${equip.name}</b>
+    <span>${CONFIG.qualities[equip.quality].name}·${CONFIG.grades[equip.grade].name}</span><br>
+    <span class="muted">${CONFIG.realms[equip.realm]} · ${equip.identified?"已鉴定":"未鉴定"}</span><br>
+    ${Object.entries(equip.attrs).map(([key,value])=>`${key}+${fmt(value)}`).join("，")}<br>
+    ${equip.blue?`<span class="blue">蓝字：${equip.blue.name}，${equip.blue.description}</span>`:""}
+  </div>`;
+}
+
+const mainTabs=["主页","装备","人物","背包","功法","活动","副本","系统","储物戒","锻造","炼丹","商城","聊天","充值","VIP","宗门","日常","邮件"];
+
+function safeRender(){
+  const activeElement=document.activeElement;
+  const activeId=activeElement&&activeElement.id;
+  const activeTag=activeElement&&activeElement.tagName;
+  const activeValue=activeElement&&(activeTag==="INPUT"||activeTag==="TEXTAREA"||activeTag==="SELECT")?activeElement.value:null;
+  const selectionStart=activeElement&&activeElement.selectionStart;
+  const selectionEnd=activeElement&&activeElement.selectionEnd;
+  const scrollX=window.scrollX;
+  const scrollY=window.scrollY;
+  const bagList=document.getElementById("bagItemList");
+  const bagLog=document.getElementById("bagUseLog");
+  const bagListScroll=bagList?bagList.scrollTop:0;
+  const bagLogScroll=bagLog?bagLog.scrollTop:0;
+
+  render();
+
+  if(activeId){
+    const next=document.getElementById(activeId);
+    if(next){
+      if(activeValue!==null)next.value=activeValue;
+      next.focus();
+      if(typeof selectionStart==="number"&&typeof selectionEnd==="number"&&next.setSelectionRange){
+        next.setSelectionRange(selectionStart,selectionEnd);
+      }
+    }
+  }
+
+  const nextBagList=document.getElementById("bagItemList");
+  const nextBagLog=document.getElementById("bagUseLog");
+  if(nextBagList)nextBagList.scrollTop=bagListScroll;
+  if(nextBagLog)nextBagLog.scrollTop=bagLogScroll;
+  window.scrollTo(scrollX,scrollY);
+}
+function render(){
+  const unread=STATE.mails.filter(mail=>!mail.read).length;
+  const unclaimed=STATE.mails.filter(mail=>!mail.claimed).length;
+  $("#app").innerHTML=`
+  <div class="top">
+    <div>
+      <div class="title">转世之修仙系统</div>
+      <div class="notice">本游戏为公益文字修仙游戏，无真实充值入口。所有仙缘均由挂机、Boss、副本、活动掉落获得，不支持交易、提现或现实货币兑换。</div>
+    </div>
+    <div>
+      <span class="badge">境界：${currentRealmTitle()}</span>
+      <span class="badge">仙缘：${fmt(STATE.resources.xianyuan)}</span>
+      <span class="badge">元宝：${fmt(STATE.resources.yuanbao)}</span>
+      <span class="badge">铜币：${fmt(STATE.resources.coin)}</span>
+      <span class="badge ${unread?'mail-unread':''}">邮件：${unread}/${unclaimed}</span>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="nav">
+      ${mainTabs.map(tab=>`<button class="${STATE.tab===tab?'active':''}" onclick="STATE.tab='${tab}';saveState();render()">${tab}${tab==="邮件"&&unclaimed?" ●":""}</button>`).join("")}
+      <hr>
+      <button onclick="saveState()">保存</button>
+      <button onclick="if(confirm('确定重置？')){localStorage.removeItem('zs_xxxt_save');location.reload()}">重置存档</button>
+    </div>
+    <div class="main">${renderPage(STATE.tab)}</div>
+  </div>`;
+}
+
+function renderPage(tab){
+  const pages={
+    "主页":renderHome,
+    "装备":renderEquipPage,
+    "人物":renderPerson,
+    "背包":renderBag,
+    "功法":renderSkills,
+    "活动":renderActivities,
+    "副本":renderDungeons,
+    "系统":renderSystem,
+    "储物戒":renderStore,
+    "锻造":renderForge,
+    "炼丹":renderAlchemy,
+    "商城":renderShop,
+    "聊天":renderChat,
+    "充值":renderRecharge,
+    "VIP":renderVip,
+    "宗门":renderSect,
+    "日常":renderDaily,
+    "邮件":renderMails
+  };
+  return (pages[tab]||renderHome)();
+}
+
+function renderHome(){
+  const map=CONFIG.maps[STATE.progress.map];
+  const monster=currentMonster(false);
+  const monsterHp=STATE.currentMonsterHp||monster.hp;
+  const monsterMax=STATE.currentMonsterMaxHp||monster.hp;
+  const nextReady=STATE.progress.kills[STATE.progress.zone]>=30&&STATE.progress.zone<2;
+  const bossReady=STATE.progress.zone===2&&STATE.progress.kills[2]>=30;
+  const attrs=totalAttrs();
+  const need=cultivationNeed();
+
+  return `<div class="panel">
+    <h2>主页 · 挂机试炼</h2>
+    <div class="cards">
+      <div class="card">
+        <h3>当前位置</h3>
+        <div class="kv">
+          <b>大地图</b><span>${map.name}</span>
+          <b>小地图</b><span>${map.zones[STATE.progress.zone]}</span>
+          <b>击杀进度</b><span>${STATE.progress.kills[STATE.progress.zone]}/30</span>
+          <b>Boss</b><span>${map.boss}</span>
+        </div>
+        <hr>
+        <div class="row">
+          ${map.zones.map((zone,index)=>{
+            const cleared=STATE.progress.clearedZones[`${STATE.progress.map}_${index}`];
+            const canSelect=index<=STATE.progress.zone||cleared;
+            return `<button ${canSelect?"":"disabled"} class="${STATE.progress.zone===index?'active':''}" onclick="STATE.progress.zone=${index};STATE.currentMonsterHp=null;saveState();render()">${zone}${cleared?" ✓":""}</button>`;
+          }).join("")}
+        </div>
+        <p class="muted">已通关小地图可随时回去刷材料；未通关层需要按顺序推进。</p>
+      </div>
+
+      <div class="card">
+        <h3>当前怪物</h3>
+        <div class="kv">
+          <b>名称</b><span>${monster.name}</span>
+          <b>生命</b><span>${fmt(monsterHp)} / ${fmt(monsterMax)}</span>
+          <b>攻击</b><span>${fmt(monster.atk)}</span>
+          <b>防御</b><span>${fmt(monster.def)}</span>
+          <b>抗性</b><span>${fmt(monster.res)}</span>
+          <b>速度</b><span>${fmt(monster.speed)}</span>
+        </div>
+        <div class="bar hpbar"><span style="width:${Math.max(0,Math.min(100,monsterHp/monsterMax*100))}%"></span></div>
+      </div>
+
+      <div class="card">
+        <h3>角色状态</h3>
+        <div class="kv">
+          <b>境界</b><span>${currentRealmTitle()}</span>
+          <b>修为</b><span>${fmt(STATE.player.cultivation)} / ${fmt(need)}</span>
+          <b>生命</b><span>${fmt(STATE.player.life)} / ${fmt(STATE.player.lifeMax)}</span>
+          <b>寿命</b><span>${STATE.player.lifespan.toFixed(1)} / ${STATE.player.lifespanMax}</span>
+          <b>速度</b><span>${fmt(attrs.速度)}</span>
+          <b>修行倍率</b><span>${getCultivationMultiplier()}x</span>
+        </div>
+        <div class="bar"><span style="width:${Math.min(100,STATE.player.cultivation/need*100)}%"></span></div>
+      </div>
+
+      <div class="card">
+        <h3>操作</h3>
+        <button onclick="STATE.running=!STATE.running;saveState();render()">${STATE.running?"停止挂机":"开始挂机"}</button>
+        <button onclick="battle(false);render()">手动打一只</button>
+        <button ${nextReady?"":"disabled"} onclick="STATE.progress.zone++;STATE.currentMonsterHp=null;saveState();render()">进入下一层</button>
+        <button ${bossReady?"":"disabled"} onclick="battle(true);render()">Boss 战</button>
+        <label class="row"><input type="checkbox" ${STATE.hideLog?"checked":""} onchange="STATE.hideLog=this.checked;saveState()">隐藏战斗日志</label>
+        <label class="row"><input type="checkbox" ${STATE.autoHeal?"checked":""} onchange="STATE.autoHeal=this.checked;saveState()">低血量自动用生命晶石</label>
+        <div>阈值 <input id="autoHealPctInput" type="number" value="${STATE.autoHealPct}" min="5" max="90" style="width:80px" onchange="STATE.autoHealPct=+this.value;saveState()">%</div>
+      </div>
+
+      <div class="card">
+        <h3>最近仙缘</h3>
+        ${STATE.progress.recentXianyuan.length?STATE.progress.recentXianyuan.map(item=>`<div class="gold">${item}</div>`).join(""):"<span class='muted'>暂无记录</span>"}
+        <hr>
+        <div class="muted">今日仙缘：${fmt(STATE.progress.dailyXianyuan)}，后续联网由服务端校验软上限与异常掉落。</div>
+      </div>
+    </div>
+  </div>
+  <div class="panel"><h3>挂机战斗日志</h3><div class="log">${STATE.logs.join("<br>")}</div></div>`;
+}
+
+function renderEquipPage(){
+  return `<div class="panel">
+    <h2>装备</h2>
+    <button onclick="bestEquip()">一键穿戴最优装备</button>
+    <div class="cards">
+      ${CONFIG.equipSlots.map(slot=>{
+        const equip=STATE.equipped[slot];
+        return `<div class="card"><h3>${slot}</h3>${equip?equipHtml(equip):"<span class='muted'>未穿戴</span>"}</div>`;
+      }).join("")}
+    </div>
+  </div>`;
+}
+
+function renderPerson(){
+  const attrs=totalAttrs();
+  const need=cultivationNeed();
+  return `<div class="panel">
+    <h2>人物</h2>
+    <div class="cards">
+      <div class="card">
+        <h3>修为</h3>
+        <div class="kv">
+          <b>境界</b><span>${currentRealmTitle()}</span>
+          <b>修为进度</b><span>${fmt(STATE.player.cultivation)} / ${fmt(need)}</span>
+          <b>寿命</b><span>${STATE.player.lifespan.toFixed(1)} / ${STATE.player.lifespanMax}</span>
+          <b>属性点</b><span>${STATE.player.points}</span>
+          <b>灵根</b><span>${STATE.player.root?STATE.player.root.map(root=>root.name+"("+root.description+")").join("、"):"筑基后显现"}</span>
+        </div>
+        <button onclick="tryBreakthrough(true)">突破/大境界突破</button>
+      </div>
+      <div class="card">
+        <h3>属性</h3>
+        ${["力量","精神","灵力","耐力","抗性","速度"].map(attr=>`<div class="row"><b>${attr}</b><span>${fmt(attrs[attr])}</span><button onclick="addPoint('${attr}')">加点</button></div>`).join("")}
+      </div>
+      <div class="card">
+        <h3>仙缘与 VIP</h3>
+        <p>仙缘累充：${fmt(STATE.vip.cumulative)}，VIP${STATE.vip.level}</p>
+        <button onclick="STATE.tab='VIP';render()">进入 VIP</button>
+        <button onclick="STATE.tab='活动';STATE.activityTab='仙缘累充';render()">进入累充活动</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderBag(){
+  const bagTabs=["全部","丹药","仙缘箱","灵石","材料","礼包","炼丹炉","道具","功法残页"];
+  const currentTab=STATE.bagTab||"全部";
+  const shownItems=currentTab==="全部"?STATE.bag:STATE.bag.filter(item=>item.type===currentTab);
+
+  return `<div class="panel">
+    <h2>背包</h2>
+    <div class="tabs-note">活动类奖励不会直接进入背包，必须先生成邮件；邮件领取后才入账。</div>
+
+    <div class="subnav">
+      ${bagTabs.map(tab=>`<button class="${currentTab===tab?'active':''}" onclick="STATE.bagTab='${tab}';saveState();safeRender()">${tab}</button>`).join("")}
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <h3>物品 · ${currentTab}</h3>
+        <button onclick="cleanBag();safeRender()">一键整理</button>
+        <div id="bagItemList" class="list">
+          ${shownItems.length?shownItems.map(item=>`<div class="item">
+            <b>${item.name}</b> × ${item.count}
+            <span class="muted">${item.type}</span>
+            <button class="right" onclick="useItem(STATE.bag.find(x=>x.id==='${item.id}'))">使用</button>
+          </div>`).join(""):"该分类暂无物品。"}
+        </div>
+      </div>
+      <div class="card">
+        <h3>使用日志</h3>
+        <div id="bagUseLog" class="small-log">${STATE.useLogs.length?STATE.useLogs.join("<br>"):"<span class='muted'>暂无使用记录</span>"}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderSkills(){
+  const levelIndex=STATE.player.realm*12+STATE.player.subRealm;
+  const skillTabs=["功法","心法","神技"];
+  const currentTab=STATE.skillTab||"功法";
+  const shownSkills=CONFIG.skills.filter(skill=>skill.kind===currentTab);
+
+  return `<div class="panel">
+    <h2>功法</h2>
+    <p class="muted">炼气五层解锁。未装备功法时，战斗使用体术攻击。神技消耗大量灵力。</p>
+    ${levelIndex<4?"<div class='warn'>尚未解锁功法页。</div>":""}
+
+    <div class="subnav">
+      ${skillTabs.map(tab=>`<button class="${currentTab===tab?'active':''}" onclick="STATE.skillTab='${tab}';saveState();safeRender()">${tab}</button>`).join("")}
+    </div>
+
+    <div class="cards">
+      ${shownSkills.map(skill=>{
+        const owned=STATE.skills.owned.includes(skill.id);
+        const equipped=STATE.skills.equipped.includes(skill.id);
+        return `<div class="card">
+          <h3>${skill.name}</h3>
+          <p>${skill.kind} · ${skill.quality}${skill.tier}</p>
+          <p>${skill.description}</p>
+          <p>解锁：总小境界 ${skill.unlock+1}</p>
+          <p>熟练度：${STATE.skills.proficiency[skill.id]||0}</p>
+          ${skill.kind==="神技"?`<p class="gold">灵力消耗：${skill.spiritCost||0}</p>`:""}
+          ${levelIndex>=skill.unlock?`
+            <button onclick="if(!STATE.skills.owned.includes('${skill.id}'))STATE.skills.owned.push('${skill.id}');saveState();safeRender()">${owned?"已学习":"学习"}</button>
+            ${owned&&skill.kind!=="心法"?`<button onclick="STATE.skills.equipped=['${skill.id}'];saveState();safeRender()">${equipped?"已装备":"装备"}</button>`:""}
+            ${owned&&skill.kind==="心法"?`<button onclick="STATE.skills.activeMind='${skill.id}';saveState();safeRender()">${STATE.skills.activeMind===skill.id?"心法生效中":"启用心法"}</button>`:""}
+          `:"<span class='muted'>境界不足</span>"}
+        </div>`;
+      }).join("")}
+    </div>
+  </div>`;
+}
+
+function renderActivities(){
+  const tabs=["礼包","兑换码","首充礼包","仙缘累充","成长基金","冲级活动","Boss 首杀"];
+  return `<div class="panel">
+    <h2>活动</h2>
+    <p class="cyan">所有活动奖励、兑换码、首充、累充、成长基金、VIP、月卡奖励全部通过邮件发放。</p>
+    <div class="subnav">${tabs.map(tab=>`<button class="${STATE.activityTab===tab?'active':''}" onclick="STATE.activityTab='${tab}';saveState();render()">${tab}</button>`).join("")}</div>
+  </div>
+  ${renderActivitySubPage(STATE.activityTab)}`;
+}
+
+function renderActivitySubPage(tab){
+  if(tab==="礼包"){
+    return `<div class="panel"><h3>礼包</h3><div class="cards">
+      <div class="card"><h3>新手礼包</h3><p>基础铜币、低级丹药、仙缘箱、装备箱。</p><button ${STATE.activity.claimed.newbie?"disabled":""} onclick="claimActivity('newbie')">${STATE.activity.claimed.newbie?"已领取":"领取到邮件"}</button></div>
+      <div class="card"><h3>内测礼包</h3><p>元宝、仙缘箱、随机灵石、功法残页。</p><button ${STATE.activity.claimed.beta?"disabled":""} onclick="claimActivity('beta')">${STATE.activity.claimed.beta?"已领取":"领取到邮件"}</button></div>
+    </div></div>`;
+  }
+
+  if(tab==="兑换码"){
+    return `<div class="panel"><h3>兑换码</h3>
+      <input id="codeInput" placeholder="TEST666">
+      <button onclick="redeemCode()">兑换并发送邮件</button>
+      <p class="muted">TEST666 为测试礼包，会给大量铜币、元宝、仙缘、修为、系统点、仙缘箱、丹药、炼丹炉等所有核心资源。</p>
+    </div>`;
+  }
+
+  if(tab==="首充礼包"){
+    return `<div class="panel"><h3>首充礼包</h3><div class="cards">
+      <div class="card"><h3>首充礼包 6 仙缘</h3><p>消耗 6 仙缘激活，奖励通过邮件发放。</p><button ${STATE.activity.claimed.first6?"disabled":""} onclick="claimActivity('first6')">${STATE.activity.claimed.first6?"已激活":"激活并发邮件"}</button></div>
+      <div class="card"><h3>30 仙缘礼包</h3><p>消耗 30 仙缘激活，奖励通过邮件发放。</p><button ${STATE.activity.claimed.first30?"disabled":""} onclick="claimActivity('first30')">${STATE.activity.claimed.first30?"已激活":"激活并发邮件"}</button></div>
+    </div><p class="cyan">本游戏无真实充值入口，仙缘均由游戏内玩法掉落获得。</p></div>`;
+  }
+
+  if(tab==="仙缘累充"){
+    return `<div class="panel"><h3>仙缘累充</h3><div class="cards">
+      ${CONFIG.cumulativeTiers.map(amount=>`<div class="card">
+        <b>${amount} 档</b>
+        <p>当前 ${STATE.vip.cumulative}/${amount}</p>
+        <button ${STATE.activity.cumulativeClaimed[amount]?"disabled":""} onclick="claimCumulative(${amount})">${STATE.activity.cumulativeClaimed[amount]?"已领取":"领取到邮件"}</button>
+      </div>`).join("")}
+    </div></div>`;
+  }
+
+  if(tab==="成长基金"){
+    return `<div class="panel"><h3>成长基金</h3>
+      <p>基础档免费；进阶档消耗 98 仙缘激活。每次升大境界都可以领取对应档位奖励，全部通过邮件发放。</p>
+      <button ${STATE.activity.growthFundAdvancedActive?"disabled":""} onclick="activateGrowthFundAdvanced()">${STATE.activity.growthFundAdvancedActive?"进阶档已激活":"98 仙缘激活进阶档"}</button>
+      <div class="cards">
+        ${CONFIG.realms.map((realm,index)=>`<div class="card">
+          <h3>${realm}</h3>
+          <p>达到 ${realm} 后可领取。</p>
+          <button ${STATE.activity.growthFundBaseClaimed[index]?"disabled":""} onclick="claimGrowthFund('base',${index})">${STATE.activity.growthFundBaseClaimed[index]?"基础档已领取":"领取基础档邮件"}</button>
+          <button ${STATE.activity.growthFundAdvancedClaimed[index]?"disabled":""} onclick="claimGrowthFund('advanced',${index})">${STATE.activity.growthFundAdvancedClaimed[index]?"进阶档已领取":"领取进阶档邮件"}</button>
+        </div>`).join("")}
+      </div>
+    </div>`;
+  }
+
+  if(tab==="冲级活动"){
+    const currentTotal=STATE.player.realm*12+STATE.player.subRealm+1;
+    const tiers=Array.from({length:36},(_,index)=>(index+1)*3);
+    return `<div class="panel"><h3>冲级活动</h3>
+      <p>每三个小境界可领取一次。当前总小境界进度：${currentTotal}</p>
+      <div class="cards">
+        ${tiers.map(tier=>`<div class="card">
+          <h3>总小境界 ${tier}</h3>
+          <p>${currentTotal}/${tier}</p>
+          <button ${STATE.activity.rushClaimed[tier]?"disabled":""} onclick="claimRushReward(${tier})">${STATE.activity.rushClaimed[tier]?"已领取":"领取到邮件"}</button>
+        </div>`).join("")}
+      </div>
+    </div>`;
+  }
+
+  return `<div class="panel"><h3>Boss 首杀</h3><p>第一阶段保留入口。后续联网后由服务端记录全服首杀，并通过邮件发放奖励。</p></div>`;
+}
+
+function renderDungeons(){
+  if(STATE.player.realm<1)return `<div class="panel"><h2>副本</h2><p>筑基期解锁副本。</p></div>`;
+  const dungeons=["锻造石","铜币","灵石","装备","天材地宝","丹药材料","仙缘秘境"];
+  return `<div class="panel">
+    <h2>副本</h2>
+    <p class="muted">第一阶段采用十分钟收益快速结算；活动副本预留邮件发奖。</p>
+    <div class="cards">
+      ${dungeons.map(name=>`<div class="card"><h3>${name}副本</h3><p>每日 1 次，VIP 可增加次数预留。</p><button onclick="runDungeon('${name}')">挑战并结算</button></div>`).join("")}
+    </div>
+  </div>`;
+}
+
+function renderSystem(){
+  if(STATE.player.realm<1||STATE.player.subRealm<4){
+    return `<div class="panel"><h2>系统</h2><p>筑基五层解锁系统页。</p></div>`;
+  }
+
+  if(!STATE.system.path){
+    return `<div class="panel">
+      <h2>天道外挂系统</h2>
+      <p>第一次进入必须选择道路，第一阶段不可更改。</p>
+      <div class="cards">
+        <div class="card"><h3>炼丹道路</h3><p>炼丹成功率提高，任务围绕药材、丹药、丹方。</p><button onclick="chooseSystemPath('炼丹')">选择炼丹</button></div>
+        <div class="card"><h3>苦修道路</h3><p>修为获取提高，但炼丹炼器收益较低。</p><button onclick="chooseSystemPath('苦修')">选择苦修</button></div>
+        <div class="card"><h3>炼器道路</h3><p>锻造成功率提高，任务围绕装备、鉴定、分解。</p><button onclick="chooseSystemPath('炼器')">选择炼器</button></div>
+      </div>
+    </div>`;
+  }
+
+  const goods=getSystemShopGoods();
+  return `<div class="panel">
+    <h2>天道外挂系统</h2>
+    <div class="cards">
+      <div class="card">
+        <h3>系统信息</h3>
+        <div class="kv">
+          <b>当前道路</b><span class="gold">${STATE.system.path}</span>
+          <b>系统点</b><span>${fmt(STATE.resources.systemPoint)}</span>
+          <b>炼丹加成</b><span>${Math.round((STATE.system.alchemyShopBonus||0)*100)}%</span>
+          <b>炼器加成</b><span>${Math.round((STATE.system.forgeShopBonus||0)*100)}%</span>
+          <b>修为加成</b><span>${Math.round((STATE.system.cultShopBonus||0)*100)}%</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>系统说明</h3>
+        <p class="muted">系统点来自系统任务。普通兑换可直接入账；活动/限时/仙缘类兑换通过邮件发放，方便后续服务端防刷。</p>
+        <button onclick="refreshSystemTasks();saveState();render()">刷新任务</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>系统任务</h3>
+      <div class="list">
+        ${STATE.system.tasks.map(task=>`<div class="item">
+          <b>${task.name}</b>
+          <span class="muted">${task.state}</span>
+          <span class="right">奖励：${attachmentText(task.reward)} <button onclick="claimSystemTask('${task.id}')">领取</button></span>
+        </div>`).join("")}
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>系统点商城 · ${STATE.system.path}</h3>
+      <div class="cards">
+        ${goods.map(good=>{
+          const boughtKey=STATE.system.path+"_"+good.id;
+          const bought=good.type==="permanent"&&STATE.system.shopBought[boughtKey];
+          return `<div class="card">
+            <h3>${good.name}</h3>
+            <p>价格：${good.cost} 系统点</p>
+            <p class="muted">${good.type==="mail"?"通过邮件发放":good.type==="permanent"?"永久加成，仅可购买一次":"直接入账"}</p>
+            <button ${bought?"disabled":""} onclick="buySystemShopGood('${good.id}')">${bought?"已兑换":"兑换"}</button>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderStore(){
+  return `<div class="panel">
+    <h2>储物戒</h2>
+    <button onclick="identifyAll()">一键鉴定</button>
+    <select id="dismantleQualitySelect">
+  ${CONFIG.qualities.map((quality,index)=>`<option value="${index}">${quality.name}及以下</option>`).join("")}
+</select>
+<button onclick="dismantle(+document.getElementById('dismantleQualitySelect').value)">按品质分解</button>
+    <div class="list">${STATE.store.length?STATE.store.map(equip=>`<div class="item">${equipHtml(equip)}</div>`).join(""):"储物戒暂无装备。"}</div>
+  </div>`;
+}
+
+function renderForge(){
+  const selectedSlotId="forgeSlot";
+  const slotValue=document.getElementById(selectedSlotId)?.value||"武器";
+  const cost=getForgeCost(slotValue);
+  return `<div class="panel">
+    <h2>锻造</h2>
+    <p>锻造会消耗铜币、锻造石和当前境界附近的天材地宝。成品进入储物戒，默认未鉴定。</p>
+    <div class="cards">
+      <div class="card">
+        <h3>选择装备</h3>
+        <select id="forgeSlot" onchange="safeRender()">
+          ${CONFIG.equipSlots.map(slot=>`<option ${slot===slotValue?"selected":""}>${slot}</option>`).join("")}
+        </select>
+        <button onclick="forge()">开始锻造</button>
+      </div>
+      <div class="card">
+        <h3>材料消耗</h3>
+        <p>铜币：${fmt(cost.coin)}</p>
+        ${cost.materials.map(item=>{
+          const owned=STATE.bag.find(bagItem=>bagItem.name===item.name)?.count||0;
+          return `<p>${item.name}：${owned}/${item.count}</p>`;
+        }).join("")}
+      </div>
+      <div class="card">
+        <h3>说明</h3>
+        <p class="muted">炼器道路、VIP、系统点商城加成会提高成功率。月卡失败返还 60% 资源。</p>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderAlchemy(){
+  const furnace=CONFIG.alchemyFurnaces.find(item=>item.name===STATE.alchemy.furnace);
+  return `<div class="panel">
+    <h2>炼丹</h2>
+    <p>当前炼丹炉：<b class="gold">${STATE.alchemy.furnace||"未装备"}</b>${furnace?`，成功率 +${Math.round(furnace.successBonus*100)}%，失败返还 +${Math.round(furnace.materialReturn*100)}%`:""}</p>
+    <p>当前境界可炼制下一境界突破丹；速度类永久丹药价格与限制最高，避免速度失衡。</p>
+    <select id="pillSelect">${CONFIG.pills.map(pill=>`<option>${pill.name}</option>`).join("")}</select>
+    <button onclick="alchemy()">开始炼丹</button>
+    <p class="muted">连续失败会增加少量失败补偿，成功后补偿降低。</p>
+  </div>`;
+}
+
+function renderShop(){
+  const realmName=CONFIG.realms[STATE.player.realm];
+  const availablePills=CONFIG.pills.filter(pill=>pill.realm<=STATE.player.realm+1);
+  return `<div class="panel">
+    <h2>商城</h2>
+    <p class="cyan">商城无真实充值入口。删除仙缘箱直售；元宝道具仅作为兜底渠道，官方价格高于炼制/产出成本。</p>
+
+    <div class="cards">
+      <div class="card">
+        <h3>月卡</h3>
+        <p>价格：30 仙缘。挂机资源 1.5 倍、装备掉率 2 倍、炼丹炼器失败返还 60%，即时 3000 元宝，每日 300 元宝。</p>
+        <button onclick="buyMonthCard()">仙缘激活月卡</button>
+        <button onclick="claimMonthDaily()">领取每日邮件</button>
+      </div>
+      <div class="card">
+        <h3>修行丹</h3>
+        <p>双倍、三倍修行丹均持续半小时。</p>
+        <button onclick="buyShopItem('双倍修行丹',1800,'丹药')">双倍修行丹 1800 元宝</button>
+        <button onclick="buyShopItem('三倍修行丹',5200,'丹药')">三倍修行丹 5200 元宝</button>
+      </div>
+      <div class="card">
+        <h3>生命晶石</h3>
+        <p>用于主页低血量自动回血。</p>
+        <button onclick="buyShopItem('普通生命晶石',100,'道具')">普通生命晶石 100 元宝</button>
+        <button onclick="buyShopItem('优秀生命晶石',260,'道具')">优秀生命晶石 260 元宝</button>
+        <button onclick="buyShopItem('精良生命晶石',680,'道具')">精良生命晶石 680 元宝</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>境界丹药 · ${realmName}</h3>
+      <div class="row">
+        ${availablePills.map(pill=>{
+          const price=Math.floor(pill.baseCost*1.8*(1+STATE.player.realm*.18));
+          return `<button onclick="buyShopItem('${pill.name}',${price},'丹药')">${pill.name} ${fmt(price)} 元宝</button>`;
+        }).join("")}
+      </div>
+      <p class="muted">商城丹药价格高于炼丹成本，主要给卡关玩家兜底。</p>
+    </div>
+
+    <div class="panel">
+      <h3>炼丹炉</h3>
+      <div class="cards">
+        ${CONFIG.alchemyFurnaces.map(furnace=>`<div class="card">
+          <h3 class="${CONFIG.qualities[furnace.quality].className}">${furnace.name}</h3>
+          <p>品质：${CONFIG.qualities[furnace.quality].name}</p>
+          <p>炼丹成功率 +${Math.round(furnace.successBonus*100)}%，失败返还 +${Math.round(furnace.materialReturn*100)}%</p>
+          <button onclick="buyShopItem('${furnace.name}',${furnace.price},'炼丹炉')">${fmt(furnace.price)} 元宝购买</button>
+        </div>`).join("")}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderRecharge(){
+  return `<div class="panel">
+    <h2>充值 · 仙缘激活</h2>
+    <p class="cyan">本页没有真实充值入口。所有档位均消耗游戏内掉落的仙缘，用于模拟额度、累计仙缘累充、增加 VIP 经验并获得元宝。</p>
+    <div class="cards">
+      ${CONFIG.xianyuanTiers.map(amount=>`<div class="card">
+        <h3>${amount} 仙缘档</h3>
+        <p>消耗 ${amount} 仙缘，获得 ${amount*100} 元宝。</p>
+        <p class="muted">计入 VIP 经验与仙缘累充。</p>
+        <button onclick="activateXianyuanTier(${amount})">仙缘激活</button>
+      </div>`).join("")}
+    </div>
+  </div>`;
+}
+function claimVipLevelReward(level){
+  if(STATE.vip.level<level)return alert("VIP 等级不足。");
+  if(STATE.vip.claimed[level])return alert("该 VIP 奖励已领取。");
+  STATE.vip.claimed[level]=true;
+  sendMail("mail_vip","vip_level:"+level,{
+    yuanbao:500*level,
+    coin:3000*level,
+    items:[
+      ["普通仙缘箱",Math.max(1,Math.floor(level/3))],
+      ["双倍修行丹",1],
+      ["普通生命晶石",level]
+    ]
+  });
+  saveState();
+  render();
+}
+function renderVip(){
+  const next=CONFIG.vip[STATE.vip.level+1];
+  return `<div class="panel">
+    <h2>VIP · 仙缘等级</h2>
+    <p class="cyan">VIP 经验只来自仙缘模拟激活；仙缘只能由游戏内掉落获得。</p>
+    <div class="cards">
+      <div class="card">
+        <h3>当前 VIP${STATE.vip.level}</h3>
+        <p>经验：${STATE.vip.exp}${next?` / ${next.need}`:" 已满"}</p>
+        <p>仙缘累充：${STATE.vip.cumulative}</p>
+        <p>特权：挂机收益轻增益、背包/储物戒容量、副本次数、日志上限、炼丹/炼器小幅加成。</p>
+      </div>
+            <div class="card">
+        <h3>VIP 奖励</h3>
+        <p>每一级 VIP 奖励需要手动领取，奖励通过邮件发放。</p>
+        <button onclick="STATE.tab='充值';render()">前往仙缘激活页</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel">
+  <h3>VIP 配置与等级奖励</h3>
+  <div class="cards">
+    ${CONFIG.vip.filter(vip=>vip.level>0).map(vip=>`<div class="card">
+      <h3>VIP${vip.level}</h3>
+      <p>需要经验：${vip.need}</p>
+      <p>挂机收益 +${Math.round(vip.bonus*100)}%，副本次数 +${vip.dungeon}</p>
+      <p>炼丹 +${Math.round(vip.alchemy*100)}%，炼器 +${Math.round(vip.forge*100)}%</p>
+      <button ${STATE.vip.claimed[vip.level]?"disabled":""} onclick="claimVipLevelReward(${vip.level})">${STATE.vip.claimed[vip.level]?"已领取":"领取 VIP 奖励邮件"}</button>
+    </div>`).join("")}
+  </div>
+</div>
+  </div>`;
+}
+
+function renderMails(){
+  return `<div class="panel">
+    <h2>邮件</h2>
+    <button onclick="claimAllMail()">一键领取全部附件</button>
+    <button onclick="STATE.mails=STATE.mails.filter(mail=>!mail.claimed);saveState();render()">删除已领取邮件</button>
+    <div class="list">
+      ${STATE.mails.length?STATE.mails.map(mail=>`<div class="item">
+        <h3 class="${mail.read?'':'mail-unread'}">${mail.title}</h3>
+        <p>${mail.body}</p>
+        <p class="muted">发件人：${mail.from} | 类型：${mail.type} | ${new Date(mail.created).toLocaleString()}</p>
+        <p>附件：${attachmentText(mail.attachment)}</p>
+        <button ${mail.claimed?"disabled":""} onclick="claimMail('${mail.id}')">${mail.claimed?"已领取":"领取附件"}</button>
+        <button onclick="let mail=STATE.mails.find(item=>item.id==='${mail.id}');mail.read=true;saveState();render()">标记已读</button>
+      </div>`).join(""):"暂无邮件。"}
+    </div>
+  </div>`;
+}
+
+function renderChat(){
+  return `<div class="panel">
+    <h2>聊天</h2>
+    <p>第一阶段 UI 占位。后续通过 WebSocket 实现世界频道、宗门频道、系统频道。</p>
+    <div class="log"><span class="muted">[系统频道] 高额仙缘掉落、Boss 首杀、宗门公告未来会由服务端广播。</span></div>
+  </div>`;
+}
+
+function renderSect(){
+  return `<div class="panel">
+    <h2>宗门</h2>
+    <p>第一阶段占位。后续实现宗门创建、加入、贡献、宗门商店、宗门 Boss。</p>
+  </div>`;
+}
+
+function renderDaily(){
+  return `<div class="panel">
+    <h2>日常</h2>
+    <p>第一阶段占位。后续实现每日任务、周常任务、活跃度奖励。活动类日常奖励仍必须通过邮件发放。</p>
+  </div>`;
+}
+
+render();
+</script>
+</body>
+</html>
