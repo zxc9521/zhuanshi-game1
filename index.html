@@ -82,6 +82,17 @@ hr{border:0;border-top:1px solid var(--line);margin:10px 0}
   z-index:1;
   padding:12px;
 }
+.map-hero .card{
+  background:rgba(18,32,51,.68);
+  border:1px solid rgba(119,230,255,.22);
+  backdrop-filter:blur(6px);
+  box-shadow:0 8px 24px rgba(0,0,0,.22);
+}
+
+.map-hero .card:hover{
+  background:rgba(24,40,65,.78);
+  border-color:rgba(119,230,255,.36);
+}
 .map-title-line{
   display:flex;
   align-items:center;
@@ -119,6 +130,396 @@ hr{border:0;border-top:1px solid var(--line);margin:10px 0}
   color:var(--muted);
   background:#0b101b;
   margin:6px 0 10px;
+}
+.battle-scene{
+  position:relative;
+  height:220px;
+  margin-top:10px;
+  border:1px solid rgba(119,230,255,.22);
+  border-radius:12px;
+  overflow:hidden;
+  background:#080c14;
+  box-shadow:inset 0 0 28px rgba(0,0,0,.45);
+}
+
+.battle-bg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  opacity:.82;
+  filter:saturate(.92) contrast(1.05);
+}
+
+.battle-vignette{
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at center,rgba(0,0,0,0),rgba(0,0,0,.55) 80%),
+    linear-gradient(180deg,rgba(0,0,0,.12),rgba(0,0,0,.45));
+  pointer-events:none;
+}
+
+.battle-unit{
+  position:absolute;
+  bottom:16px;
+  width:34%;
+  height:72%;
+  object-fit:contain;
+  filter:drop-shadow(0 10px 12px rgba(0,0,0,.55));
+  z-index:2;
+}
+
+.battle-player{
+  left:4%;
+}
+
+.battle-monster{
+  right:4%;
+  transform:scaleX(-1);
+}
+
+.battle-fx{
+  position:absolute;
+  width:34%;
+  height:70%;
+  object-fit:contain;
+  left:50%;
+  top:46%;
+  transform:translate(-50%,-50%);
+  z-index:4;
+  opacity:0;
+  pointer-events:none;
+}
+
+.battle-fx.play{
+  animation:battleFxFlash .55s ease-out;
+}
+
+@keyframes battleFxFlash{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.75) rotate(-6deg)}
+  20%{opacity:1}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.25) rotate(4deg)}
+}
+
+.battle-nameplate{
+  position:absolute;
+  z-index:5;
+  top:8px;
+  left:8px;
+  right:8px;
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  font-size:12px;
+}
+
+.battle-name{
+  padding:4px 7px;
+  border:1px solid rgba(64,80,115,.75);
+  border-radius:999px;
+  background:rgba(8,12,20,.68);
+  color:var(--text);
+}
+
+.battle-mini-hp{
+  position:absolute;
+  z-index:5;
+  height:7px;
+  border:1px solid rgba(0,0,0,.5);
+  border-radius:99px;
+  background:rgba(0,0,0,.45);
+  overflow:hidden;
+}
+
+.battle-mini-hp span{
+  display:block;
+  height:100%;
+  background:linear-gradient(90deg,#ff5353,#ffb86c);
+}
+
+.battle-player-hp{
+  left:8px;
+  bottom:8px;
+  width:34%;
+}
+
+.battle-monster-hp{
+  right:8px;
+  bottom:8px;
+  width:34%;
+}
+
+.battle-float-text{
+  position:absolute;
+  z-index:6;
+  left:50%;
+  top:34%;
+  transform:translateX(-50%);
+  color:var(--gold);
+  font-weight:800;
+  text-shadow:0 2px 8px rgba(0,0,0,.8);
+  opacity:0;
+  pointer-events:none;
+}
+
+.battle-float-text.play{
+  animation:battleTextFloat .7s ease-out;
+}
+
+@keyframes battleTextFloat{
+  0%{opacity:0;transform:translate(-50%,10px) scale(.9)}
+  25%{opacity:1}
+  100%{opacity:0;transform:translate(-50%,-24px) scale(1.08)}
+}
+.equip-icon{
+  position:relative;
+  width:72px;
+  height:72px;
+  flex:0 0 auto;
+  display:inline-block;
+  border-radius:10px;
+  background:rgba(5,8,14,.62);
+  box-shadow:inset 0 0 18px rgba(0,0,0,.35),0 4px 12px rgba(0,0,0,.25);
+  overflow:hidden;
+  vertical-align:middle;
+}
+
+.equip-icon.large{
+  width:96px;
+  height:96px;
+}
+
+.equip-layer{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  pointer-events:none;
+}
+
+.equip-layer.material{
+  opacity:.48;
+  mix-blend-mode:screen;
+}
+
+.equip-layer.frame{
+  z-index:3;
+}
+
+.equip-layer.grade{
+  z-index:4;
+}
+
+.equip-layer.fx{
+  z-index:5;
+}
+
+.equip-layer.unidentified{
+  z-index:6;
+}
+
+.equip-line{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.equip-info{
+  min-width:0;
+}
+.equip-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(78px,1fr));
+  gap:10px;
+  align-items:start;
+}
+
+.equip-grid-cell{
+  position:relative;
+  min-height:88px;
+  border:1px solid rgba(64,80,115,.7);
+  border-radius:12px;
+  background:rgba(10,15,26,.72);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px;
+  transition:.15s;
+}
+
+.equip-grid-cell:hover{
+  border-color:rgba(119,230,255,.55);
+  background:rgba(18,32,51,.78);
+  transform:translateY(-1px);
+}
+
+.equip-grid-cell .equip-icon{
+  width:64px;
+  height:64px;
+}
+
+.equip-tooltip{
+  display:none;
+  position:absolute;
+  left:50%;
+top:76px;
+transform:translateX(-50%);
+  z-index:50;
+  width:300px;
+  max-width:80vw;
+  padding:10px;
+  border:1px solid rgba(119,230,255,.38);
+  border-radius:12px;
+  background:rgba(8,12,20,.96);
+  box-shadow:0 12px 30px rgba(0,0,0,.45);
+  pointer-events:none;
+}
+
+.equip-grid-cell:hover .equip-tooltip{
+  display:block;
+}
+
+.equip-tooltip-title{
+  font-weight:800;
+  margin-bottom:6px;
+}
+
+.equip-tooltip-line{
+  font-size:13px;
+  line-height:1.6;
+}
+
+.equip-mobile-mask{
+  position:fixed;
+  inset:0;
+  z-index:100;
+  background:rgba(0,0,0,.58);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:14px;
+}
+
+.equip-mobile-dialog{
+  width:min(420px,96vw);
+  max-height:80vh;
+  overflow:auto;
+  border:1px solid rgba(119,230,255,.38);
+  border-radius:14px;
+  background:rgba(12,18,30,.98);
+  box-shadow:0 16px 42px rgba(0,0,0,.55);
+  padding:12px;
+}
+
+.equip-mobile-actions{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:10px;
+}
+.item-icon{
+  position:relative;
+  width:42px;
+  height:42px;
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:9px;
+  background:rgba(5,8,14,.62);
+  box-shadow:inset 0 0 12px rgba(0,0,0,.35);
+  overflow:hidden;
+  vertical-align:middle;
+}
+
+.item-icon.large{
+  width:64px;
+  height:64px;
+}
+
+.item-icon img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:block;
+}
+
+.item-icon-stack{
+  position:relative;
+  width:42px;
+  height:42px;
+  flex:0 0 auto;
+}
+
+.item-icon-stack.large{
+  width:64px;
+  height:64px;
+}
+
+.item-icon-stack img{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+
+.item-quality-overlay{
+  pointer-events:none;
+  opacity:.85;
+}
+
+.item-line{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+
+.item-line-text{
+  min-width:0;
+  overflow:hidden;
+}
+
+.reward-list{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin:6px 0;
+}
+
+.reward-chip{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:5px 7px;
+  border:1px solid rgba(64,80,115,.7);
+  border-radius:10px;
+  background:rgba(10,15,26,.55);
+}
+
+.resource-icon{
+  width:20px;
+  height:20px;
+  object-fit:contain;
+  vertical-align:middle;
+  margin-right:4px;
+}
+
+.shop-good{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.forge-cost-line{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:6px 0;
 }
 .tabs-note{font-size:13px;color:var(--muted)}
 .mail-unread{color:var(--gold);font-weight:bold}
@@ -204,6 +605,33 @@ CONFIG.maps=[
     "assets/images/maps/wuxiang_jiemen.webp"
   ][index]
 }));
+CONFIG.battleBackgrounds=[
+  "assets/images/battle/backgrounds/battle_wugu_huangyuan.webp",
+  "assets/images/battle/backgrounds/battle_qingjin_shanmai.webp",
+  "assets/images/battle/backgrounds/battle_lanxing_huze.webp",
+  "assets/images/battle/backgrounds/battle_heiyao_gucheng.webp",
+  "assets/images/battle/backgrounds/battle_shuangwen_tianjie.webp",
+  "assets/images/battle/backgrounds/battle_huiming_haiyan.webp",
+  "assets/images/battle/backgrounds/battle_chixiao_liegu.webp",
+  "assets/images/battle/backgrounds/battle_xuanyuan_xingye.webp",
+  "assets/images/battle/backgrounds/battle_wuxiang_jiemen.webp"
+];
+
+CONFIG.battleAssets={
+  playerMale:"assets/images/battle/player/player_male_sword.webp",
+  playerFemale:"assets/images/battle/player/player_female_sword.webp",
+  fx:{
+    slash:"assets/images/battle/fx/slash.webp",
+    magicHit:"assets/images/battle/fx/magic_hit.webp",
+    fireBurst:"assets/images/battle/fx/fire_burst.webp",
+    poisonCloud:"assets/images/battle/fx/poison_cloud.webp",
+    iceShard:"assets/images/battle/fx/ice_shard.webp",
+    thunderHit:"assets/images/battle/fx/thunder_hit.webp",
+    healGlow:"assets/images/battle/fx/heal_glow.webp",
+    shield:"assets/images/battle/fx/shield.webp",
+    criticalFlash:"assets/images/battle/fx/critical_flash.webp"
+  }
+};
 
 CONFIG.monsterNames=[
   "腐灯游魂","裂甲石奴","青鬃食露兽","玄斑毒蛾","抱月纸妖","断角魇鹿",
@@ -238,6 +666,38 @@ CONFIG.bossImages={
 
 CONFIG.equipSlots=["武器","头盔","上身","下装","鞋","护臂","项链","手镯1","手镯2","戒指1","戒指2","戒指3"];
 
+CONFIG.weaponIconStyles=[
+  "weapon_sword",
+  "weapon_blade",
+  "weapon_spear",
+  "weapon_staff",
+  "weapon_ringblade",
+  "weapon_ruler",
+  "weapon_fan"
+];
+
+CONFIG.equipmentIconBase={
+  "武器":"weapon_sword",
+  "头盔":"helmet",
+  "上身":"armor",
+  "下装":"pants",
+  "鞋":"shoes",
+  "护臂":"bracer",
+  "项链":"necklace",
+  "手镯1":"bracelet",
+  "手镯2":"bracelet",
+  "戒指1":"ring",
+  "戒指2":"ring",
+  "戒指3":"ring"
+};
+
+CONFIG.equipmentIconPaths={
+  base:"assets/images/equipment/base/",
+  material:"assets/images/equipment/material/",
+  frame:"assets/images/equipment/frame/",
+  grade:"assets/images/equipment/grade/",
+  fx:"assets/images/equipment/fx/"
+};
 CONFIG.blueEffects=[
   {name:"澄心净焰",description:"回合开始小概率净化一个异常",type:"cleanse"},
   {name:"覆潮灵膜",description:"开局获得护盾",type:"shield"},
@@ -309,6 +769,130 @@ EXTRA_MATERIAL_NAMES.forEach((group,qualityIndex)=>{
     });
   });
 });
+CONFIG.iconPaths={
+  currency:"assets/images/icons/currency/",
+  materials:"assets/images/icons/materials/",
+  materialQuality:"assets/images/icons/materials/quality/",
+  packages:"assets/images/icons/items/packages/",
+  tools:"assets/images/icons/items/tools/",
+  items:"assets/images/icons/items/",
+  xianyuanBoxes:"assets/images/icons/items/xianyuan_boxes/",
+  lifeCrystals:"assets/images/icons/items/life_crystals/",
+  spiritStones:"assets/images/icons/items/spirit_stones/",
+  pills:"assets/images/icons/pills/",
+  furnaces:"assets/images/icons/furnaces/",
+  skillItems:"assets/images/icons/skill_items/",
+  status:"assets/images/icons/status/",
+  ui:"assets/images/icons/ui/"
+};
+
+CONFIG.currencyIcons={
+  coin:CONFIG.iconPaths.currency+"coin.webp",
+  yuanbao:CONFIG.iconPaths.currency+"yuanbao.webp",
+  xianyuan:CONFIG.iconPaths.currency+"xianyuan.webp",
+  systemPoint:CONFIG.iconPaths.currency+"system_point.webp"
+};
+
+CONFIG.itemIconMap={
+  "破碎仙缘箱":CONFIG.iconPaths.xianyuanBoxes+"broken_xianyuan_box.webp",
+  "普通仙缘箱":CONFIG.iconPaths.xianyuanBoxes+"normal_xianyuan_box.webp",
+  "优秀仙缘箱":CONFIG.iconPaths.xianyuanBoxes+"fine_xianyuan_box.webp",
+  "精良仙缘箱":CONFIG.iconPaths.xianyuanBoxes+"rare_xianyuan_box.webp",
+  "卓越仙缘箱":CONFIG.iconPaths.xianyuanBoxes+"epic_xianyuan_box.webp",
+  "传说仙缘箱":CONFIG.iconPaths.xianyuanBoxes+"legend_xianyuan_box.webp",
+  "神话仙缘箱":CONFIG.iconPaths.xianyuanBoxes+"myth_xianyuan_box.webp",
+
+  "破碎生命晶石":CONFIG.iconPaths.lifeCrystals+"broken_life_crystal.webp",
+  "普通生命晶石":CONFIG.iconPaths.lifeCrystals+"normal_life_crystal.webp",
+  "优秀生命晶石":CONFIG.iconPaths.lifeCrystals+"fine_life_crystal.webp",
+  "精良生命晶石":CONFIG.iconPaths.lifeCrystals+"rare_life_crystal.webp",
+  "卓越生命晶石":CONFIG.iconPaths.lifeCrystals+"epic_life_crystal.webp",
+  "传说生命晶石":CONFIG.iconPaths.lifeCrystals+"legend_life_crystal.webp",
+  "神话生命晶石":CONFIG.iconPaths.lifeCrystals+"myth_life_crystal.webp",
+
+  "锻造石":CONFIG.iconPaths.tools+"forge_stone.webp",
+  "鉴定符":CONFIG.iconPaths.tools+"identify_talisman.webp",
+  "背包扩展符":CONFIG.iconPaths.tools+"bag_expand_talisman.webp",
+  "储物戒扩展符":CONFIG.iconPaths.tools+"storage_ring_expand_talisman.webp",
+  "副本挑战券":CONFIG.iconPaths.tools+"dungeon_ticket.webp",
+
+  "普通礼包":CONFIG.iconPaths.packages+"normal_gift_pack.webp",
+  "新手礼包":CONFIG.iconPaths.packages+"newbie_gift_pack.webp",
+  "内测礼包":CONFIG.iconPaths.packages+"beta_gift_pack.webp",
+  "随机材料包":CONFIG.iconPaths.packages+"random_material_pack.webp",
+  "低级材料包":CONFIG.iconPaths.packages+"random_material_pack.webp",
+  "随机灵石":CONFIG.iconPaths.packages+"random_spirit_stone_pack.webp",
+
+  "低级装备箱":CONFIG.iconPaths.packages+"low_equip_box.webp",
+  "未鉴定装备箱":CONFIG.iconPaths.items+"equip_boxes/unidentified_equip_box.webp",
+  "随机装备箱":CONFIG.iconPaths.items+"equip_boxes/random_equip_box.webp",
+  "传说装备箱":CONFIG.iconPaths.items+"equip_boxes/legend_equip_box.webp",
+  "神话装备箱":CONFIG.iconPaths.items+"equip_boxes/myth_equip_box.webp",
+  "中级装备箱":CONFIG.iconPaths.items+"equip_boxes/middle_equip_box.webp",
+  "锻造装备箱":CONFIG.iconPaths.items+"equip_boxes/forge_equip_box.webp",
+  "BOSS装备箱":CONFIG.iconPaths.items+"equip_boxes/boss_equip_box.webp",
+  "高级装备箱":CONFIG.iconPaths.items+"equip_boxes/high_equip_box.webp",
+  "装备宝箱":CONFIG.iconPaths.items+"equip_boxes/random_equip_box.webp",
+  "新手套装箱":CONFIG.iconPaths.packages+"novice_suit_box.webp",
+
+  "回春丹":CONFIG.iconPaths.pills+"huichun_dan.webp",
+  "续命丹":CONFIG.iconPaths.pills+"xuming_dan.webp",
+  "凝血丹":CONFIG.iconPaths.pills+"ningxue_dan.webp",
+  "双倍修行丹":CONFIG.iconPaths.pills+"double_cultivation_dan.webp",
+  "三倍修行丹":CONFIG.iconPaths.pills+"triple_cultivation_dan.webp",
+
+  "筑基破境丹":CONFIG.iconPaths.pills+"breakthrough_dan.webp",
+  "金丹破境丹":CONFIG.iconPaths.pills+"breakthrough_dan.webp",
+  "元婴破境丹":CONFIG.iconPaths.pills+"breakthrough_dan.webp",
+  "化神破境丹":CONFIG.iconPaths.pills+"breakthrough_dan.webp",
+  "炼虚破境丹":CONFIG.iconPaths.pills+"breakthrough_dan.webp",
+  "合体破境丹":CONFIG.iconPaths.pills+"breakthrough_dan.webp",
+  "大乘破境丹":CONFIG.iconPaths.pills+"breakthrough_dan.webp",
+  "渡劫破境丹":CONFIG.iconPaths.pills+"breakthrough_dan.webp",
+
+  "壮骨丹":CONFIG.iconPaths.pills+"attribute_dan.webp",
+  "醒神丹":CONFIG.iconPaths.pills+"attribute_dan.webp",
+  "纳灵丹":CONFIG.iconPaths.pills+"attribute_dan.webp",
+  "固甲丹":CONFIG.iconPaths.pills+"attribute_dan.webp",
+  "清抗丹":CONFIG.iconPaths.pills+"attribute_dan.webp",
+  "轻身丹":CONFIG.iconPaths.pills+"attribute_dan.webp",
+
+  "裂纹陶炉":CONFIG.iconPaths.furnaces+"liewen_taolu.webp",
+  "青铜药炉":CONFIG.iconPaths.furnaces+"qingtong_yaolu.webp",
+  "玄纹丹炉":CONFIG.iconPaths.furnaces+"xuanwen_danlu.webp",
+  "赤霞灵炉":CONFIG.iconPaths.furnaces+"chixia_linglu.webp",
+  "星砂宝炉":CONFIG.iconPaths.furnaces+"xingsha_baolu.webp",
+  "无垢仙炉":CONFIG.iconPaths.furnaces+"wugou_xianlu.webp",
+  "太微神炉":CONFIG.iconPaths.furnaces+"taiwei_shenlu.webp",
+
+  "照夜指残页":CONFIG.iconPaths.skillItems+"skill_page.webp",
+  "功法残卷":CONFIG.iconPaths.skillItems+"skill_page.webp",
+  "心法玉简":CONFIG.iconPaths.skillItems+"mind_jade_slip.webp",
+  "神技残卷":CONFIG.iconPaths.skillItems+"god_skill_scroll.webp",
+  "丹方残页":CONFIG.iconPaths.skillItems+"formula_page.webp",
+  "心法玉简":CONFIG.iconPaths.skillItems+"mind_jade_slip.webp",
+  "神技残卷":CONFIG.iconPaths.skillItems+"god_skill_scroll.webp"
+};
+
+CONFIG.materialTypeIcons={
+  "药草":CONFIG.iconPaths.materials+"material_herb.webp",
+  "灵矿":CONFIG.iconPaths.materials+"material_ore.webp",
+  "妖兽材料":CONFIG.iconPaths.materials+"material_beast.webp",
+  "天地奇物":CONFIG.iconPaths.materials+"material_wonder.webp",
+  "灵木":CONFIG.iconPaths.materials+"material_wood.webp",
+  "灵液":CONFIG.iconPaths.materials+"material_liquid.webp",
+  "奇珍":CONFIG.iconPaths.materials+"material_treasure.webp"
+};
+
+CONFIG.materialQualityIcons=[
+  CONFIG.iconPaths.materialQuality+"material_quality_0_broken.webp",
+  CONFIG.iconPaths.materialQuality+"material_quality_1_normal.webp",
+  CONFIG.iconPaths.materialQuality+"material_quality_2_fine.webp",
+  CONFIG.iconPaths.materialQuality+"material_quality_3_rare.webp",
+  CONFIG.iconPaths.materialQuality+"material_quality_4_epic.webp",
+  CONFIG.iconPaths.materialQuality+"material_quality_5_legend.webp",
+  CONFIG.iconPaths.materialQuality+"material_quality_6_myth.webp"
+];
 CONFIG.xianyuanTiers=[6,12,30,68,128,256,328,512,648,1280,2000,3000,5000,10000];
 CONFIG.xianyuanWeights=[2400,1800,1200,800,420,260,160,90,55,20,10,5,2,1];
 
@@ -403,6 +987,93 @@ CONFIG.activities=[
 ];
 
 CONFIG.cumulativeTiers=[6,30,68,128,328,648,1280,3000,5000,10000];
+CONFIG.skillItemConfigs={
+  "功法残卷":{
+    kind:"功法",
+    need:100,
+    description:"集齐100个后可合成随机功法。"
+  },
+  "神技残卷":{
+    kind:"神技",
+    need:100,
+    description:"集齐100个后可合成随机神技。"
+  },
+  "心法玉简":{
+    kind:"心法",
+    need:1,
+    description:"使用后可领悟随机心法。"
+  }
+};
+CONFIG.equipBoxConfigs={
+  "低级装备箱":{
+    description:"开出当前境界随机品质装备。",
+    count:[1,1],
+    identified:true,
+    qualityPool:[0,1,2,3],
+    qualityWeights:[360,300,180,60]
+  },
+  "未鉴定装备箱":{
+    description:"开出当前境界随机品质未鉴定装备。",
+    count:[1,1],
+    identified:false,
+    qualityPool:[0,1,2,3,4,5,6],
+    qualityWeights:[360,300,180,90,40,12,3]
+  },
+  "随机装备箱":{
+    description:"开出当前境界全品质随机装备。",
+    count:[1,1],
+    identified:true,
+    qualityPool:[0,1,2,3,4,5,6],
+    qualityWeights:[360,300,180,90,40,12,3]
+  },
+  "中级装备箱":{
+    description:"开出当前境界优秀到卓越装备。",
+    count:[1,1],
+    identified:true,
+    qualityPool:[2,3,4],
+    qualityWeights:[65,28,7]
+  },
+  "高级装备箱":{
+    description:"开出当前境界卓越到神话装备。",
+    count:[1,1],
+    identified:true,
+    qualityPool:[4,5,6],
+    qualityWeights:[78,20,2]
+  },
+  "传说装备箱":{
+    description:"开出当前境界传说品质装备。",
+    count:[1,1],
+    identified:true,
+    qualityIndex:5
+  },
+  "神话装备箱":{
+    description:"开出当前境界神话品质装备。",
+    count:[1,1],
+    identified:true,
+    qualityIndex:6
+  },
+  "锻造装备箱":{
+    description:"必定开出当前境界带蓝字的传说装备。",
+    count:[1,1],
+    identified:true,
+    qualityIndex:5,
+    forceBlue:true
+  },
+  "BOSS装备箱":{
+    description:"必定开出当前境界传说及以上装备。",
+    count:[1,1],
+    identified:true,
+    qualityPool:[5,6],
+    qualityWeights:[85,15]
+  },
+  "装备宝箱":{
+    description:"副本装备宝箱，开出当前境界随机装备。",
+    count:[1,2],
+    identified:true,
+    qualityPool:[1,2,3,4],
+    qualityWeights:[45,35,16,4]
+  }
+};
 
 CONFIG.mailTemplates={
   mail_newbie:{
@@ -413,7 +1084,7 @@ CONFIG.mailTemplates={
   mail_beta:{
     title:"内测礼包已送达",
     body:"感谢参与公益内测。本游戏无真实充值入口，所有仙缘均由玩法掉落。",
-    attachment:{yuanbao:388,items:[["普通仙缘箱",1],["随机灵石",3],["照夜指残页",5]]}
+    attachment:{yuanbao:388,items:[["普通仙缘箱",1],["随机灵石",3],["功法残卷",5]]}
   },
   mail_first6:{
     title:"首充礼包 6 仙缘奖励",
@@ -438,7 +1109,10 @@ CONFIG.mailTemplates={
         ["神话仙缘箱",3],["传说仙缘箱",3],["卓越仙缘箱",5],["普通生命晶石",30],
         ["随机灵石",50],["低级装备箱",20],["锻造石",200],["回春丹",50],["续命丹",20],
         ["双倍修行丹",10],["三倍修行丹",5],["筑基破境丹",5],["金丹破境丹",5],
-        ["元婴破境丹",3],["裂纹陶炉",1],["玄纹丹炉",1]
+       ["元婴破境丹",3],["裂纹陶炉",1],["玄纹丹炉",1],
+["未鉴定装备箱",3],["随机装备箱",3],["中级装备箱",3],["高级装备箱",2],
+["传说装备箱",1],["神话装备箱",1],["锻造装备箱",1],["BOSS装备箱",1],
+["功法残卷",120],["神技残卷",120],["心法玉简",3]
       ]
     }
   },
@@ -491,12 +1165,14 @@ function createDefaultState(){
     activityTab:"礼包",
     bagTab:"全部",
     skillTab:"功法",
+    selectedStoreEquipId:null,
     running:false,
     hideLog:false,
     autoHeal:true,
     autoHealPct:35,
     currentMonsterHp:null,
     currentMonsterMaxHp:0,
+    battleVisual:{fx:"slash",text:"",nonce:0},
     buffs:{cultMultiplier2Until:0,cultMultiplier3Until:0},
     player:{
       name:"无名道友",
@@ -527,7 +1203,7 @@ function createDefaultState(){
     bag:[],
     store:[],
     alchemy:{furnace:null,failCompensation:0},
-    skills:{owned:["mind1"],equipped:[],proficiency:{},activeMind:null},
+    skills:{owned:[],equipped:[],proficiency:{},activeMind:null},
     mails:[],
     logs:["<span class='cyan'>欢迎来到《转世之修仙系统》：公益文字修仙，无真实充值入口。</span>"],
     useLogs:[],
@@ -595,6 +1271,7 @@ function loadState(){
     if(!saved.logs)saved.logs=base.logs;
     if(!saved.useLogs)saved.useLogs=[];
     if(!saved.buffs)saved.buffs=base.buffs;
+    if(!saved.battleVisual)saved.battleVisual=base.battleVisual;
     if(!saved.alchemy)saved.alchemy=base.alchemy;
     if(!saved.activity)saved.activity=base.activity;
     if(!saved.vip)saved.vip=base.vip;
@@ -694,6 +1371,52 @@ function weightedPick(values,weights){
   return values[0];
 }
 
+function getMaterialConfigByName(name){
+  return CONFIG.materials.find(material=>material.name===name);
+}
+
+function getItemIconPath(name,type=null){
+  if(CONFIG.itemIconMap[name])return CONFIG.itemIconMap[name];
+
+  const material=getMaterialConfigByName(name);
+  if(material)return CONFIG.materialTypeIcons[material.type]||CONFIG.iconPaths.materials+"material_treasure.webp";
+
+  if(name.includes("破境丹"))return CONFIG.iconPaths.pills+"breakthrough_dan.webp";
+  if(name.includes("丹"))return CONFIG.iconPaths.pills+"attribute_dan.webp";
+  if(name.includes("灵石"))return CONFIG.iconPaths.packages+"random_spirit_stone_pack.webp";
+  if(name.includes("残页"))return CONFIG.iconPaths.skillItems+"skill_page.webp";
+  if(name.includes("礼包"))return CONFIG.iconPaths.packages+"normal_gift_pack.webp";
+  if(name.includes("材料包"))return CONFIG.iconPaths.packages+"random_material_pack.webp";
+  if(name.includes("装备箱"))return CONFIG.iconPaths.packages+"low_equip_box.webp";
+
+  if(type==="材料")return CONFIG.iconPaths.materials+"material_treasure.webp";
+  if(type==="功法残页")return CONFIG.iconPaths.skillItems+"skill_page.webp";
+  if(type==="礼包")return CONFIG.iconPaths.packages+"normal_gift_pack.webp";
+
+  return CONFIG.iconPaths.itemsFallback||CONFIG.iconPaths.tools+"identify_talisman.webp";
+}
+
+function itemIconHtml(name,type=null,size=""){
+  const material=getMaterialConfigByName(name);
+  const icon=getItemIconPath(name,type);
+  const qualityIcon=material?CONFIG.materialQualityIcons[material.quality]:null;
+
+  if(qualityIcon){
+    return `<span class="item-icon-stack ${size}">
+      <img src="${icon}" onerror="this.style.display='none'">
+      <img class="item-quality-overlay" src="${qualityIcon}" onerror="this.style.display='none'">
+    </span>`;
+  }
+
+  return `<span class="item-icon ${size}">
+    <img src="${icon}" alt="${name}" onerror="this.style.display='none'">
+  </span>`;
+}
+
+function resourceIconHtml(resourceKey){
+  const icon=CONFIG.currencyIcons[resourceKey];
+  return icon?`<img class="resource-icon" src="${icon}" onerror="this.style.display='none'">`:"";
+}
 function guessItemType(name){
   if(name.includes("仙缘箱"))return "仙缘箱";
   if(name.includes("丹"))return "丹药";
@@ -702,7 +1425,10 @@ function guessItemType(name){
   if(name.includes("炉"))return "炼丹炉";
   if(name.includes("材料")||CONFIG.materials.some(material=>material.name===name))return "材料";
   if(name.includes("装备箱"))return "礼包";
-  if(name.includes("残页"))return "功法残页";
+  if(name.includes("功法残卷"))return "功法残卷";
+if(name.includes("神技残卷"))return "神技残卷";
+if(name.includes("心法玉简"))return "心法玉简";
+if(name.includes("残页"))return "功法残页";
   return "道具";
 }
 
@@ -791,8 +1517,31 @@ function claimAllMail(){
   render();
 }
 
-function createEquip(realm=STATE.player.realm,slot=pick(CONFIG.equipSlots),identified=true){
-  const qualityIndex=weightedPick([0,1,2,3,4,5,6],[360,300,180,90,40,12,3]);
+function createEquipmentIcon(slot,realm,quality,grade,blue,identified,weaponStyle=null){
+  const baseName=slot==="武器"
+    ? (weaponStyle||pick(CONFIG.weaponIconStyles))
+    : CONFIG.equipmentIconBase[slot];
+
+  return {
+    base:CONFIG.equipmentIconPaths.base+baseName+".webp",
+    material:CONFIG.equipmentIconPaths.material+"realm_"+realm+"_"+[
+      "lianqi","zhuji","jindan","yuanying","huashen","lianxu","heti","dacheng","dujie"
+    ][realm]+".webp",
+    frame:CONFIG.equipmentIconPaths.frame+"quality_"+quality+"_"+[
+      "broken","normal","fine","rare","epic","legend","myth"
+    ][quality]+".webp",
+    grade:CONFIG.equipmentIconPaths.grade+"grade_"+grade+"_"+[
+      "low","mid","high"
+    ][grade]+".webp",
+    blue:blue?CONFIG.equipmentIconPaths.fx+"blue_effect.webp":null,
+    unidentified:identified?null:CONFIG.equipmentIconPaths.fx+"unidentified.webp",
+    equipped:null
+  };
+}
+function createEquip(realm=STATE.player.realm,slot=pick(CONFIG.equipSlots),identified=true,options={}){
+  const qualityIndex=options.qualityIndex!==undefined
+  ? options.qualityIndex
+  : weightedPick(options.qualityPool||[0,1,2,3,4,5,6],options.qualityWeights||[360,300,180,90,40,12,3]);
   const gradeIndex=weightedPick([0,1,2],[60,30,10]);
   const quality=CONFIG.qualities[qualityIndex];
   const grade=CONFIG.grades[gradeIndex];
@@ -815,7 +1564,11 @@ function createEquip(realm=STATE.player.realm,slot=pick(CONFIG.equipSlots),ident
     attrs.灵力=Math.floor(base*multiplier*2);
     attrs.生命=Math.floor(base*multiplier*5);
   }
-  const blue=chance(.035+qualityIndex*.008)?pick(CONFIG.blueEffects):null;
+  const blue=options.forceBlue
+  ? pick(CONFIG.blueEffects)
+  : (chance(.035+qualityIndex*.008)?pick(CONFIG.blueEffects):null);
+  const weaponStyle=slot==="武器"?pick(CONFIG.weaponIconStyles):null;
+  const icon=createEquipmentIcon(slot,realm,qualityIndex,gradeIndex,blue,identified,weaponStyle);
   return {
     id:uid("equip"),
     name:`${pick(["碎星","寒碑","青烬","澜影","玄垣","照夜","晦明"])}${slot}`,
@@ -825,7 +1578,9 @@ function createEquip(realm=STATE.player.realm,slot=pick(CONFIG.equipSlots),ident
     grade:gradeIndex,
     attrs,
     blue,
-    identified
+    identified,
+    weaponStyle,
+    icon
   };
 }
 function createNoviceEquip(slot){
@@ -844,6 +1599,8 @@ function createNoviceEquip(slot){
     attrs.生命=60;
     attrs.灵力=20;
   }
+  const weaponStyle=slot==="武器"?"weapon_sword":null;
+  const icon=createEquipmentIcon(slot,0,2,1,null,true,weaponStyle);
   return {
     id:uid("equip"),
     name:"安尘新手"+slot,
@@ -854,7 +1611,9 @@ function createNoviceEquip(slot){
     attrs,
     blue:null,
     identified:true,
-    novice:true
+    novice:true,
+    weaponStyle,
+    icon
   };
 }
 
@@ -876,6 +1635,31 @@ function equipScore(equip){
   return (equip.quality+1)*1000+(equip.grade+1)*180+Object.values(equip.attrs).reduce((a,b)=>a+b,0)+equip.realm*120+(equip.blue?500:0);
 }
 
+function getBattleBackground(){
+  return CONFIG.battleBackgrounds[STATE.progress.map]||CONFIG.battleBackgrounds[0];
+}
+
+function getPlayerBattleImage(){
+  return CONFIG.battleAssets.playerMale;
+}
+
+function pickBattleFxBySkill(skill){
+  if(!skill)return "slash";
+  if(skill.kind==="神技")return "thunderHit";
+  if(skill.name.includes("火")||skill.name.includes("烬"))return "fireBurst";
+  if(skill.name.includes("寒")||skill.name.includes("霜")||skill.name.includes("冰"))return "iceShard";
+  if(skill.name.includes("毒"))return "poisonCloud";
+  if(skill.kind==="功法")return "magicHit";
+  return "slash";
+}
+
+function triggerBattleVisual(fx,text){
+  STATE.battleVisual={
+    fx:fx||"slash",
+    text:text||"",
+    nonce:Date.now()
+  };
+}
 function currentMonster(isBoss=false){
   const mapIndex=STATE.progress.map;
   const zoneIndex=STATE.progress.zone;
@@ -953,9 +1737,13 @@ if(skill){
       if(chance(.08+attrs.速度/1200)){
         damage=Math.floor(damage*1.8);
         battleLogs.push(`<span class="crit">暴击！</span>`);
+        triggerBattleVisual("criticalFlash","暴击 "+damage);
       }
 
       monsterHp-=damage;
+      if(!STATE.battleVisual.text||!String(STATE.battleVisual.text).includes("暴击")){
+  triggerBattleVisual(skill?pickBattleFxBySkill(skill):"slash",damage);
+}
       battleLogs.push(attackName==="体术攻击"
   ? `第${round}回合：你以体术攻击 ${monster.name}，造成 ${damage} 伤害。`
   : `第${round}回合：你施展 ${attackName}，对 ${monster.name} 造成 ${damage} 伤害。`
@@ -1063,12 +1851,52 @@ function rewardBattle(isBoss){
   STATE.resources.coin+=coin;
 
   if(!isBoss){
-    STATE.progress.kills[zoneIndex]++;
-    if(STATE.progress.kills[zoneIndex]>=30) STATE.progress.clearedZones[`${mapIndex}_${zoneIndex}`]=true;
-    if(chance(.22*(STATE.month.active?2:1))) STATE.store.push(createEquip(mapIndex));
-  }else{
-    STATE.store.push(createEquip(mapIndex,pick(CONFIG.equipSlots),true));
+  STATE.progress.kills[zoneIndex]++;
+  if(STATE.progress.kills[zoneIndex]>=30) STATE.progress.clearedZones[`${mapIndex}_${zoneIndex}`]=true;
+
+  if(chance(.028)){
+    addItem("随机装备箱",1,"礼包");
+    pushLog(`<span class="good">怪物掉落：随机装备箱。</span>`);
   }
+
+  if(chance(.014)){
+    addItem("中级装备箱",1,"礼包");
+    pushLog(`<span class="good">怪物掉落：中级装备箱。</span>`);
+  }
+
+  if(chance(.0035)){
+    addItem("高级装备箱",1,"礼包");
+    pushLog(`<span class="crit">怪物稀有掉落：高级装备箱！</span>`);
+  }
+
+  if(chance(.035)){
+    addItem("功法残卷",rnd(1,3),"功法残卷");
+    pushLog(`<span class="cyan">怪物掉落：功法残卷。</span>`);
+  }
+
+  if(chance(.002)){
+    addItem("心法玉简",1,"心法玉简");
+    pushLog(`<span class="crit">极稀有掉落：心法玉简！</span>`);
+  }
+
+  if(chance(.006)){
+    addItem("神技残卷",1,"神技残卷");
+    pushLog(`<span class="gold">稀有掉落：神技残卷。</span>`);
+  }
+}else{
+  addItem("BOSS装备箱",1,"礼包");
+  addItem("功法残卷",rnd(8,18),"功法残卷");
+
+  if(chance(.18)){
+    addItem("神技残卷",rnd(2,5),"神技残卷");
+  }
+
+  if(chance(.04)){
+    addItem("心法玉简",1,"心法玉简");
+  }
+
+  pushLog(`<span class="crit">Boss 必定掉落：BOSS装备箱，并掉落大量功法残卷。</span>`);
+}
 
   if(chance(isBoss ? .95 : .45)){
     const material=pick(CONFIG.materials.filter(item=>item.realm<=mapIndex+1));
@@ -1110,9 +1938,9 @@ function tick(){
     }
   }
   battle(false);
-   if(STATE.tab==="背包"){
-    return;
-  }
+   if(["背包","储物戒","仓库","装备"].includes(STATE.tab)){
+  return;
+}
   if(["INPUT","TEXTAREA","SELECT"].includes(document.activeElement?.tagName)){
     return;
   }
@@ -1178,6 +2006,95 @@ function tryBreakthrough(manual=true){
   }
 }
 
+function openEquipBox(item){
+  const config=CONFIG.equipBoxConfigs[item.name];
+  if(!config){
+    alert("装备箱配置不存在："+item.name);
+    return;
+  }
+
+  item.count--;
+
+  const openCount=rnd(config.count[0],config.count[1]);
+  const createdNames=[];
+
+  for(let index=0;index<openCount;index++){
+    const equipOptions={};
+
+    if(config.qualityIndex!==undefined){
+      equipOptions.qualityIndex=config.qualityIndex;
+    }
+
+    if(config.qualityPool){
+      equipOptions.qualityPool=config.qualityPool;
+      equipOptions.qualityWeights=config.qualityWeights;
+    }
+
+    if(config.forceBlue){
+      equipOptions.forceBlue=true;
+    }
+
+    const equip=createEquip(
+      STATE.player.realm,
+      pick(CONFIG.equipSlots),
+      config.identified,
+      equipOptions
+    );
+
+    STATE.store.push(equip);
+    createdNames.push(`${equip.name}（${CONFIG.qualities[equip.quality].name}·${CONFIG.grades[equip.grade].name}${equip.blue?"·蓝字":""}）`);
+  }
+
+  pushUseLog(`开启 ${item.name}，获得：${createdNames.join("、")}，装备已进入储物戒`);
+  pushLog(`<span class="good">开启 ${item.name}，获得 ${openCount} 件装备，已进入储物戒。</span>`);
+
+  cleanBag();
+  saveState();
+  safeRender();
+}
+function getUnownedSkillsByKind(kind){
+  return CONFIG.skills.filter(skill=>{
+    return skill.kind===kind&&!STATE.skills.owned.includes(skill.id);
+  });
+}
+
+function learnRandomSkillByKind(kind,sourceName){
+  const pool=getUnownedSkillsByKind(kind);
+
+  if(!pool.length){
+    pushUseLog(`${sourceName} 使用失败：该类型已全部领悟。`);
+    alert(`你已经领悟了全部${kind}。`);
+    return false;
+  }
+
+  const skill=pick(pool);
+  STATE.skills.owned.push(skill.id);
+
+  pushUseLog(`通过 ${sourceName} 领悟：${skill.name}`);
+  pushLog(`<span class="gold">领悟${kind}：${skill.name}，已自动加入功法页。</span>`);
+  pushFlow("skill_learn",{kind,skillId:skill.id,skillName:skill.name,source:sourceName});
+
+  return true;
+}
+
+function useSkillItem(item){
+  const config=CONFIG.skillItemConfigs[item.name];
+  if(!config)return false;
+
+  if(item.count<config.need){
+    alert(`${item.name} 数量不足，需要 ${config.need} 个。当前：${item.count}`);
+    return true;
+  }
+
+  const success=learnRandomSkillByKind(config.kind,item.name);
+  if(!success)return true;
+
+  item.count-=config.need;
+  cleanBag();
+  saveState();
+  safeRender();
+  return true;
+}
 function openXianyuanBox(item){
   const box=CONFIG.xianyuanBoxes.find(box=>item.name===box.name);
   if(!box)return;
@@ -1195,6 +2112,9 @@ function openXianyuanBox(item){
 function useItem(item){
   if(!item)return;
   if(item.type==="仙缘箱") return openXianyuanBox(item);
+  if(CONFIG.skillItemConfigs[item.name]){
+    return useSkillItem(item);
+  }
 if(item.name==="新手套装箱") {
   openNoviceSuitBox(item);
     cleanBag();
@@ -1203,11 +2123,13 @@ if(item.name==="新手套装箱") {
   return;
 }
 
-  if(item.name.includes("装备箱")){
-    item.count--;
-    STATE.store.push(createEquip(STATE.player.realm));
-    pushUseLog("开启装备箱，装备进入储物戒");
-  }else if(item.name.includes("灵石")){
+ if(CONFIG.equipBoxConfigs[item.name]){
+  openEquipBox(item);
+  return;
+}else if(item.name.includes("装备箱")||item.name.includes("装备宝箱")){
+  alert("该装备箱尚未配置："+item.name);
+  return;
+}else if(item.name.includes("灵石")){
     item.count--;
     const cultivation=120*(STATE.player.realm+1);
     STATE.player.cultivation+=cultivation;
@@ -1243,6 +2165,17 @@ if(item.name==="新手套装箱") {
   safeRender();
 }
 
+function openStoreEquipDetail(equipId){
+  STATE.selectedStoreEquipId=equipId;
+  saveState();
+  render();
+}
+
+function closeStoreEquipDetail(){
+  STATE.selectedStoreEquipId=null;
+  saveState();
+  render();
+}
 function bestEquip(){
   STATE.store.filter(equip=>equip.identified).forEach(equip=>{
     if(!STATE.equipped[equip.slot]||equipScore(equip)>equipScore(STATE.equipped[equip.slot])){
@@ -1540,12 +2473,13 @@ function getSystemShopGoods(){
     ]);
   }
   if(path==="炼器"){
-    return common.concat([
-      {id:"forge_rate_1",name:"炼器心得：成功率永久 +1%",cost:120,type:"permanent",field:"forgeShopBonus",value:.01},
-      {id:"forge_stone_lot",name:"锻造石刮刮乐",cost:70,type:"direct",reward:{items:[["锻造石",rnd(20,80)]]}},
-      {id:"identify_pack",name:"鉴定符×20",cost:45,type:"direct",reward:{items:[["鉴定符",20]]}}
-    ]);
-  }
+  return common.concat([
+    {id:"forge_rate_1",name:"炼器心得：成功率永久 +1%",cost:120,type:"permanent",field:"forgeShopBonus",value:.01},
+    {id:"unidentified_equip_box",name:"未鉴定装备箱",cost:85,type:"direct",reward:{items:[["未鉴定装备箱",1]]}},
+    {id:"forge_stone_lot",name:"锻造石刮刮乐",cost:70,type:"direct",reward:{items:[["锻造石",rnd(20,80)]]}},
+    {id:"identify_pack",name:"鉴定符×20",cost:45,type:"direct",reward:{items:[["鉴定符",20]]}}
+  ]);
+}
   return common.concat([
     {id:"cult_rate_1",name:"苦修心得：修为获取永久 +2%",cost:150,type:"permanent",field:"cultShopBonus",value:.02},
     {id:"spirit_stone_30",name:"随机灵石×30",cost:90,type:"direct",reward:{items:[["随机灵石",30]]}},
@@ -1595,6 +2529,9 @@ function runDungeon(type){
   if(STATE.dungeon.used[key])return alert("今日该副本次数已用。");
   STATE.dungeon.used[key]=true;
   const reward={coin:2000*(STATE.player.realm+1),cult:600*(STATE.player.realm+1),items:[[type+"宝箱",1]]};
+  if(type==="装备"){
+    reward.items=[["装备宝箱",1],["随机装备箱",1]];
+  }
   if(type.includes("仙缘")) reward.items.push(["普通仙缘箱",1]);
   if(type.includes("活动")) sendMail("mail_cumulative","dungeon_activity",reward);
   else gainReward(reward,"副本:"+type);
@@ -1634,13 +2571,76 @@ function attachmentText(attachment){
   return list.join("，");
 }
 
-function equipHtml(equip){
+function attachmentHtml(attachment){
+  if(!attachment)return "<span class='muted'>无</span>";
+  const list=[];
+
+  if(attachment.coin)list.push(`<div class="reward-chip">${resourceIconHtml("coin")}铜币×${fmt(attachment.coin)}</div>`);
+  if(attachment.yuanbao)list.push(`<div class="reward-chip">${resourceIconHtml("yuanbao")}元宝×${fmt(attachment.yuanbao)}</div>`);
+  if(attachment.xianyuan)list.push(`<div class="reward-chip">${resourceIconHtml("xianyuan")}仙缘×${fmt(attachment.xianyuan)}</div>`);
+  if(attachment.systemPoint)list.push(`<div class="reward-chip">${resourceIconHtml("systemPoint")}系统点×${fmt(attachment.systemPoint)}</div>`);
+  if(attachment.cult)list.push(`<div class="reward-chip">修为×${fmt(attachment.cult)}</div>`);
+
+  if(attachment.items){
+    attachment.items.forEach(([name,count])=>{
+      list.push(`<div class="reward-chip">${itemIconHtml(name,guessItemType(name))}<span>${name}×${count}</span></div>`);
+    });
+  }
+
+  return `<div class="reward-list">${list.join("")}</div>`;
+}
+function equipDetailHtml(equip){
+  if(!equip)return `<span class="muted">无装备</span>`;
+  const attrText=Object.entries(equip.attrs).map(([key,value])=>`${key}+${fmt(value)}`).join("，");
+  const scoreValue=equipScore(equip);
   return `<div>
+    <div class="equip-tooltip-title ${CONFIG.qualities[equip.quality].className}">${equip.name}</div>
+    <div class="equip-tooltip-line">部位：${equip.slot}</div>
+    <div class="equip-tooltip-line">境界：${CONFIG.realms[equip.realm]}</div>
+    <div class="equip-tooltip-line">品质：${CONFIG.qualities[equip.quality].name}</div>
+    <div class="equip-tooltip-line">品级：${CONFIG.grades[equip.grade].name}</div>
+    <div class="equip-tooltip-line">状态：${equip.identified?"已鉴定":"未鉴定"}</div>
+    <hr>
+    <div class="equip-tooltip-line">属性：${attrText||"无"}</div>
+    ${equip.blue?`<div class="equip-tooltip-line cyan">蓝字：${equip.blue.name}，${equip.blue.description}</div>`:""}
+    <div class="equip-tooltip-line gold">评分：${fmt(scoreValue)}</div>
+  </div>`;
+}
+function equipIconHtml(equip,size=""){
+  if(!equip)return `<div class="equip-icon ${size}"></div>`;
+
+  if(!equip.icon){
+    equip.weaponStyle=equip.slot==="武器"?(equip.weaponStyle||pick(CONFIG.weaponIconStyles)):null;
+    equip.icon=createEquipmentIcon(
+      equip.slot,
+      equip.realm,
+      equip.quality,
+      equip.grade,
+      equip.blue,
+      equip.identified,
+      equip.weaponStyle
+    );
+  }
+
+  return `<span class="equip-icon ${size}">
+    <img class="equip-layer base" src="${equip.icon.base}" onerror="this.style.display='none'">
+    <img class="equip-layer material" src="${equip.icon.material}" onerror="this.style.display='none'">
+    <img class="equip-layer frame" src="${equip.icon.frame}" onerror="this.style.display='none'">
+    <img class="equip-layer grade" src="${equip.icon.grade}" onerror="this.style.display='none'">
+    ${equip.blue?`<img class="equip-layer fx" src="${equip.icon.blue}" onerror="this.style.display='none'">`:""}
+    ${!equip.identified?`<img class="equip-layer unidentified" src="${equip.icon.unidentified}" onerror="this.style.display='none'">`:""}
+  </span>`;
+}
+function equipHtml(equip){
+  return `<div class="equip-line">
+    ${equipIconHtml(equip)}
+    <div class="equip-info">
     <b class="${CONFIG.qualities[equip.quality].className}">${equip.name}</b>
     <span>${CONFIG.qualities[equip.quality].name}·${CONFIG.grades[equip.grade].name}</span><br>
     <span class="muted">${CONFIG.realms[equip.realm]} · ${equip.identified?"已鉴定":"未鉴定"}</span><br>
     ${Object.entries(equip.attrs).map(([key,value])=>`${key}+${fmt(value)}`).join("，")}<br>
     ${equip.blue?`<span class="blue">蓝字：${equip.blue.name}，${equip.blue.description}</span>`:""}
+      </div>
   </div>`;
 }
 
@@ -1690,9 +2690,9 @@ function render(){
     </div>
     <div>
       <span class="badge">境界：${currentRealmTitle()}</span>
-      <span class="badge">仙缘：${fmt(STATE.resources.xianyuan)}</span>
-      <span class="badge">元宝：${fmt(STATE.resources.yuanbao)}</span>
-      <span class="badge">铜币：${fmt(STATE.resources.coin)}</span>
+      <span class="badge">${resourceIconHtml("xianyuan")}仙缘：${fmt(STATE.resources.xianyuan)}</span>
+<span class="badge">${resourceIconHtml("yuanbao")}元宝：${fmt(STATE.resources.yuanbao)}</span>
+<span class="badge">${resourceIconHtml("coin")}铜币：${fmt(STATE.resources.coin)}</span>
       <span class="badge ${unread?'mail-unread':''}">邮件：${unread}/${unclaimed}</span>
     </div>
   </div>
@@ -1731,6 +2731,36 @@ function renderPage(tab){
   return (pages[tab]||renderHome)();
 }
 
+function renderBattleScene(monster,monsterHp,monsterMax){
+  const bg=getBattleBackground();
+  const playerImage=getPlayerBattleImage();
+  const monsterImage=monster.image;
+  const fxKey=STATE.battleVisual?.fx||"slash";
+  const fxImage=CONFIG.battleAssets.fx[fxKey]||CONFIG.battleAssets.fx.slash;
+  const nonce=STATE.battleVisual?.nonce||0;
+  const text=STATE.battleVisual?.text||"";
+  const playerHpPct=Math.max(0,Math.min(100,STATE.player.life/STATE.player.lifeMax*100));
+  const monsterHpPct=Math.max(0,Math.min(100,monsterHp/monsterMax*100));
+
+  return `<div class="battle-scene">
+    <img class="battle-bg" src="${bg}" onerror="this.style.display='none'">
+    <div class="battle-vignette"></div>
+
+    <div class="battle-nameplate">
+      <span class="battle-name">${STATE.player.name||"无名道友"}</span>
+      <span class="battle-name">${monster.name}</span>
+    </div>
+
+    <img class="battle-unit battle-player" src="${playerImage}" onerror="this.style.display='none'">
+    ${monsterImage?`<img class="battle-unit battle-monster" src="${monsterImage}" onerror="this.style.display='none'">`:""}
+
+    <img class="battle-fx ${nonce?'play':''}" src="${fxImage}?v=${nonce}" onerror="this.style.display='none'">
+    <div class="battle-float-text ${nonce?'play':''}">${text}</div>
+
+    <div class="battle-mini-hp battle-player-hp"><span style="width:${playerHpPct}%"></span></div>
+    <div class="battle-mini-hp battle-monster-hp"><span style="width:${monsterHpPct}%"></span></div>
+  </div>`;
+}
 function renderHome(){
   const map=CONFIG.maps[STATE.progress.map];
   const monster=currentMonster(false);
@@ -1787,6 +2817,7 @@ return `<div class="map-hero">
           <b>速度</b><span>${fmt(monster.speed)}</span>
         </div>
         <div class="bar hpbar"><span style="width:${Math.max(0,Math.min(100,monsterHp/monsterMax*100))}%"></span></div>
+        ${renderBattleScene(monster,monsterHp,monsterMax)}
       </div>
 
       <div class="card">
@@ -1816,9 +2847,9 @@ return `<div class="map-hero">
       <div class="card">
         <h3>操作</h3>
         <button onclick="STATE.running=!STATE.running;saveState();render()">${STATE.running?"停止挂机":"开始挂机"}</button>
-        <button onclick="battle(false);render()">手动打一只</button>
+        <button onclick="battle(false);safeRender()">手动打一只</button>
         <button ${nextReady?"":"disabled"} onclick="STATE.progress.zone++;STATE.currentMonsterHp=null;saveState();render()">进入下一层</button>
-        <button ${bossReady?"":"disabled"} onclick="battle(true);render()">Boss 战</button>
+        <button ${bossReady?"":"disabled"} onclick="battle(true);safeRender()">Boss 战</button>
         <label class="row"><input type="checkbox" ${STATE.hideLog?"checked":""} onchange="STATE.hideLog=this.checked;saveState()">隐藏战斗日志</label>
         <label class="row"><input type="checkbox" ${STATE.autoHeal?"checked":""} onchange="STATE.autoHeal=this.checked;saveState()">低血量自动用生命晶石</label>
         <div>阈值 <input id="autoHealPctInput" type="number" value="${STATE.autoHealPct}" min="5" max="90" style="width:80px" onchange="STATE.autoHealPct=+this.value;saveState()">%</div>
@@ -1899,10 +2930,15 @@ function renderBag(){
         <button onclick="cleanBag();safeRender()">一键整理</button>
         <div id="bagItemList" class="list">
           ${shownItems.length?shownItems.map(item=>`<div class="item">
-            <b>${item.name}</b> × ${item.count}
-            <span class="muted">${item.type}</span>
-            <button class="right" onclick="useItem(STATE.bag.find(x=>x.id==='${item.id}'))">使用</button>
-          </div>`).join(""):"该分类暂无物品。"}
+  <div class="item-line">
+    ${itemIconHtml(item.name,item.type)}
+    <div class="item-line-text">
+      <b>${item.name}</b> × ${item.count}<br>
+      <span class="muted">${item.type}</span>
+    </div>
+    <button class="right" onclick="useItem(STATE.bag.find(x=>x.id==='${item.id}'))">使用</button>
+  </div>
+</div>`).join(""):"该分类暂无物品。"}
         </div>
       </div>
       <div class="card">
@@ -1914,38 +2950,43 @@ function renderBag(){
 }
 
 function renderSkills(){
-  const levelIndex=STATE.player.realm*12+STATE.player.subRealm;
   const skillTabs=["功法","心法","神技"];
   const currentTab=STATE.skillTab||"功法";
-  const shownSkills=CONFIG.skills.filter(skill=>skill.kind===currentTab);
+  const shownSkills=CONFIG.skills.filter(skill=>{
+    return skill.kind===currentTab&&STATE.skills.owned.includes(skill.id);
+  });
+
+  const fragmentTips={
+    "功法":"功法残卷×100 可合成随机功法。",
+    "心法":"心法玉简可领悟随机心法。",
+    "神技":"神技残卷×100 可合成随机神技。"
+  };
 
   return `<div class="panel">
     <h2>功法</h2>
-    <p class="muted">炼气五层解锁。未装备功法时，战斗使用体术攻击。神技消耗大量灵力。</p>
-    ${levelIndex<4?"<div class='warn'>尚未解锁功法页。</div>":""}
+    <p class="muted">这里只显示已经获得的功法、心法、神技。未装备功法时，战斗使用体术攻击。神技消耗大量灵力。</p>
 
     <div class="subnav">
       ${skillTabs.map(tab=>`<button class="${currentTab===tab?'active':''}" onclick="STATE.skillTab='${tab}';saveState();safeRender()">${tab}</button>`).join("")}
     </div>
 
+    <p class="cyan">${fragmentTips[currentTab]}</p>
+
     <div class="cards">
-      ${shownSkills.map(skill=>{
-        const owned=STATE.skills.owned.includes(skill.id);
+      ${shownSkills.length?shownSkills.map(skill=>{
         const equipped=STATE.skills.equipped.includes(skill.id);
         return `<div class="card">
           <h3>${skill.name}</h3>
           <p>${skill.kind} · ${skill.quality}${skill.tier}</p>
           <p>${skill.description}</p>
-          <p>解锁：总小境界 ${skill.unlock+1}</p>
           <p>熟练度：${STATE.skills.proficiency[skill.id]||0}</p>
           ${skill.kind==="神技"?`<p class="gold">灵力消耗：${skill.spiritCost||0}</p>`:""}
-          ${levelIndex>=skill.unlock?`
-            <button onclick="if(!STATE.skills.owned.includes('${skill.id}'))STATE.skills.owned.push('${skill.id}');saveState();safeRender()">${owned?"已学习":"学习"}</button>
-            ${owned&&skill.kind!=="心法"?`<button onclick="STATE.skills.equipped=['${skill.id}'];saveState();safeRender()">${equipped?"已装备":"装备"}</button>`:""}
-            ${owned&&skill.kind==="心法"?`<button onclick="STATE.skills.activeMind='${skill.id}';saveState();safeRender()">${STATE.skills.activeMind===skill.id?"心法生效中":"启用心法"}</button>`:""}
-          `:"<span class='muted'>境界不足</span>"}
+          ${skill.kind!=="心法"
+            ? `<button onclick="STATE.skills.equipped=['${skill.id}'];saveState();safeRender()">${equipped?"已装备":"装备"}</button>`
+            : `<button onclick="STATE.skills.activeMind='${skill.id}';saveState();safeRender()">${STATE.skills.activeMind===skill.id?"心法生效中":"启用心法"}</button>`
+          }
         </div>`;
-      }).join("")}
+      }).join(""):`<div class="card"><h3>尚未获得${currentTab}</h3><p class="muted">${fragmentTips[currentTab]}</p></div>`}
     </div>
   </div>`;
 }
@@ -1963,8 +3004,10 @@ function renderActivities(){
 function renderActivitySubPage(tab){
   if(tab==="礼包"){
     return `<div class="panel"><h3>礼包</h3><div class="cards">
-      <div class="card"><h3>新手礼包</h3><p>基础铜币、低级丹药、仙缘箱、装备箱。</p><button ${STATE.activity.claimed.newbie?"disabled":""} onclick="claimActivity('newbie')">${STATE.activity.claimed.newbie?"已领取":"领取到邮件"}</button></div>
-      <div class="card"><h3>内测礼包</h3><p>元宝、仙缘箱、随机灵石、功法残页。</p><button ${STATE.activity.claimed.beta?"disabled":""} onclick="claimActivity('beta')">${STATE.activity.claimed.beta?"已领取":"领取到邮件"}</button></div>
+      <div class="card"><h3>新手礼包</h3>
+${itemIconHtml("新手礼包","礼包","large")}<p>基础铜币、低级丹药、仙缘箱、装备箱。</p><button ${STATE.activity.claimed.newbie?"disabled":""} onclick="claimActivity('newbie')">${STATE.activity.claimed.newbie?"已领取":"领取到邮件"}</button></div>
+      <div class="card"><h3>内测礼包</h3>
+${itemIconHtml("内测礼包","礼包","large")}<p>元宝、仙缘箱、随机灵石、功法残页。</p><button ${STATE.activity.claimed.beta?"disabled":""} onclick="claimActivity('beta')">${STATE.activity.claimed.beta?"已领取":"领取到邮件"}</button></div>
     </div></div>`;
   }
 
@@ -2082,7 +3125,8 @@ function renderSystem(){
         ${STATE.system.tasks.map(task=>`<div class="item">
           <b>${task.name}</b>
           <span class="muted">${task.state}</span>
-          <span class="right">奖励：${attachmentText(task.reward)} <button onclick="claimSystemTask('${task.id}')">领取</button></span>
+          <div>奖励：${attachmentHtml(task.reward)}</div>
+<button onclick="claimSystemTask('${task.id}')">领取</button>
         </div>`).join("")}
       </div>
     </div>
@@ -2106,14 +3150,39 @@ function renderSystem(){
 }
 
 function renderStore(){
+  const selectedEquip=STATE.store.find(equip=>equip.id===STATE.selectedStoreEquipId);
+
   return `<div class="panel">
     <h2>储物戒</h2>
-    <button onclick="identifyAll()">一键鉴定</button>
-    <select id="dismantleQualitySelect">
-  ${CONFIG.qualities.map((quality,index)=>`<option value="${index}">${quality.name}及以下</option>`).join("")}
-</select>
-<button onclick="dismantle(+document.getElementById('dismantleQualitySelect').value)">按品质分解</button>
-    <div class="list">${STATE.store.length?STATE.store.map(equip=>`<div class="item">${equipHtml(equip)}</div>`).join(""):"储物戒暂无装备。"}</div>
+    <div class="row">
+      <button onclick="identifyAll()">一键鉴定</button>
+      <select id="dismantleQualitySelect">
+        ${CONFIG.qualities.map((quality,index)=>`<option value="${index}">${quality.name}及以下</option>`).join("")}
+      </select>
+      <button onclick="dismantle(+document.getElementById('dismantleQualitySelect').value)">按品质分解</button>
+      <span class="muted">共 ${STATE.store.length} 件装备。鼠标悬浮查看详情，手机点击查看详情。</span>
+    </div>
+
+    <div class="equip-grid">
+      ${STATE.store.length?STATE.store.map(equip=>`<div class="equip-grid-cell" onclick="if(window.matchMedia('(hover: none)').matches)openStoreEquipDetail('${equip.id}')">
+        ${equipIconHtml(equip)}
+        <div class="equip-tooltip">
+          ${equipDetailHtml(equip)}
+        </div>
+      </div>`).join(""):"<div class='muted'>储物戒暂无装备。</div>"}
+    </div>
+
+    ${selectedEquip?`<div class="equip-mobile-mask" onclick="closeStoreEquipDetail()">
+      <div class="equip-mobile-dialog" onclick="event.stopPropagation()">
+        <div class="equip-line">
+          ${equipIconHtml(selectedEquip,"large")}
+          <div class="equip-info">${equipDetailHtml(selectedEquip)}</div>
+        </div>
+        <div class="equip-mobile-actions">
+          <button onclick="closeStoreEquipDetail()">关闭</button>
+        </div>
+      </div>
+    </div>`:""}
   </div>`;
 }
 
@@ -2137,7 +3206,7 @@ function renderForge(){
         <p>铜币：${fmt(cost.coin)}</p>
         ${cost.materials.map(item=>{
           const owned=STATE.bag.find(bagItem=>bagItem.name===item.name)?.count||0;
-          return `<p>${item.name}：${owned}/${item.count}</p>`;
+          return `<div class="forge-cost-line">${itemIconHtml(item.name,guessItemType(item.name))}<span>${item.name}：${owned}/${item.count}</span></div>`;
         }).join("")}
       </div>
       <div class="card">
@@ -2177,15 +3246,15 @@ function renderShop(){
       <div class="card">
         <h3>修行丹</h3>
         <p>双倍、三倍修行丹均持续半小时。</p>
-        <button onclick="buyShopItem('双倍修行丹',1800,'丹药')">双倍修行丹 1800 元宝</button>
-        <button onclick="buyShopItem('三倍修行丹',5200,'丹药')">三倍修行丹 5200 元宝</button>
+        <div class="shop-good">${itemIconHtml("双倍修行丹","丹药")}<button onclick="buyShopItem('双倍修行丹',1800,'丹药')">双倍修行丹 1800 元宝</button></div>
+        <div class="shop-good">${itemIconHtml("三倍修行丹","丹药")}<button onclick="buyShopItem('三倍修行丹',5200,'丹药')">三倍修行丹 5200 元宝</button></div>
       </div>
       <div class="card">
         <h3>生命晶石</h3>
         <p>用于主页低血量自动回血。</p>
-        <button onclick="buyShopItem('普通生命晶石',100,'道具')">普通生命晶石 100 元宝</button>
-        <button onclick="buyShopItem('优秀生命晶石',260,'道具')">优秀生命晶石 260 元宝</button>
-        <button onclick="buyShopItem('精良生命晶石',680,'道具')">精良生命晶石 680 元宝</button>
+        <div class="shop-good">${itemIconHtml("普通生命晶石","道具")}<button onclick="buyShopItem('普通生命晶石',100,'道具')">普通生命晶石 100 元宝</button></div>
+        <div class="shop-good">${itemIconHtml("优秀生命晶石","道具")}<button onclick="buyShopItem('优秀生命晶石',260,'道具')">优秀生命晶石 260 元宝</button></div>
+        <div class="shop-good">${itemIconHtml("精良生命晶石","道具")}<button onclick="buyShopItem('精良生命晶石',680,'道具')">精良生命晶石 680 元宝</button></div>
       </div>
     </div>
 
@@ -2194,7 +3263,7 @@ function renderShop(){
       <div class="row">
         ${availablePills.map(pill=>{
           const price=Math.floor(pill.baseCost*1.8*(1+STATE.player.realm*.18));
-          return `<button onclick="buyShopItem('${pill.name}',${price},'丹药')">${pill.name} ${fmt(price)} 元宝</button>`;
+          return `<div class="shop-good">${itemIconHtml(pill.name,"丹药")}<button onclick="buyShopItem('${pill.name}',${price},'丹药')">${pill.name} ${fmt(price)} 元宝</button></div>`;
         }).join("")}
       </div>
       <p class="muted">商城丹药价格高于炼丹成本，主要给卡关玩家兜底。</p>
@@ -2205,6 +3274,7 @@ function renderShop(){
       <div class="cards">
         ${CONFIG.alchemyFurnaces.map(furnace=>`<div class="card">
           <h3 class="${CONFIG.qualities[furnace.quality].className}">${furnace.name}</h3>
+          ${itemIconHtml(furnace.name,"炼丹炉","large")}
           <p>品质：${CONFIG.qualities[furnace.quality].name}</p>
           <p>炼丹成功率 +${Math.round(furnace.successBonus*100)}%，失败返还 +${Math.round(furnace.materialReturn*100)}%</p>
           <button onclick="buyShopItem('${furnace.name}',${furnace.price},'炼丹炉')">${fmt(furnace.price)} 元宝购买</button>
@@ -2221,7 +3291,7 @@ function renderRecharge(){
     <div class="cards">
       ${CONFIG.xianyuanTiers.map(amount=>`<div class="card">
         <h3>${amount} 仙缘档</h3>
-        <p>消耗 ${amount} 仙缘，获得 ${amount*100} 元宝。</p>
+        <p>${resourceIconHtml("xianyuan")}消耗 ${amount} 仙缘，${resourceIconHtml("yuanbao")}获得 ${amount*100} 元宝。</p>
         <p class="muted">计入 VIP 经验与仙缘累充。</p>
         <button onclick="activateXianyuanTier(${amount})">仙缘激活</button>
       </div>`).join("")}
@@ -2269,6 +3339,11 @@ function renderVip(){
     ${CONFIG.vip.filter(vip=>vip.level>0).map(vip=>`<div class="card">
       <h3>VIP${vip.level}</h3>
       <p>需要经验：${vip.need}</p>
+<div class="reward-list">
+  <div class="reward-chip">${resourceIconHtml("yuanbao")}元宝×${fmt(500*vip.level)}</div>
+  <div class="reward-chip">${itemIconHtml("普通仙缘箱","仙缘箱")}普通仙缘箱×${Math.max(1,Math.floor(vip.level/3))}</div>
+  <div class="reward-chip">${itemIconHtml("双倍修行丹","丹药")}双倍修行丹×1</div>
+</div>
       <p>挂机收益 +${Math.round(vip.bonus*100)}%，副本次数 +${vip.dungeon}</p>
       <p>炼丹 +${Math.round(vip.alchemy*100)}%，炼器 +${Math.round(vip.forge*100)}%</p>
       <button ${STATE.vip.claimed[vip.level]?"disabled":""} onclick="claimVipLevelReward(${vip.level})">${STATE.vip.claimed[vip.level]?"已领取":"领取 VIP 奖励邮件"}</button>
@@ -2288,7 +3363,7 @@ function renderMails(){
         <h3 class="${mail.read?'':'mail-unread'}">${mail.title}</h3>
         <p>${mail.body}</p>
         <p class="muted">发件人：${mail.from} | 类型：${mail.type} | ${new Date(mail.created).toLocaleString()}</p>
-        <p>附件：${attachmentText(mail.attachment)}</p>
+        <div>附件：${attachmentHtml(mail.attachment)}</div>
         <button ${mail.claimed?"disabled":""} onclick="claimMail('${mail.id}')">${mail.claimed?"已领取":"领取附件"}</button>
         <button onclick="let mail=STATE.mails.find(item=>item.id==='${mail.id}');mail.read=true;saveState();render()">标记已读</button>
       </div>`).join(""):"暂无邮件。"}
