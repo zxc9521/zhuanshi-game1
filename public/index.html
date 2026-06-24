@@ -723,6 +723,7 @@ const chance=p=>Math.random()<p;
 const uid=p=>p+"_"+Math.random().toString(36).slice(2,10)+"_"+Date.now().toString(36);
 
 const CONFIG={};
+const API_BASE="";
 
 CONFIG.qualities=[
   {name:"破碎",className:"q0",multiplier:.55},
@@ -1422,87 +1423,158 @@ forgeRealm:0,
 }
 
 let STATE=loadState();
-function loadAccounts(){
-  try{
-    return JSON.parse(localStorage.getItem("zs_xxxt_accounts"))||{};
-  }catch{
-    return {};
-  }
+function getAuthToken(){
+  return localStorage.getItem("zs_xxxt_token")||"";
 }
 
-function saveAccounts(accounts){
-  localStorage.setItem("zs_xxxt_accounts",JSON.stringify(accounts));
+function setAuthToken(token){
+  localStorage.setItem("zs_xxxt_token",token||"");
+}
+
+function clearAuthToken(){
+  localStorage.removeItem("zs_xxxt_token");
+}
+
+async function apiRequest(path,options={}){
+  const headers={
+    "Content-Type":"application/json",
+    ...(options.headers||{})
+  };
+
+  const token=getAuthToken();
+  if(token){
+    headers.Authorization="Bearer "+token;
+  }
+
+  const response=await fetch(API_BASE+path,{
+    ...options,
+    headers
+  });
+
+  let data=null;
+  try{
+    data=await response.json();
+  }catch{
+    data={ok:false,message:"服务器返回格式错误"};
+  }
+
+  if(!response.ok||!data.ok){
+    throw new Error(data.message||"请求失败");
+  }
+
+  return data;
 }
 
 function getAccountSaveKey(account){
   return "zs_xxxt_save_"+account;
 }
 
-function loadAccountState(account){
-  try{
-    const saved=JSON.parse(localStorage.getItem(getAccountSaveKey(account)));
-    return saved||null;
-  }catch{
-    return null;
-  }
-}
-
-function saveAccountState(){
+async function saveAccountState(){
   if(STATE.auth&&STATE.auth.account){
     localStorage.setItem(getAccountSaveKey(STATE.auth.account),JSON.stringify(STATE));
   }
+
   localStorage.setItem("zs_xxxt_save",JSON.stringify(STATE));
+
+  if(STATE.auth?.loggedIn&&getAuthToken()){
+    try{
+      await apiRequest("/api/player/save",{
+        method:"POST",
+        body:JSON.stringify({playerData:STATE})
+      });
+    }catch(error){
+      console.warn("服务器存档失败，已保留本地缓存：",error);
+    }
+  }
 }
 
-function registerAccount(){
+async function restoreServerSession(){
+  const token=getAuthToken();
+  if(!token)return false;
+
+  try{
+    const result=await apiRequest("/api/player",{method:"GET"});
+    if(result.playerData){
+      STATE=mergeState(createDefaultState(),result.playerData);
+    }
+
+    STATE.auth={
+      loggedIn:true,
+      account:result.account,
+      mode:"game"
+    };
+
+    saveState();
+    render();
+    return true;
+  }catch(error){
+    clearAuthToken();
+    console.warn("恢复登录失败：",error);
+    return false;
+  }
+}
+async function registerAccount(){
   const account=($("#registerAccount")?.value||"").trim();
   const password=($("#registerPassword")?.value||"").trim();
-  const confirm=($("#registerConfirm")?.value||"").trim();
+  const confirmPassword=($("#registerConfirm")?.value||"").trim();
 
-  if(!account||!password)return alert("账号和密码不能为空。");
-  if(account.length<3)return alert("账号至少 3 位。");
-  if(password.length<6)return alert("密码至少 6 位。");
-  if(password!==confirm)return alert("两次密码不一致。");
+  try{
+    await apiRequest("/api/register",{
+      method:"POST",
+      body:JSON.stringify({account,password,confirmPassword})
+    });
 
-  const accounts=loadAccounts();
-  if(accounts[account])return alert("账号已存在。");
-
-  accounts[account]={password,created:Date.now()};
-  saveAccounts(accounts);
-
-  alert("注册成功，请登录。");
-  STATE.auth.mode="login";
-  saveState();
-  render();
+    alert("注册成功，请登录。");
+    STATE.auth.mode="login";
+    saveState();
+    render();
+  }catch(error){
+    alert(error.message||"注册失败");
+  }
 }
 
-function loginAccount(){
+async function loginAccount(){
   const account=($("#loginAccount")?.value||"").trim();
   const password=($("#loginPassword")?.value||"").trim();
 
-  const accounts=loadAccounts();
-  if(!accounts[account])return alert("账号不存在。");
-  if(accounts[account].password!==password)return alert("密码错误。");
+  try{
+    const result=await apiRequest("/api/login",{
+      method:"POST",
+      body:JSON.stringify({account,password})
+    });
 
-  const accountState=loadAccountState(account);
-  if(accountState){
-    STATE=mergeState(createDefaultState(),accountState);
+    setAuthToken(result.token);
+
+    if(result.playerData){
+      STATE=mergeState(createDefaultState(),result.playerData);
+    }else{
+      STATE=createDefaultState();
+    }
+
+    STATE.auth={loggedIn:true,account:result.account,mode:"game"};
+    saveState();
+    render();
+  }catch(error){
+    alert(error.message||"登录失败");
   }
-
-  STATE.auth={loggedIn:true,account,mode:"game"};
-  saveAccountState();
-  render();
 }
 
-function logoutAccount(){
-  saveAccountState();
+async function logoutAccount(){
+  try{
+    await saveAccountState();
+    await apiRequest("/api/logout",{method:"POST"});
+  }catch(error){
+    console.warn("退出登录请求失败：",error);
+  }
+
+  clearAuthToken();
   STATE=createDefaultState();
   STATE.auth.mode="login";
   saveState();
   render();
 }
 
-function createRole(){
+async function createRole(){
   const name=($("#roleName")?.value||"").trim();
   const gender=STATE.player.gender;
 
@@ -1512,8 +1584,18 @@ function createRole(){
 
   STATE.player.name=name;
   STATE.player.created=true;
-  saveAccountState();
-  render();
+
+  try{
+    await apiRequest("/api/player/create",{
+      method:"POST",
+      body:JSON.stringify({name,gender})
+    });
+
+    await saveAccountState();
+    render();
+  }catch(error){
+    alert(error.message||"创建角色失败");
+  }
 }
 
 function loadState(){
@@ -1795,7 +1877,8 @@ function claimMail(mailId){
   pushFlow("mail_claim",{mailId,title:mail.title});
   pushLog(`<span class="good">领取邮件附件：</span>${mail.title}`);
   saveState();
-  render();
+saveAccountState();
+render();
 }
 
 function claimAllMail(){
@@ -1807,7 +1890,8 @@ function claimAllMail(){
   });
   pushLog(`<span class="good">已一键领取全部可领取邮件附件。</span>`);
   saveState();
-  render();
+saveAccountState();
+render();
 }
 
 function createEquipmentIcon(slot,realm,quality,grade,blue,identified,weaponStyle=null){
@@ -2412,7 +2496,8 @@ if(item.name==="新手套装箱") {
   openNoviceSuitBox(item);
     cleanBag();
   saveState();
-  safeRender();
+saveAccountState();
+safeRender();
   return;
 }
 
@@ -3954,7 +4039,13 @@ function renderDaily(){
   </div>`;
 }
 
+setInterval(()=>{
+  if(STATE.auth?.loggedIn&&STATE.player?.created){
+    saveAccountState();
+  }
+},30000);
 render();
+restoreServerSession();
 </script>
 </body>
 </html>
