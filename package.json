@@ -1,0 +1,13 @@
+{
+  "name": "zhuanshi-game",
+  "version": "0.1.0",
+  "description": "转世之修仙系统 - 公益文字修仙游戏服务器",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.17.1"
+  }
+}
