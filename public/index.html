@@ -5340,11 +5340,17 @@ function renderActivities(){
 
 function renderActivitySubPage(tab){
   if(tab==="礼包"){
-    return `<div class="panel"><h3>礼包</h3><div class="cards">
-      <div class="card"><h3>内测礼包</h3>
-${itemIconHtml("内测礼包","礼包","large")}<p>元宝、仙缘箱、随机灵石、功法残页。</p><button ${STATE.activity.claimed.beta?"disabled":""} onclick="claimActivity('beta')">${STATE.activity.claimed.beta?"已领取":"领取到邮件"}</button></div>
-    </div></div>`;
-  }
+  return `<div class="panel"><h3>礼包</h3><div class="cards">
+    <div class="card">
+      <h3>新手礼包</h3>
+      ${itemIconHtml("新手礼包","礼包","large")}
+      <p>基础铜币、低级丹药、仙缘箱、装备箱、新手套装箱。</p>
+      <button ${STATE.activity.claimed.newbie?"disabled":""} onclick="claimActivity('newbie')">
+        ${STATE.activity.claimed.newbie?"已领取":"领取到邮件"}
+      </button>
+    </div>
+  </div></div>`;
+}
 
   if(tab==="兑换码"){
     return `<div class="panel"><h3>兑换码</h3>
