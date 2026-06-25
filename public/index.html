@@ -2115,7 +2115,6 @@ if(saved.battleDeath&&saved.battleDeath.nonce&&Date.now()-saved.battleDeath.nonc
 if(saved.system&&Array.isArray(saved.system.tasks)){
   saved.system.tasks=saved.system.tasks.filter(task=>task.aiGenerated);
 }
-    }
     if(!saved.dungeon)saved.dungeon=base.dungeon;
     if(!saved.flow)saved.flow=[];
     if(saved.progress){
