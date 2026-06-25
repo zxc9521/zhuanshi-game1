@@ -842,6 +842,14 @@ const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const chance=p=>Math.random()<p;
 const uid=p=>p+"_"+Math.random().toString(36).slice(2,10)+"_"+Date.now().toString(36);
+function escapeHtml(text){
+  return String(text??"")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#39;");
+}
 
 const CONFIG={};
 const API_BASE="";
@@ -1846,7 +1854,8 @@ wineItem:"破碎灵酒",
 }
 },
     dungeon:{used:{},running:null},
-    flow:[]
+    worldChat:{input:"",messages:[]},
+flow:[]
   };
 }
 
@@ -2116,6 +2125,7 @@ if(saved.system&&Array.isArray(saved.system.tasks)){
   saved.system.tasks=saved.system.tasks.filter(task=>task.aiGenerated);
 }
     if(!saved.dungeon)saved.dungeon=base.dungeon;
+    if(!saved.worldChat)saved.worldChat=base.worldChat;
     if(!saved.flow)saved.flow=[];
     if(saved.progress){
       if(typeof saved.progress.map!=="number"||saved.progress.map<0||saved.progress.map>=CONFIG.maps.length){
@@ -2293,6 +2303,21 @@ function resourceIconHtml(resourceKey){
   const icon=CONFIG.currencyIcons[resourceKey];
   return icon?`<img class="resource-icon" src="${icon}" onerror="this.style.display='none'">`:"";
 }
+function getConcreteMaterialSource(material){
+  const mapIndex=Math.max(0,Math.min(CONFIG.maps.length-1,material.realm||0));
+  const map=CONFIG.maps[mapIndex]||CONFIG.maps[0];
+  const zoneIndex=Math.max(0,Math.min(2,material.quality%3));
+  const zone=map.zones[zoneIndex]||map.zones[0];
+
+  const secondMap=CONFIG.maps[Math.min(CONFIG.maps.length-1,mapIndex+1)];
+  const secondZone=secondMap?.zones?.[(zoneIndex+1)%3];
+
+  if(secondMap&&secondMap.id!==map.id){
+    return `${map.name}·${zone}怪物掉落；${secondMap.name}·${secondZone}也有少量掉落；材料包和天材地宝副本可获得。`;
+  }
+
+  return `${map.name}·${zone}怪物掉落；材料包和天材地宝副本可获得。`;
+}
 function getMaterialSourceAndUse(name){
   const normal=getMaterialConfigByName(name);
   const special=getSpecialMaterialConfigByName(name);
@@ -2305,12 +2330,12 @@ function getMaterialSourceAndUse(name){
     };
   }
 
-  if(normal){
-    return {
-      source:`${CONFIG.realms[normal.realm]||"对应境界"}附近地图怪物、材料包、副本掉落。`,
-      use:`可用于${normal.use||"炼丹、锻造、任务"}。`
-    };
-  }
+ if(normal){
+  return {
+    source:getConcreteMaterialSource(normal),
+    use:`可用于${normal.use||"炼丹、锻造、任务"}。`
+  };
+}
 
   if(name==="锻造石"){
     return {
@@ -3927,9 +3952,9 @@ async function startAISystemChat(){
   STATE.system.ai.chat.options=[];
 
   saveState();
-  safeRender();
+renderStableAround("systemAiPanel");
 
-  await continueAISystemChat("召唤系统");
+await continueAISystemChat("召唤系统");
 }
 
 async function continueAISystemChat(choice){
@@ -3950,9 +3975,9 @@ async function continueAISystemChat(choice){
   }
 
   saveState();
-  safeRender();
+renderStableAround("systemAiPanel");
 
-  const mapInfo=getCurrentMapInfo();
+const mapInfo=getCurrentMapInfo();
 
   try{
     const result=await apiRequest("/api/ai/system-chat",{
@@ -3993,12 +4018,12 @@ async function continueAISystemChat(choice){
     }
 
     saveState();
-    safeRender();
-  }catch(error){
+renderStableAround("systemAiPanel");
+}catch(error){
     chat.loading=false;
     saveState();
     alert(error.message||"AI 系统聊天失败");
-    safeRender();
+renderStableAround("systemAiPanel");
   }
 }
 
@@ -4010,7 +4035,7 @@ function closeAISystemChat(){
   STATE.system.ai.chat.options=[];
 
   saveState();
-  safeRender();
+renderStableAround("systemAiPanel");
 }
 
 async function requestAISystemDialog(){
@@ -4033,10 +4058,10 @@ async function requestAISystemDialog(){
   }
 
   STATE.system.ai.loading=true;
-  saveState();
-  safeRender();
+saveState();
+renderStableAround("systemAiPanel");
 
-  const mapInfo=getCurrentMapInfo();
+const mapInfo=getCurrentMapInfo();
 
   try{
     const result=await apiRequest("/api/ai/system-dialog",{
@@ -4071,12 +4096,12 @@ async function requestAISystemDialog(){
     STATE.system.ai.history=STATE.system.ai.history.slice(0,20);
 
     saveState();
-    safeRender();
-  }catch(error){
+renderStableAround("systemAiPanel");
+}catch(error){
     STATE.system.ai.loading=false;
     saveState();
     alert(error.message||"AI 系统暂时无响应");
-    safeRender();
+renderStableAround("systemAiPanel");
   }
 }
 
@@ -4119,7 +4144,7 @@ function acceptAISystemOption(index){
   pushLog(`<span class="gold">新的系统任务：</span>${legalTask.description}`);
 
   saveState();
-  safeRender();
+renderStableAround("systemAiPanel");
 }
 
 function refreshSystemTasks(){
@@ -4403,6 +4428,20 @@ function safeRender(){
   if(nextBagList)nextBagList.scrollTop=bagListScroll;
   if(nextBagLog)nextBagLog.scrollTop=bagLogScroll;
   window.scrollTo(scrollX,scrollY);
+}
+function renderStableAround(anchorId){
+  const anchor=document.getElementById(anchorId);
+  const oldTop=anchor?anchor.getBoundingClientRect().top:null;
+
+  render();
+
+  if(anchor&&oldTop!==null){
+    const nextAnchor=document.getElementById(anchorId);
+    if(nextAnchor){
+      const newTop=nextAnchor.getBoundingClientRect().top;
+      window.scrollBy(0,newTop-oldTop);
+    }
+  }
 }
 function renderLogin(){
   return `<div class="auth-wrap">
@@ -4971,7 +5010,7 @@ return `<div class="panel">
       </div>
         </div>
 
-        <div class="panel">
+        <div id="systemAiPanel" class="panel">
       <h3>AI 系统</h3>
       <p class="muted">点击“让系统派任务”会出现三个任务选项。点击“召唤系统聊聊天”会进入对话，每次系统都会给你三个回复选项，最多聊十句。</p>
 
@@ -5480,11 +5519,104 @@ function renderMails(){
   </div>`;
 }
 
+function renderWorldChatMessages(){
+  const messages=STATE.worldChat?.messages||[];
+
+  if(!messages.length){
+    return `<span class="muted">暂无世界聊天。第一位开口的道友，通常都比较勇。</span>`;
+  }
+
+  return messages.map(message=>`<div>
+    <span class="muted">[${new Date(message.time).toLocaleTimeString()}]</span>
+    <span class="gold">[${escapeHtml(message.realm)}]</span>
+    <b>${escapeHtml(message.name)}：</b>
+    <span>${escapeHtml(message.text)}</span>
+  </div>`).join("");
+}
+
+function updateWorldChatDom(){
+  const list=document.getElementById("worldChatList");
+  if(list){
+    list.innerHTML=renderWorldChatMessages();
+    list.scrollTop=list.scrollHeight;
+  }
+
+  const input=document.getElementById("worldChatInput");
+  if(input){
+    input.value=STATE.worldChat.input||"";
+  }
+}
+
+function sendWorldChat(){
+  const input=document.getElementById("worldChatInput");
+  const text=(input?.value||"").trim();
+
+  if(!text)return;
+  if(text.length>80){
+    alert("世界聊天最多 80 字。");
+    return;
+  }
+
+  if(!STATE.worldChat){
+    STATE.worldChat={input:"",messages:[]};
+  }
+
+  STATE.worldChat.messages.push({
+    id:uid("chat"),
+    time:now(),
+    name:STATE.player.name||"无名道友",
+    realm:currentRealmTitle(),
+    text
+  });
+
+  STATE.worldChat.messages=STATE.worldChat.messages.slice(-80);
+  STATE.worldChat.input="";
+
+  saveState();
+  updateWorldChatDom();
+}
+
+function handleWorldChatInput(element){
+  if(!STATE.worldChat){
+    STATE.worldChat={input:"",messages:[]};
+  }
+
+  STATE.worldChat.input=element.value;
+  saveState();
+}
 function renderChat(){
+  if(!STATE.worldChat){
+    STATE.worldChat={input:"",messages:[]};
+  }
+
   return `<div class="panel">
     <h2>聊天</h2>
-    <p>第一阶段 UI 占位。后续通过 WebSocket 实现世界频道、宗门频道、系统频道。</p>
-    <div class="log"><span class="muted">[系统频道] 高额仙缘掉落、Boss 首杀、宗门公告未来会由服务端广播。</span></div>
+    <p class="muted">世界聊天第一版为本地 UI，不整页刷新，所以不会闪烁。后续接 WebSocket 后可同步到全服。</p>
+
+    <div class="cards">
+      <div class="card">
+        <h3>世界频道</h3>
+        <div id="worldChatList" class="log">${renderWorldChatMessages()}</div>
+
+        <div class="row" style="margin-top:8px">
+          <input id="worldChatInput"
+            style="min-width:280px;flex:1"
+            maxlength="80"
+            placeholder="输入世界聊天，最多80字"
+            value="${escapeHtml(STATE.worldChat.input||"")}"
+            oninput="handleWorldChatInput(this)"
+            onkeydown="if(event.key==='Enter')sendWorldChat()">
+          <button onclick="sendWorldChat()">发送</button>
+        </div>
+
+        <p class="muted">发言格式：境界 + 玩家名 + 内容。</p>
+      </div>
+
+      <div class="card">
+        <h3>频道预留</h3>
+        <p>后续可增加：宗门频道、队伍频道、系统频道、私聊。</p>
+      </div>
+    </div>
   </div>`;
 }
 
