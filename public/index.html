@@ -2115,8 +2115,6 @@ if(saved.battleDeath&&saved.battleDeath.nonce&&Date.now()-saved.battleDeath.nonc
 if(saved.system&&Array.isArray(saved.system.tasks)){
   saved.system.tasks=saved.system.tasks.filter(task=>task.aiGenerated);
 }
-    if(saved.system&&Array.isArray(saved.system.tasks)){
-      saved.system.tasks=saved.system.tasks.filter(task=>task.aiGenerated);
     }
     if(!saved.dungeon)saved.dungeon=base.dungeon;
     if(!saved.flow)saved.flow=[];
@@ -3692,6 +3690,34 @@ function claimRushReward(totalSubRealm){
   render();
 }
 
+function chooseSystemPath(path){
+  if(STATE.system.path)return;
+
+  STATE.system.path=path;
+  STATE.system.tasks=[];
+
+  if(!STATE.system.ai){
+    STATE.system.ai={
+      dialogue:"",
+      mood:"calm",
+      taskOptions:[],
+      lastReply:"",
+      loading:false,
+      chat:{
+        active:false,
+        loading:false,
+        ended:false,
+        turns:[],
+        options:[]
+      },
+      history:[]
+    };
+  }
+
+  pushLog(`你选择了系统道路：${path}。旧式系统任务已废弃，后续由 AI 系统派发任务。`);
+  saveState();
+  render();
+}
 function getCurrentMapInfo(){
   const map=CONFIG.maps[STATE.progress.map];
   return {
@@ -3878,7 +3904,7 @@ async function startAISystemChat(){
   }
 
   STATE.system.ai.chat.active=true;
-  STATE.system.ai.chat.loading=true;
+  STATE.system.ai.chat.loading=false;
   STATE.system.ai.chat.ended=false;
   STATE.system.ai.chat.turns=[];
   STATE.system.ai.chat.options=[];
@@ -4877,15 +4903,31 @@ function renderSystem(){
   }
 
   const goods=getSystemShopGoods();
-  const ai=STATE.system.ai||{
-    dialogue:"",
-    mood:"calm",
-    options:[],
-    lastReply:"",
+const ai=STATE.system.ai||{
+  dialogue:"",
+  mood:"calm",
+  taskOptions:[],
+  lastReply:"",
+  loading:false,
+  chat:{
+    active:false,
     loading:false,
-    history:[]
-  };
-  return `<div class="panel">
+    ended:false,
+    turns:[],
+    options:[]
+  },
+  history:[]
+};
+
+const chat=ai.chat||{
+  active:false,
+  loading:false,
+  ended:false,
+  turns:[],
+  options:[]
+};
+
+return `<div class="panel">
     <h2>天道外挂系统</h2>
     <div class="cards">
       <div class="card">
@@ -4901,7 +4943,6 @@ function renderSystem(){
       <div class="card">
         <h3>系统说明</h3>
         <p class="muted">系统点来自系统任务。普通兑换可直接入账；活动/限时/仙缘类兑换通过邮件发放，方便后续服务端防刷。</p>
-        <button onclick="requestAISystemDialog()">让系统派任务</button>
       </div>
         </div>
 
