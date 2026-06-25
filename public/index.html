@@ -3893,6 +3893,24 @@ function createLegalAITask(rawTask){
   };
 }
 async function startAISystemChat(){
+  if(!STATE.system.ai){
+    STATE.system.ai={
+      dialogue:"",
+      mood:"calm",
+      taskOptions:[],
+      lastReply:"",
+      loading:false,
+      chat:{
+        active:false,
+        loading:false,
+        ended:false,
+        turns:[],
+        options:[]
+      },
+      history:[]
+    };
+  }
+
   if(!STATE.system.ai.chat){
     STATE.system.ai.chat={
       active:false,
@@ -3916,8 +3934,11 @@ async function startAISystemChat(){
 }
 
 async function continueAISystemChat(choice){
+  if(!STATE.system.ai||!STATE.system.ai.chat)return;
+
   const chat=STATE.system.ai.chat;
-  if(!chat||chat.loading||chat.ended)return;
+
+  if(chat.loading||chat.ended)return;
 
   chat.loading=true;
 
@@ -3983,13 +4004,16 @@ async function continueAISystemChat(choice){
 }
 
 function closeAISystemChat(){
-  if(!STATE.system.ai.chat)return;
+  if(!STATE.system.ai||!STATE.system.ai.chat)return;
+
   STATE.system.ai.chat.active=false;
   STATE.system.ai.chat.loading=false;
   STATE.system.ai.chat.options=[];
+
   saveState();
   safeRender();
 }
+
 async function requestAISystemDialog(){
   if(!STATE.system.ai){
     STATE.system.ai={
@@ -4044,6 +4068,7 @@ async function requestAISystemDialog(){
       dialogue:result.result.dialogue,
       options:result.result.options
     });
+
     STATE.system.ai.history=STATE.system.ai.history.slice(0,20);
 
     saveState();
@@ -4058,6 +4083,7 @@ async function requestAISystemDialog(){
 
 function acceptAISystemOption(index){
   const ai=STATE.system.ai;
+
   if(!ai||!ai.taskOptions||!ai.taskOptions[index])return;
 
   const option=ai.taskOptions[index];
