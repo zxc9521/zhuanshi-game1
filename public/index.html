@@ -4943,7 +4943,7 @@ const tutorialAction=tutorialModal
     <div class="main">${renderPage(STATE.tab)}</div>
   </div>
 
-    ${tutorialModal?`
+      ${tutorialModal?`
   <div class="tutorial-mask">
     <div class="tutorial-card">
       <h2>${tutorialModal.title}</h2>
@@ -4953,7 +4953,7 @@ const tutorialAction=tutorialModal
         <button onclick="closeTutorialModal()">关闭</button>
       </div>
     </div>
-  </div>`:""}
+  </div>`:""}`;
 }
 
 function renderPage(tab){
@@ -4987,34 +4987,61 @@ function renderBattleScene(monster,monsterHp,monsterMax){
   const death=STATE.battleDeath||{};
   const deathAlive=death.nonce&&Date.now()-(death.nonce||0)<1000;
   const visual=STATE.battleVisual||{};
-const nonce=visual.nonce||0;
-const visualAlive=nonce&&Date.now()-(visual.nonce||0)<800;
+  const nonce=visual.nonce||0;
+  const visualAlive=nonce&&Date.now()-(visual.nonce||0)<800;
 
-const fxKey=visualAlive?(visual.fx||"slash"):"";
-const fxImage=fxKey?(CONFIG.battleAssets.fx[fxKey]||CONFIG.battleAssets.fx.slash):"";
-const text=visualAlive?(visual.text||""):"";
+  const fxKey=visualAlive?(visual.fx||"slash"):"";
+  const fxImage=fxKey?(CONFIG.battleAssets.fx[fxKey]||CONFIG.battleAssets.fx.slash):"";
+  const text=visualAlive?(visual.text||""):"";
+
   const playerHpPct=Math.max(0,Math.min(100,STATE.player.life/STATE.player.lifeMax*100));
   const monsterHpPct=Math.max(0,Math.min(100,monsterHp/monsterMax*100));
 
-  return `<div class="battle-scene">
-    <img class="battle-bg" src="${bg}" onerror="this.style.display='none'">
-    <div class="battle-vignette"></div>
+  return `
+    <div class="battle-scene">
+      <img class="battle-bg" src="${bg}" onerror="this.style.display='none'">
+      <div class="battle-vignette"></div>
 
-    <div class="battle-nameplate">
-      <span class="battle-name">${STATE.player.name||"无名道友"}</span>
-      <span class="battle-name">${monster.name}</span>
+      <div class="battle-nameplate">
+        <span class="battle-name">${STATE.player.name||"无名道友"}</span>
+        <span class="battle-name">${monster.name}</span>
+      </div>
+
+      <img class="battle-unit battle-player" src="${playerImage}" onerror="this.style.display='none'">
+
+      ${
+        !deathAlive&&monsterImage
+          ? `<img class="battle-unit battle-monster" src="${monsterImage}" onerror="this.style.display='none'">`
+          : ""
+      }
+
+      ${
+        deathAlive&&death.image
+          ? `<img class="battle-monster-dead" src="${death.image}" onerror="this.style.display='none'">`
+          : ""
+      }
+
+      ${
+        visualAlive&&fxImage
+          ? `<img class="battle-fx play" src="${fxImage}?v=${nonce}" onerror="this.style.display='none'">`
+          : ""
+      }
+
+      ${
+        visualAlive&&text
+          ? `<div class="battle-float-text play">${text}</div>`
+          : ""
+      }
+
+      <div class="battle-mini-hp battle-player-hp">
+        <span style="width:${playerHpPct}%"></span>
+      </div>
+
+      <div class="battle-mini-hp battle-monster-hp">
+        <span style="width:${monsterHpPct}%"></span>
+      </div>
     </div>
-
-    <img class="battle-unit battle-player" src="${playerImage}" onerror="this.style.display='none'">
-    ${!deathAlive&&monsterImage?`<img class="battle-unit battle-monster" src="${monsterImage}" onerror="this.style.display='none'">`:""}
-${deathAlive&&death.image?`<img class="battle-monster-dead" src="${death.image}" onerror="this.style.display='none'">`:""}
-
-    ${visualAlive?`<img class="battle-fx play" src="${fxImage}?v=${nonce}" onerror="this.style.display='none'">`:""}
-${visualAlive?`<div class="battle-float-text play">${text}</div>`:""}
-
-    <div class="battle-mini-hp battle-player-hp"><span style="width:${playerHpPct}%"></span></div>
-    <div class="battle-mini-hp battle-monster-hp"><span style="width:${monsterHpPct}%"></span></div>
-  </div>`;
+  `;
 }
 function selectTrialMap(mapIndex){
   if(!STATE.progress.unlockedMaps.includes(mapIndex)){
@@ -5959,71 +5986,6 @@ function renderMails(){
   </div>`;
 }
 
-function renderWorldChatMessages(){
-  const messages=STATE.worldChat?.messages||[];
-
-  if(!messages.length){
-    return `<span class="muted">暂无世界聊天。第一位开口的道友，通常都比较勇。</span>`;
-  }
-
-  return messages.map(message=>`<div>
-    <span class="muted">[${new Date(message.time).toLocaleTimeString()}]</span>
-    <span class="gold">[${escapeHtml(message.realm)}]</span>
-    <b>${escapeHtml(message.name)}：</b>
-    <span>${escapeHtml(message.text)}</span>
-  </div>`).join("");
-}
-
-function updateWorldChatDom(){
-  const list=document.getElementById("worldChatList");
-  if(list){
-    list.innerHTML=renderWorldChatMessages();
-    list.scrollTop=list.scrollHeight;
-  }
-
-  const input=document.getElementById("worldChatInput");
-  if(input){
-    input.value=STATE.worldChat.input||"";
-  }
-}
-
-function sendWorldChat(){
-  const input=document.getElementById("worldChatInput");
-  const text=(input?.value||"").trim();
-
-  if(!text)return;
-  if(text.length>80){
-    alert("世界聊天最多 80 字。");
-    return;
-  }
-
-  if(!STATE.worldChat){
-    STATE.worldChat={input:"",messages:[]};
-  }
-
-  STATE.worldChat.messages.push({
-    id:uid("chat"),
-    time:now(),
-    name:STATE.player.name||"无名道友",
-    realm:currentRealmTitle(),
-    text
-  });
-
-  STATE.worldChat.messages=STATE.worldChat.messages.slice(-80);
-  STATE.worldChat.input="";
-
-  saveState();
-  updateWorldChatDom();
-}
-
-function handleWorldChatInput(element){
-  if(!STATE.worldChat){
-    STATE.worldChat={input:"",messages:[]};
-  }
-
-  STATE.worldChat.input=element.value;
-  saveState();
-}
 function renderChat(){
   if(!STATE.worldChat){
     STATE.worldChat={input:"",messages:[]};
