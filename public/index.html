@@ -1832,10 +1832,16 @@ wineItem:"破碎灵酒",
   ai:{
   dialogue:"",
   mood:"calm",
-  options:[],
+  taskOptions:[],
   lastReply:"",
   loading:false,
-  chatInput:"",
+  chat:{
+    active:false,
+    loading:false,
+    ended:false,
+    turns:[],
+    options:[]
+  },
   history:[]
 }
 },
@@ -2094,6 +2100,21 @@ if(saved.battleDeath&&saved.battleDeath.nonce&&Date.now()-saved.battleDeath.nonc
     if(saved.system&&!saved.system.ai){
       saved.system.ai=base.system.ai;
     }
+    if(saved.system&&saved.system.ai&&!saved.system.ai.chat){
+      saved.system.ai.chat=base.system.ai.chat;
+    }
+
+    if(saved.system&&saved.system.ai&&saved.system.ai.options&&!saved.system.ai.taskOptions){
+      saved.system.ai.taskOptions=saved.system.ai.options;
+      delete saved.system.ai.options;
+    }
+
+    if(saved.system&&saved.system.ai&&saved.system.ai.chatInput!==undefined){
+      delete saved.system.ai.chatInput;
+    }
+if(saved.system&&Array.isArray(saved.system.tasks)){
+  saved.system.tasks=saved.system.tasks.filter(task=>task.aiGenerated);
+}
     if(saved.system&&Array.isArray(saved.system.tasks)){
       saved.system.tasks=saved.system.tasks.filter(task=>task.aiGenerated);
     }
@@ -3706,9 +3727,8 @@ function pickAiTaskSlot(difficulty){
 
 function createLegalAITask(rawTask){
   const path=STATE.system.path||"苦修";
-  const difficulty=rawTask.difficulty||"normal";
+  const difficulty=rawTask?.difficulty||"normal";
   const mapIndex=STATE.progress.map;
-  const zoneIndex=STATE.progress.zone;
   const currentMap=CONFIG.maps[mapIndex];
 
   if(path==="炼器"){
@@ -3717,9 +3737,13 @@ function createLegalAITask(rawTask){
 
     if(difficulty==="easy"){
       targetRealm=Math.max(0,STATE.player.realm-1);
-    }else if(difficulty==="normal"){
+    }
+
+    if(difficulty==="normal"){
       targetRealm=STATE.player.realm;
-    }else{
+    }
+
+    if(difficulty==="hard"){
       targetRealm=maxRealm;
     }
 
@@ -3729,11 +3753,17 @@ function createLegalAITask(rawTask){
       ? `${targetRealmName}装备`
       : `${targetRealmName}${targetSlot}`;
 
+    const title=targetSlot==="任意"
+      ? `锻造${targetRealmName}装备`
+      : `锻造${targetRealmName}${targetSlot}`;
+
+    const description=targetSlot==="任意"
+      ? `锻造任意一件${targetRealmName}境界装备。`
+      : `锻造一件${targetRealmName}境界${targetSlot}。`;
+
     return {
-      title:rawTask.title||`${targetRealmName}炼器`,
-      description:targetSlot==="任意"
-        ? `锻造任意一件${targetRealmName}境界装备。`
-        : `锻造一件${targetRealmName}境界${targetSlot}。`,
+      title,
+      description,
       type:"forgeRealm",
       target:targetName,
       targetRealm,
@@ -3742,7 +3772,7 @@ function createLegalAITask(rawTask){
       count:1,
       progress:0,
       difficulty,
-      rewardHint:rawTask.rewardHint||"系统点与锻造材料"
+      rewardHint:"系统点与炼器资源"
     };
   }
 
@@ -3753,12 +3783,16 @@ function createLegalAITask(rawTask){
     if(difficulty==="easy"){
       targetMapIndex=mapIndex;
       count=12;
-    }else if(difficulty==="normal"){
+    }
+
+    if(difficulty==="normal"){
       if(mapIndex>0&&chance(.5)){
         targetMapIndex=rnd(0,mapIndex);
       }
       count=targetMapIndex<mapIndex?45+15*(mapIndex-targetMapIndex):24;
-    }else{
+    }
+
+    if(difficulty==="hard"){
       if(mapIndex>0){
         targetMapIndex=rnd(0,mapIndex);
       }
@@ -3766,22 +3800,26 @@ function createLegalAITask(rawTask){
     }
 
     const targetMap=CONFIG.maps[targetMapIndex];
-    const targetMonster=CONFIG.mapMonsters?.[targetMapIndex]?.[0]?.name||"该地图怪物";
+
+    const title=targetMapIndex<mapIndex
+      ? `${targetMap.name}清剿`
+      : `${targetMap.name}苦修`;
+
+    const description=targetMapIndex<mapIndex
+      ? `回到较低地图【${targetMap.name}】击败 ${count} 只怪物。别嫌麻烦，根基差就多练。`
+      : `在当前地图【${targetMap.name}】击败 ${count} 只怪物。`;
 
     return {
-      title:rawTask.title||`${targetMap.name}苦修`,
-      description:targetMapIndex<mapIndex
-        ? `回到较低地图【${targetMap.name}】击败大量怪物。别嫌麻烦，根基差就多练。`
-        : `在当前地图【${targetMap.name}】击败怪物。`,
+      title,
+      description,
       type:"killMap",
       target:`${targetMap.name}怪物`,
       targetMapIndex,
       targetMapName:targetMap.name,
-      exampleMonster:targetMonster,
       count,
       progress:0,
       difficulty,
-      rewardHint:rawTask.rewardHint||"系统点与修为资源"
+      rewardHint:"系统点与修为资源"
     };
   }
 
@@ -3789,14 +3827,14 @@ function createLegalAITask(rawTask){
     if(difficulty==="hard"&&CONFIG.wineRecipes?.length){
       const wine=CONFIG.wineRecipes[Math.min(CONFIG.wineRecipes.length-1,STATE.player.realm)];
       return {
-        title:rawTask.title||"丹炉酿酒",
+        title:`酿制${wine.name}`,
         description:`酿制一壶${wine.name}。`,
         type:"wine",
         target:wine.name,
         count:1,
         progress:0,
         difficulty,
-        rewardHint:rawTask.rewardHint||"系统点与丹炉材料"
+        rewardHint:"系统点与丹炉资源"
       };
     }
 
@@ -3804,20 +3842,20 @@ function createLegalAITask(rawTask){
     const pill=pick(available.length?available:CONFIG.pills);
 
     return {
-      title:rawTask.title||"丹炉炼药",
+      title:`炼制${pill.name}`,
       description:`炼制一枚${pill.name}。`,
       type:"alchemy",
       target:pill.name,
       count:1,
       progress:0,
       difficulty,
-      rewardHint:rawTask.rewardHint||"系统点与丹药材料"
+      rewardHint:"系统点与丹药材料"
     };
   }
 
   return {
-    title:rawTask.title||"系统试炼",
-    description:"击败当前地图怪物。",
+    title:"系统试炼",
+    description:`在当前地图【${currentMap.name}】击败 10 只怪物。`,
     type:"killMap",
     target:`${currentMap.name}怪物`,
     targetMapIndex:mapIndex,
@@ -3825,17 +3863,122 @@ function createLegalAITask(rawTask){
     count:10,
     progress:0,
     difficulty,
-    rewardHint:rawTask.rewardHint||"系统点与铜币"
+    rewardHint:"系统点与铜币"
   };
 }
-async function requestAISystemDialog(lastChoice=""){
+async function startAISystemChat(){
+  if(!STATE.system.ai.chat){
+    STATE.system.ai.chat={
+      active:false,
+      loading:false,
+      ended:false,
+      turns:[],
+      options:[]
+    };
+  }
+
+  STATE.system.ai.chat.active=true;
+  STATE.system.ai.chat.loading=true;
+  STATE.system.ai.chat.ended=false;
+  STATE.system.ai.chat.turns=[];
+  STATE.system.ai.chat.options=[];
+
+  saveState();
+  safeRender();
+
+  await continueAISystemChat("召唤系统");
+}
+
+async function continueAISystemChat(choice){
+  const chat=STATE.system.ai.chat;
+  if(!chat||chat.loading||chat.ended)return;
+
+  chat.loading=true;
+
+  if(choice&&choice!=="召唤系统"){
+    chat.turns.push({
+      role:"player",
+      text:choice,
+      time:now()
+    });
+  }
+
+  saveState();
+  safeRender();
+
+  const mapInfo=getCurrentMapInfo();
+
+  try{
+    const result=await apiRequest("/api/ai/system-chat",{
+      method:"POST",
+      body:JSON.stringify({
+        player:{
+          name:STATE.player.name,
+          realmName:CONFIG.realms[STATE.player.realm],
+          subRealmName:CONFIG.subRealms[STATE.player.subRealm]
+        },
+        system:{
+          path:STATE.system.path||"未选择道路"
+        },
+        context:mapInfo,
+        history:chat.turns,
+        choice
+      })
+    });
+
+    chat.loading=false;
+    chat.ended=!!result.result.ended;
+
+    chat.turns.push({
+      role:"ai",
+      text:result.result.dialogue,
+      time:now()
+    });
+
+    chat.options=result.result.options||[];
+
+    if(chat.ended){
+      chat.options=[];
+      chat.turns.push({
+        role:"ai",
+        text:"系统气息沉入识海深处，任凭你如何呼唤，也懒得再回应。",
+        time:now()
+      });
+    }
+
+    saveState();
+    safeRender();
+  }catch(error){
+    chat.loading=false;
+    saveState();
+    alert(error.message||"AI 系统聊天失败");
+    safeRender();
+  }
+}
+
+function closeAISystemChat(){
+  if(!STATE.system.ai.chat)return;
+  STATE.system.ai.chat.active=false;
+  STATE.system.ai.chat.loading=false;
+  STATE.system.ai.chat.options=[];
+  saveState();
+  safeRender();
+}
+async function requestAISystemDialog(){
   if(!STATE.system.ai){
     STATE.system.ai={
       dialogue:"",
       mood:"calm",
-      options:[],
+      taskOptions:[],
       lastReply:"",
       loading:false,
+      chat:{
+        active:false,
+        loading:false,
+        ended:false,
+        turns:[],
+        options:[]
+      },
       history:[]
     };
   }
@@ -3850,30 +3993,31 @@ async function requestAISystemDialog(lastChoice=""){
     const result=await apiRequest("/api/ai/system-dialog",{
       method:"POST",
       body:JSON.stringify({
-  player:{
-    name:STATE.player.name,
-    realmName:CONFIG.realms[STATE.player.realm],
-    subRealmName:CONFIG.subRealms[STATE.player.subRealm]
-  },
-  system:{
-    path:STATE.system.path||"未选择道路"
-  },
-  context:mapInfo,
-  lastChoice:lastChoice||STATE.system.ai.chatInput||""
-})
+        player:{
+          name:STATE.player.name,
+          realmName:CONFIG.realms[STATE.player.realm],
+          subRealmName:CONFIG.subRealms[STATE.player.subRealm]
+        },
+        system:{
+          path:STATE.system.path||"未选择道路"
+        },
+        context:mapInfo,
+        lastChoice:"请根据当前道路给本角色派发三个任务选项。"
+      })
     });
 
     STATE.system.ai.loading=false;
     STATE.system.ai.dialogue=result.result.dialogue;
     STATE.system.ai.mood=result.result.mood;
-    STATE.system.ai.options=result.result.options;
+    STATE.system.ai.taskOptions=result.result.options||[];
+    STATE.system.ai.lastReply="";
+
     STATE.system.ai.history.unshift({
-  time:now(),
-  input:lastChoice||STATE.system.ai.chatInput||"",
-  dialogue:result.result.dialogue,
-  options:result.result.options
-});
-STATE.system.ai.chatInput="";
+      time:now(),
+      type:"task",
+      dialogue:result.result.dialogue,
+      options:result.result.options
+    });
     STATE.system.ai.history=STATE.system.ai.history.slice(0,20);
 
     saveState();
@@ -3888,9 +4032,9 @@ STATE.system.ai.chatInput="";
 
 function acceptAISystemOption(index){
   const ai=STATE.system.ai;
-  if(!ai||!ai.options||!ai.options[index])return;
+  if(!ai||!ai.taskOptions||!ai.taskOptions[index])return;
 
-  const option=ai.options[index];
+  const option=ai.taskOptions[index];
   const rawTask=option.task||{};
   const legalTask=createLegalAITask(rawTask);
   const reward=getAiTaskReward(legalTask);
@@ -3918,21 +4062,13 @@ function acceptAISystemOption(index){
   });
 
   ai.lastReply=option.reply;
-  ai.options=[];
+  ai.taskOptions=[];
 
   pushLog(`<span class="cyan">AI系统：</span>${option.reply}`);
   pushLog(`<span class="gold">新的系统任务：</span>${legalTask.description}`);
 
   saveState();
   safeRender();
-}
-function chooseSystemPath(path){
-  if(STATE.system.path)return;
-  STATE.system.path=path;
-  STATE.system.tasks=[];
-  pushLog(`你选择了系统道路：${path}。本系统会亲自给你派任务，别指望那些旧任务还能糊弄过去。`);
-  saveState();
-  render();
 }
 
 function refreshSystemTasks(){
@@ -4769,29 +4905,57 @@ function renderSystem(){
       </div>
         </div>
 
-    <div class="panel">
-      <h3>AI 系统对话</h3>
-      <p class="muted">AI 会根据你的境界、当前地图、系统道路生成三个任务选项。实际奖励由游戏规则控制。</p>
+        <div class="panel">
+      <h3>AI 系统</h3>
+      <p class="muted">点击“让系统派任务”会出现三个任务选项。点击“召唤系统聊聊天”会进入对话，每次系统都会给你三个回复选项，最多聊十句。</p>
 
       <div class="card">
         <h3 class="cyan">天道系统</h3>
-        <p>${ai.dialogue||"系统沉默片刻，似乎正在观察你的修行轨迹。"}</p>
+        <p>${ai.dialogue||"系统沉默片刻，似乎正在嫌弃你的修行速度。"}</p>
         ${ai.lastReply?`<p class="gold">系统回应：${ai.lastReply}</p>`:""}
+
         <div class="row">
-          <input id="aiChatInput" style="min-width:260px" placeholder="想问系统什么？比如：本座下一步该做什么" value="${ai.chatInput||""}" oninput="STATE.system.ai.chatInput=this.value;saveState()">
-          <button ${ai.loading?"disabled":""} onclick="requestAISystemDialog()">${ai.loading?"系统推演中...":"与系统对话"}</button>
+          <button ${ai.loading?"disabled":""} onclick="requestAISystemDialog()">
+            ${ai.loading?"系统推演中...":"让系统派任务"}
+          </button>
+
+          <button ${chat.loading?"disabled":""} onclick="startAISystemChat()">
+            ${chat.loading?"系统不耐烦地回应中...":"召唤系统聊聊天"}
+          </button>
         </div>
-        
       </div>
 
-      ${ai.options&&ai.options.length?`<div class="cards">
-        ${ai.options.map((option,index)=>`<div class="card">
+      ${ai.taskOptions&&ai.taskOptions.length?`<div class="cards">
+        ${ai.taskOptions.map((option,index)=>`<div class="card">
           <h3>${option.label}</h3>
           <p>${option.task.description}</p>
-          <p class="muted">任务类型：${option.task.type}｜目标：${option.task.target} × ${option.task.count}</p>
+          <p class="muted">系统会根据你的道路修正为真实可完成任务，不会使用虚构装备名。</p>
           <p class="gold">建议奖励：${option.task.rewardHint}</p>
-          <button onclick="acceptAISystemOption(${index})">选择此项</button>
+          <button onclick="acceptAISystemOption(${index})">选择此任务</button>
         </div>`).join("")}
+      </div>`:""}
+
+      ${chat.active?`<div class="card">
+        <h3 class="purple">识海对话</h3>
+
+        <div class="small-log">
+          ${chat.turns&&chat.turns.length?chat.turns.map(turn=>`<div class="${turn.role==="ai"?"cyan":"gold"}">
+            ${turn.role==="ai"?"系统":"你"}：${turn.text}
+          </div>`).join(""):"<span class='muted'>系统还没开口。</span>"}
+        </div>
+
+        ${chat.loading?`<p class="muted">系统正在用一种嫌弃的眼神看着你……</p>`:""}
+
+        ${!chat.loading&&chat.options&&chat.options.length?`<div class="cards">
+          ${chat.options.map((option,index)=>`<div class="card">
+            <p>${option}</p>
+            <button onclick="continueAISystemChat(STATE.system.ai.chat.options[${index}])">这样回复</button>
+          </div>`).join("")}
+        </div>`:""}
+
+        ${chat.ended?`<p class="warn">系统已经懒得理你，意识沉回脑海深处。</p>`:""}
+
+        <button onclick="closeAISystemChat()">收起对话</button>
       </div>`:""}
     </div>
 

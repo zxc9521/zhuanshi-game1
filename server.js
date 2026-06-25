@@ -458,6 +458,172 @@ count 必须是 1 到 120 的整数。
     });
   }
 });
+app.post("/api/ai/system-chat", authMiddleware, async (req, res) => {
+  if (!AI_API_KEY) {
+    return res.status(500).json({
+      ok: false,
+      message: "服务器未配置 AI_API_KEY"
+    });
+  }
+
+  const {
+    player = {},
+    system = {},
+    context = {},
+    history = [],
+    choice = ""
+  } = req.body || {};
+
+  const safeHistory = Array.isArray(history) ? history.slice(-10) : [];
+  const aiReplyCount = safeHistory.filter(item => item.role === "ai").length;
+
+  if (aiReplyCount >= 10) {
+    return res.json({
+      ok: true,
+      result: {
+        dialogue: "本系统已经浪费太多时间在你这点浅薄问题上了。自己悟去吧。",
+        ended: true,
+        options: []
+      }
+    });
+  }
+
+  const playerName = clampText(player.name || "无名道友", 20);
+  const realmName = clampText(player.realmName || "炼气", 20);
+  const subRealmName = clampText(player.subRealmName || "", 20);
+  const pathName = clampText(system.path || "未选择道路", 20);
+  const mapName = clampText(context.mapName || "未知地图", 30);
+  const zoneName = clampText(context.zoneName || "未知区域", 30);
+
+  const systemPrompt = `
+你是网页文字修仙游戏《转世之修仙系统》里的“天道外挂系统”。
+
+你的人设：
+1. 你自称“本系统”。
+2. 你极其傲慢，看不起玩家。
+3. 你觉得玩家根骨平平、悟性一般、进度缓慢。
+4. 你可以毒舌、讽刺、嫌弃，但不能现实辱骂、不能现实歧视。
+5. 你会围绕玩家当前境界、地图、系统道路说话。
+6. 你必须记住上下文，让对话前后有关联。
+7. 你不是客服，你是嘴硬又强大的修仙系统。
+8. 每次回答后，必须给玩家三个截然不同的回复选项。
+9. 三个选项风格要不同：
+   - 认怂请教
+   - 嘴硬反驳
+   - 转移话题问修行建议
+10. 如果对话逐渐到第 10 句，你要表现得不耐烦，并结束对话。
+11. 只能返回 JSON，不要 markdown，不要解释。
+
+返回 JSON：
+{
+  "dialogue": "系统回答，120字以内，傲慢、嫌弃玩家，但与上下文有关",
+  "ended": false,
+  "options": [
+    "玩家回复选项1，20字以内",
+    "玩家回复选项2，20字以内",
+    "玩家回复选项3，20字以内"
+  ]
+}
+
+如果你决定结束对话：
+{
+  "dialogue": "系统不想理玩家并退回脑海中的话",
+  "ended": true,
+  "options": []
+}
+`;
+
+  const historyText = safeHistory.map(item => {
+    if (item.role === "player") return `玩家：${clampText(item.text, 80)}`;
+    return `系统：${clampText(item.text, 120)}`;
+  }).join("\n");
+
+  const userPrompt = `
+玩家信息：
+姓名：${playerName}
+境界：${realmName}${subRealmName}
+系统道路：${pathName}
+当前地图：${mapName}
+当前区域：${zoneName}
+
+最近对话：
+${historyText || "暂无"}
+
+玩家这次选择：
+${clampText(choice || "召唤系统", 80)}
+
+当前系统已回答次数：${aiReplyCount}
+最多回答次数：10
+
+请继续对话。
+`;
+
+  try {
+    const response = await fetch(`${AI_BASE_URL.replace(/\/$/, "")}/v1/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${AI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: AI_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        temperature: 0.75
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(500).json({
+        ok: false,
+        message: data.error?.message || "AI 聊天请求失败"
+      });
+    }
+
+    const content = data.choices?.[0]?.message?.content || "";
+    const parsed = extractJsonFromText(content);
+
+    if (!parsed) {
+      return res.status(500).json({
+        ok: false,
+        message: "AI 聊天返回格式错误",
+        raw: content
+      });
+    }
+
+    const ended = !!parsed.ended || aiReplyCount >= 9;
+
+    const options = ended
+      ? []
+      : Array.isArray(parsed.options)
+        ? parsed.options.slice(0, 3).map(item => clampText(item, 24))
+        : [];
+
+    while (!ended && options.length < 3) {
+      options.push(["本座受教了", "你少瞧不起人", "那下一步怎么修"][options.length]);
+    }
+
+    res.json({
+      ok: true,
+      result: {
+        dialogue: clampText(parsed.dialogue || "本系统懒得解释第二遍。", 160),
+        ended,
+        options
+      }
+    });
+  } catch (error) {
+    console.error("AI system-chat error:", error);
+
+    res.status(500).json({
+      ok: false,
+      message: "AI 聊天服务异常"
+    });
+  }
+});
 wss.on("connection", (ws) => {
   ws.send(JSON.stringify({
     type: "system",
