@@ -818,6 +818,30 @@ transform:translateX(-50%);
   display:block;
 }
 .mail-unread{color:var(--gold);font-weight:bold}
+.tutorial-mask{
+  position:fixed;
+  inset:0;
+  z-index:300;
+  background:rgba(0,0,0,.62);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+}
+
+.tutorial-card{
+  width:min(560px,96vw);
+  background:rgba(18,24,38,.98);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:16px;
+  box-shadow:0 18px 44px rgba(0,0,0,.55);
+}
+
+.tutorial-card h2{
+  margin:0 0 10px;
+  color:var(--gold);
+}
 @media(max-width:820px){.grid{grid-template-columns:1fr}.nav{position:static}.nav button{display:inline-block;width:auto}.kv{grid-template-columns:92px 1fr}}
 </style>
 </head>
@@ -1445,7 +1469,6 @@ CONFIG.vip=[
 
 CONFIG.activities=[
   {id:"newbie",name:"新手礼包",type:"gift",mailTemplate:"mail_newbie",once:true},
-  {id:"beta",name:"内测礼包",type:"gift",mailTemplate:"mail_beta",once:true},
   {id:"first6",name:"首充礼包 6 仙缘",type:"first",cost:6,mailTemplate:"mail_first6",once:true},
   {id:"first30",name:"30 仙缘礼包",type:"first",cost:30,mailTemplate:"mail_first30",once:true}
 ];
@@ -1855,11 +1878,18 @@ wineItem:"破碎灵酒",
 },
     dungeon:{used:{},running:null},
     worldChat:{input:"",messages:[]},
+tutorial:{
+  newbieStep:0,
+  pageGuideSeen:{},
+  currentGuide:null
+},
 flow:[]
   };
 }
 
 let STATE=loadState();
+let GAME_WS=null;
+let GAME_WS_RETRY_TIMER=null;
 function getAuthToken(){
   return localStorage.getItem("zs_xxxt_token")||"";
 }
@@ -1902,6 +1932,199 @@ async function apiRequest(path,options={}){
   return data;
 }
 
+function closeGameWebSocket(){
+  if(GAME_WS){
+    try{
+      GAME_WS.onopen=null;
+      GAME_WS.onclose=null;
+      GAME_WS.onmessage=null;
+      GAME_WS.onerror=null;
+      GAME_WS.close();
+    }catch{}
+    GAME_WS=null;
+  }
+
+  if(GAME_WS_RETRY_TIMER){
+    clearTimeout(GAME_WS_RETRY_TIMER);
+    GAME_WS_RETRY_TIMER=null;
+  }
+}
+
+function getWsUrl(){
+  const token=getAuthToken();
+  const protocol=location.protocol==="https:"?"wss":"ws";
+  return `${protocol}://${location.host}/?token=${encodeURIComponent(token)}`;
+}
+
+function sendWsMessage(data){
+  if(GAME_WS&&GAME_WS.readyState===WebSocket.OPEN){
+    GAME_WS.send(JSON.stringify(data));
+    return true;
+  }
+  return false;
+}
+
+function handleGameWsMessage(data){
+  if(!data||typeof data!=="object")return;
+
+  if(data.type==="connected"){
+    return;
+  }
+
+  if(data.type==="pong"){
+    return;
+  }
+
+  if(data.type==="auth_error"){
+    alert(data.message||"WebSocket 登录失效");
+    closeGameWebSocket();
+    return;
+  }
+
+  if(data.type==="world_chat_history"){
+    if(!STATE.worldChat){
+      STATE.worldChat={input:"",messages:[]};
+    }
+
+    STATE.worldChat.messages=Array.isArray(data.messages)?data.messages:[];
+    saveState();
+    updateWorldChatDom();
+    return;
+  }
+
+  if(data.type==="world_chat_message"){
+    if(!STATE.worldChat){
+      STATE.worldChat={input:"",messages:[]};
+    }
+
+    if(!STATE.worldChat.messages.some(message=>message.id===data.id)){
+      STATE.worldChat.messages.push(data);
+      STATE.worldChat.messages=STATE.worldChat.messages.slice(-80);
+    }
+
+    saveState();
+    updateWorldChatDom();
+    return;
+  }
+
+  if(data.type==="system_notice"){
+    pushLog(`<span class="cyan">[系统频道]</span>${escapeHtml(data.message||"有新消息")}`);
+    saveState();
+    return;
+  }
+
+  if(data.type==="save_hint"){
+    pushUseLog(`实时提示：${data.message||"已收到"}`);
+    return;
+  }
+}
+
+function connectGameWebSocket(){
+  const token=getAuthToken();
+  if(!token)return;
+
+  closeGameWebSocket();
+
+  const wsUrl=getWsUrl();
+  const ws=new WebSocket(wsUrl);
+  GAME_WS=ws;
+
+  ws.onopen=()=>{
+    sendWsMessage({type:"ping"});
+  };
+
+  ws.onmessage=event=>{
+    let data;
+    try{
+      data=JSON.parse(event.data);
+    }catch{
+      return;
+    }
+    handleGameWsMessage(data);
+  };
+
+  ws.onclose=()=>{
+    if(GAME_WS===ws)GAME_WS=null;
+
+    if(getAuthToken()){
+      GAME_WS_RETRY_TIMER=setTimeout(()=>{
+        if(getAuthToken())connectGameWebSocket();
+      },5000);
+    }
+  };
+
+  ws.onerror=()=>{
+    // 这里不弹窗，避免连接重试时一直吵
+  };
+}
+
+function renderWorldChatMessages(){
+  const messages=STATE.worldChat?.messages||[];
+
+  if(!messages.length){
+    return `<span class="muted">暂无世界聊天，第一位开口的道友通常都比较勇。</span>`;
+  }
+
+  return messages.map(message=>`<div>
+    <span class="muted">[${new Date(message.time).toLocaleTimeString()}]</span>
+    <span class="gold">[${escapeHtml(message.realm)}]</span>
+    <b>${escapeHtml(message.name)}：</b>
+    <span>${escapeHtml(message.text)}</span>
+  </div>`).join("");
+}
+
+function updateWorldChatDom(){
+  const list=document.getElementById("worldChatList");
+  if(list){
+    list.innerHTML=renderWorldChatMessages();
+    list.scrollTop=list.scrollHeight;
+  }
+
+  const input=document.getElementById("worldChatInput");
+  if(input&&STATE.worldChat){
+    input.value=STATE.worldChat.input||"";
+  }
+}
+
+function handleWorldChatInput(element){
+  if(!STATE.worldChat){
+    STATE.worldChat={input:"",messages:[]};
+  }
+
+  STATE.worldChat.input=element.value;
+  saveState();
+}
+
+function sendWorldChat(){
+  const input=document.getElementById("worldChatInput");
+  const text=(input?.value||"").trim();
+
+  if(!text)return;
+  if(text.length>80){
+    alert("世界聊天最多 80 字。");
+    return;
+  }
+
+  const sent=sendWsMessage({
+    type:"world_chat",
+    name:STATE.player.name||STATE.auth.account||"无名道友",
+    realm:currentRealmTitle(),
+    text
+  });
+
+  if(!sent){
+    alert("实时服务器未连接，暂时无法发送世界聊天。");
+    return;
+  }
+
+  if(!STATE.worldChat){
+    STATE.worldChat={input:"",messages:[]};
+  }
+
+  STATE.worldChat.input="";
+  saveState();
+  updateWorldChatDom();
+}
 function getAccountSaveKey(account){
   return "zs_xxxt_save_"+account;
 }
@@ -1941,8 +2164,9 @@ async function restoreServerSession(){
       mode:"game"
     };
 
-    saveState();
+        saveState();
     render();
+    connectGameWebSocket();
     return true;
   }catch(error){
     clearAuthToken();
@@ -1988,9 +2212,10 @@ async function loginAccount(){
       STATE=createDefaultState();
     }
 
-    STATE.auth={loggedIn:true,account:result.account,mode:"game"};
+        STATE.auth={loggedIn:true,account:result.account,mode:"game"};
     saveState();
     render();
+    connectGameWebSocket();
   }catch(error){
     alert(error.message||"登录失败");
   }
@@ -2004,6 +2229,7 @@ async function logoutAccount(){
     console.warn("退出登录请求失败：",error);
   }
 
+  closeGameWebSocket();
   clearAuthToken();
   STATE=createDefaultState();
   STATE.auth.mode="login";
@@ -2028,8 +2254,9 @@ async function createRole(){
       body:JSON.stringify({name,gender})
     });
 
-    await saveAccountState();
+        await saveAccountState();
     render();
+    connectGameWebSocket();
   }catch(error){
     alert(error.message||"创建角色失败");
   }
@@ -2126,6 +2353,10 @@ if(saved.system&&Array.isArray(saved.system.tasks)){
 }
     if(!saved.dungeon)saved.dungeon=base.dungeon;
     if(!saved.worldChat)saved.worldChat=base.worldChat;
+if(!saved.worldChat)saved.worldChat=base.worldChat;
+if(!saved.worldChat)saved.worldChat=base.worldChat;
+if(!saved.tutorial)saved.tutorial=base.tutorial;
+if(!saved.tutorial.pageGuideSeen)saved.tutorial.pageGuideSeen={};
     if(!saved.flow)saved.flow=[];
     if(saved.progress){
       if(typeof saved.progress.map!=="number"||saved.progress.map<0||saved.progress.map>=CONFIG.maps.length){
@@ -3621,6 +3852,13 @@ function claimActivity(activityId){
   STATE.activity.claimed[activityId]=true;
   sendMail(activity.mailTemplate,"activity:"+activityId);
   pushFlow("activity_claim",{activityId});
+  if(activityId==="newbie"){
+    if(!STATE.tutorial){
+      STATE.tutorial={newbieStep:0,pageGuideSeen:{},currentGuide:null};
+    }
+    STATE.tutorial.newbieStep=1;
+    STATE.tutorial.currentGuide=null;
+  }
   saveState();
   render();
 }
@@ -4443,6 +4681,160 @@ function renderStableAround(anchorId){
     }
   }
 }
+function getPageGuide(tab){
+  const guides={
+    "装备":{
+      title:"装备页引导",
+      body:"这里可以查看已穿戴装备。以后你可以去储物戒里鉴定、分解、整理。",
+      action:"知道了"
+    },
+    "人物":{
+      title:"人物页引导",
+      body:"这里可以查看详细属性、境界、修为和加点。前期优先看生命、速度、修为。",
+      action:"知道了"
+    },
+    "背包":{
+      title:"背包页引导",
+      body:"这里存放丹药、材料、礼包和特殊道具。物品可以在这里使用。",
+      action:"知道了"
+    },
+    "功法":{
+      title:"功法页引导",
+      body:"这里可以装备功法、心法和神技。战斗时会自动使用你装备的功法。",
+      action:"知道了"
+    },
+    "活动":{
+      title:"活动页引导",
+      body:"这里可以领取礼包、兑换码、累充和成长基金。新手先去领新手礼包。",
+      action:"去领奖"
+    },
+    "副本":{
+      title:"副本页引导",
+      body:"这里是每日副本入口，能拿到装备箱、灵石、材料等。",
+      action:"知道了"
+    },
+    "系统":{
+      title:"系统页引导",
+      body:"这里是天道外挂系统。你可以派任务，也可以召唤系统聊天。",
+      action:"知道了"
+    },
+    "储物戒":{
+      title:"储物戒引导",
+      body:"这里可以查看和鉴定装备，也能分解低价值装备。",
+      action:"知道了"
+    },
+    "锻造":{
+      title:"锻造页引导",
+      body:"这里可以锻造装备，也可以制作礼物。材料上鼠标悬停可看来源。",
+      action:"知道了"
+    },
+    "丹炉":{
+      title:"丹炉页引导",
+      body:"这里可以炼丹和酿酒。酒后续可以用来做 NPC 任务或直接加属性。",
+      action:"知道了"
+    },
+    "商城":{
+      title:"商城引导",
+      body:"这里可以消耗元宝购买补充道具。新手前期不必急着买贵的。",
+      action:"知道了"
+    },
+    "聊天":{
+      title:"聊天页引导",
+      body:"这里是世界聊天频道，可以和其他玩家交流。",
+      action:"知道了"
+    },
+    "VIP":{
+      title:"VIP页引导",
+      body:"这里显示 VIP 等级和奖励，仙缘模拟激活后会增加 VIP 经验。",
+      action:"知道了"
+    },
+    "日常":{
+      title:"日常页引导",
+      body:"这里预留每日任务和周常任务。",
+      action:"知道了"
+    },
+    "邮件":{
+      title:"邮件页引导",
+      body:"所有礼包、活动奖励和系统奖励都会通过邮件发放。",
+      action:"知道了"
+    }
+  };
+
+  return guides[tab]||null;
+}
+
+function getTutorialModal(){
+  if(!STATE.tutorial){
+    STATE.tutorial={newbieStep:0,pageGuideSeen:{},currentGuide:null};
+  }
+
+  if(STATE.tutorial.currentGuide){
+    return getPageGuide(STATE.tutorial.currentGuide);
+  }
+
+  if(STATE.tutorial.newbieStep===0&&STATE.tab==="主页"){
+    return {
+      title:"新手教程 1/2",
+      body:"先去【活动】页领取【新手礼包】。新手礼包会给你启动资源，别在主页发呆。",
+      action:"去活动"
+    };
+  }
+
+  if(STATE.tutorial.newbieStep===1&&STATE.tab==="主页"){
+    return {
+      title:"新手教程 2/2",
+      body:"新手礼包已经领完了。现在回到主页开始挂机，先把修为和基础资源刷起来。",
+      action:"开始挂机"
+    };
+  }
+
+  return null;
+}
+
+function closeTutorialModal(){
+  if(!STATE.tutorial){
+    STATE.tutorial={newbieStep:0,pageGuideSeen:{},currentGuide:null};
+  }
+
+  if(STATE.tutorial.currentGuide){
+    STATE.tutorial.currentGuide=null;
+    saveState();
+    render();
+    return;
+  }
+
+  if(STATE.tutorial.newbieStep===0&&STATE.tab==="主页"){
+    STATE.tutorial.newbieStep=1;
+    saveState();
+    render();
+    return;
+  }
+
+  if(STATE.tutorial.newbieStep===1&&STATE.tab==="主页"){
+    STATE.tutorial.newbieStep=2;
+    saveState();
+    render();
+    return;
+  }
+}
+
+function openPage(tab){
+  if(!STATE.tutorial){
+    STATE.tutorial={newbieStep:0,pageGuideSeen:{},currentGuide:null};
+  }
+
+  STATE.tab=tab;
+
+  if(tab!=="主页"&&!STATE.tutorial.pageGuideSeen[tab]){
+    STATE.tutorial.pageGuideSeen[tab]=true;
+    STATE.tutorial.currentGuide=tab;
+  }else{
+    STATE.tutorial.currentGuide=null;
+  }
+
+  saveState();
+  render();
+}
 function renderLogin(){
   return `<div class="auth-wrap">
     <div class="auth-card">
@@ -4516,6 +4908,8 @@ function render(){
   }
   const unread=STATE.mails.filter(mail=>!mail.read).length;
   const unclaimed=STATE.mails.filter(mail=>!mail.claimed).length;
+    const tutorialModal=getTutorialModal();
+
   $("#app").innerHTML=`
   <div class="top">
     <div>
@@ -4525,22 +4919,34 @@ function render(){
     <div>
       <span class="badge">境界：${currentRealmTitle()}</span>
       <span class="badge">${resourceIconHtml("xianyuan")}仙缘：${fmt(STATE.resources.xianyuan)}</span>
-<span class="badge">${resourceIconHtml("yuanbao")}元宝：${fmt(STATE.resources.yuanbao)}</span>
-<span class="badge">${resourceIconHtml("coin")}铜币：${fmt(STATE.resources.coin)}</span>
+      <span class="badge">${resourceIconHtml("yuanbao")}元宝：${fmt(STATE.resources.yuanbao)}</span>
+      <span class="badge">${resourceIconHtml("coin")}铜币：${fmt(STATE.resources.coin)}</span>
       <span class="badge ${unread?'mail-unread':''}">邮件：${unread}/${unclaimed}</span>
       <span class="badge">账号：${STATE.auth.account}</span>
       <button onclick="logoutAccount()">退出</button>
     </div>
   </div>
+
   <div class="grid">
     <div class="nav">
-      ${mainTabs.map(tab=>`<button class="${STATE.tab===tab?'active':''}" onclick="STATE.tab='${tab}';saveState();render()">${tab}${tab==="邮件"&&unclaimed?" ●":""}</button>`).join("")}
+      ${mainTabs.map(tab=>`<button class="${STATE.tab===tab?'active':''}" onclick="openPage('${tab}')">${tab}${tab==="邮件"&&unclaimed?" ●":""}</button>`).join("")}
       <hr>
-      <button onclick="saveState()">保存</button>
-      <button onclick="if(confirm('确定重置？')){localStorage.removeItem('zs_xxxt_save');location.reload()}">重置存档</button>
     </div>
+
     <div class="main">${renderPage(STATE.tab)}</div>
-  </div>`;
+  </div>
+
+  ${tutorialModal?`
+  <div class="tutorial-mask">
+    <div class="tutorial-card">
+      <h2>${tutorialModal.title}</h2>
+      <p>${tutorialModal.body}</p>
+      <div class="auth-actions">
+        <button onclick="${tutorialModal.action==='去活动'?'openPage(\\'活动\\')':tutorialModal.action==='开始挂机'?'STATE.running=true;STATE.tutorial.newbieStep=2;saveState();render()':'closeTutorialModal()'}">${tutorialModal.action}</button>
+        <button onclick="closeTutorialModal()">关闭</button>
+      </div>
+    </div>
+  </div>`:""}`;
 }
 
 function renderPage(tab){
@@ -4627,6 +5033,8 @@ function renderHome(){
   const monster=currentMonster(false);
   const bossMonster=currentMonster(true);
   const monsterHp=STATE.currentMonsterHp||monster.hp;
+  const baseAttrs=STATE.player.attrs;
+  const total=totalAttrs();
   const monsterMax=STATE.currentMonsterMaxHp||monster.hp;
   const nextReady=STATE.progress.kills[STATE.progress.zone]>=30&&STATE.progress.zone<2;
   const bossReady=STATE.progress.zone===2&&STATE.progress.kills[2]>=30;
@@ -4699,15 +5107,27 @@ return `<div class="map-hero">
           <b>速度</b><span>${fmt(bossMonster.speed)}</span>
         </div>
       </div>
-      <div class="card">
-        <h3>角色状态</h3>
+            <div class="card">
+        <h3>详细属性</h3>
         <div class="kv">
           <b>境界</b><span>${currentRealmTitle()}</span>
           <b>修为</b><span>${fmt(STATE.player.cultivation)} / ${fmt(need)}</span>
           <b>生命</b><span>${fmt(STATE.player.life)} / ${fmt(STATE.player.lifeMax)}</span>
           <b>寿命</b><span>${STATE.player.lifespan.toFixed(1)} / ${STATE.player.lifespanMax}</span>
-          <b>速度</b><span>${fmt(attrs.速度)}</span>
+          <b>属性点</b><span>${STATE.player.points}</span>
           <b>修行倍率</b><span>${getCultivationMultiplier()}x</span>
+          <b>总力量</b><span>${fmt(total.力量)}</span>
+          <b>总精神</b><span>${fmt(total.精神)}</span>
+          <b>总灵力</b><span>${fmt(total.灵力)}</span>
+          <b>总耐力</b><span>${fmt(total.耐力)}</span>
+          <b>总抗性</b><span>${fmt(total.抗性)}</span>
+          <b>总速度</b><span>${fmt(total.速度)}</span>
+          <b>基础力量</b><span>${fmt(baseAttrs.力量)}</span>
+          <b>基础精神</b><span>${fmt(baseAttrs.精神)}</span>
+          <b>基础灵力</b><span>${fmt(baseAttrs.灵力)}</span>
+          <b>基础耐力</b><span>${fmt(baseAttrs.耐力)}</span>
+          <b>基础抗性</b><span>${fmt(baseAttrs.抗性)}</span>
+          <b>基础速度</b><span>${fmt(baseAttrs.速度)}</span>
         </div>
         <div class="bar"><span style="width:${Math.min(100,STATE.player.cultivation/need*100)}%"></span></div>
       </div>
@@ -4723,6 +5143,21 @@ return `<div class="map-hero">
         <div>阈值 <input id="autoHealPctInput" type="number" value="${STATE.autoHealPct}" min="5" max="90" style="width:80px" onchange="STATE.autoHealPct=+this.value;saveState()">%</div>
       </div>
 
+      ${STATE.tutorial?.newbieStep===0?`
+      <div class="card">
+        <h3 class="gold">新手教程</h3>
+        <p>先去【活动】页领取【新手礼包】。领完回来主页挂机，先把基础资源刷起来。</p>
+        <button onclick="openPage('活动')">去领新手礼包</button>
+      </div>
+      `:""}
+
+      ${STATE.tutorial?.newbieStep===1?`
+      <div class="card">
+        <h3 class="gold">新手教程</h3>
+        <p>新手礼包已领取。现在就在主页开始挂机，先把修为和仙缘积累起来。</p>
+        <button onclick="STATE.running=true;saveState();render()">开始挂机</button>
+      </div>
+      `:""}
       <div class="card">
         <h3>最近仙缘</h3>
         ${STATE.progress.recentXianyuan.length?STATE.progress.recentXianyuan.map(item=>`<div class="gold">${item}</div>`).join(""):"<span class='muted'>暂无记录</span>"}
@@ -4872,8 +5307,6 @@ function renderActivities(){
 function renderActivitySubPage(tab){
   if(tab==="礼包"){
     return `<div class="panel"><h3>礼包</h3><div class="cards">
-      <div class="card"><h3>新手礼包</h3>
-${itemIconHtml("新手礼包","礼包","large")}<p>基础铜币、低级丹药、仙缘箱、装备箱。</p><button ${STATE.activity.claimed.newbie?"disabled":""} onclick="claimActivity('newbie')">${STATE.activity.claimed.newbie?"已领取":"领取到邮件"}</button></div>
       <div class="card"><h3>内测礼包</h3>
 ${itemIconHtml("内测礼包","礼包","large")}<p>元宝、仙缘箱、随机灵石、功法残页。</p><button ${STATE.activity.claimed.beta?"disabled":""} onclick="claimActivity('beta')">${STATE.activity.claimed.beta?"已领取":"领取到邮件"}</button></div>
     </div></div>`;
@@ -5589,17 +6022,27 @@ function renderChat(){
     STATE.worldChat={input:"",messages:[]};
   }
 
+  const wsState=
+    GAME_WS?.readyState===WebSocket.OPEN ? "已连接" :
+    GAME_WS?.readyState===WebSocket.CONNECTING ? "连接中" :
+    "未连接";
+
   return `<div class="panel">
     <h2>聊天</h2>
-    <p class="muted">世界聊天第一版为本地 UI，不整页刷新，所以不会闪烁。后续接 WebSocket 后可同步到全服。</p>
+    <p class="muted">世界聊天会通过服务器广播，所有在线玩家都能看到。不会整页刷新，也不会闪烁跳顶。</p>
 
     <div class="cards">
       <div class="card">
         <h3>世界频道</h3>
-        <div id="worldChatList" class="log">${renderWorldChatMessages()}</div>
+        <p class="muted">连接状态：${wsState}</p>
+
+        <div id="worldChatList" class="log">
+          ${renderWorldChatMessages()}
+        </div>
 
         <div class="row" style="margin-top:8px">
-          <input id="worldChatInput"
+          <input
+            id="worldChatInput"
             style="min-width:280px;flex:1"
             maxlength="80"
             placeholder="输入世界聊天，最多80字"
@@ -5609,17 +6052,16 @@ function renderChat(){
           <button onclick="sendWorldChat()">发送</button>
         </div>
 
-        <p class="muted">发言格式：境界 + 玩家名 + 内容。</p>
+        <p class="muted">发言格式：境界 + 名称 + 内容。前缀由服务器和前端共同显示。</p>
       </div>
 
       <div class="card">
         <h3>频道预留</h3>
-        <p>后续可增加：宗门频道、队伍频道、系统频道、私聊。</p>
+        <p>后续可增加：宗门频道、队伍频道、私聊、系统频道。</p>
       </div>
     </div>
   </div>`;
 }
-
 function renderSect(){
   return `<div class="panel">
     <h2>宗门</h2>

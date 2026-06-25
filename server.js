@@ -1,73 +1,98 @@
-const express = require("express");
-const http = require("http");
-const WebSocket = require("ws");
+"use strict";
+
 const fs = require("fs");
+const fsp = fs.promises;
 const path = require("path");
 const crypto = require("crypto");
+const express = require("express");
+const http = require("http");
+const { WebSocketServer, WebSocket } = require("ws");
 
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, "data");
 const PUBLIC_DIR = path.join(__dirname, "public");
+const PLAYERS_FILE = path.join(DATA_DIR, "players.json");
+const SESSIONS_FILE = path.join(DATA_DIR, "sessions.json");
+const CHAT_FILE = path.join(DATA_DIR, "world_chat.json");
+
 const AI_BASE_URL = process.env.AI_BASE_URL || "https://fast.youkeduo.site";
 const AI_API_KEY = process.env.AI_API_KEY || "sk-6de4e1df2e02a5f4ea5a16ed608828e5d79f37da4c292a9d60386edbaf0e4bd5";
 const AI_MODEL = process.env.AI_MODEL || "gpt-5.5";
-const ACCOUNTS_FILE = path.join(DATA_DIR, "accounts.json");
-const PLAYERS_FILE = path.join(DATA_DIR, "players.json");
+
+const onlineClients = new Map();
+const worldChatMessages = [];
+const WORLD_CHAT_LIMIT = 80;
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocketServer({ server });
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.static(PUBLIC_DIR));
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true }));
 
-function ensureFiles() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  if (!fs.existsSync(ACCOUNTS_FILE)) fs.writeFileSync(ACCOUNTS_FILE, "{}");
-  if (!fs.existsSync(PLAYERS_FILE)) fs.writeFileSync(PLAYERS_FILE, "{}");
-}
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-function readJson(file) {
-  ensureFiles();
+function readJsonSync(file, fallback) {
   try {
-    return JSON.parse(fs.readFileSync(file, "utf8") || "{}");
-  } catch {
-    return {};
+    if (!fs.existsSync(file)) return fallback;
+    const txt = fs.readFileSync(file, "utf8");
+    if (!txt.trim()) return fallback;
+    return JSON.parse(txt);
+  } catch (error) {
+    console.error(`读取 ${file} 失败：`, error);
+    return fallback;
   }
 }
 
-function writeJson(file, data) {
-  ensureFiles();
-  fs.writeFileSync(file, JSON.stringify(data, null, 2));
+async function writeJson(file, data) {
+  const tmp = file + ".tmp";
+  await fsp.writeFile(tmp, JSON.stringify(data, null, 2), "utf8");
+  await fsp.rename(tmp, file);
+}
+
+function uid(prefix = "id") {
+  return (
+    prefix +
+    "_" +
+    crypto.randomBytes(8).toString("hex") +
+    "_" +
+    Date.now().toString(36)
+  );
+}
+
+function createToken() {
+  return crypto.randomBytes(24).toString("hex");
 }
 
 function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
-  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, "sha512").toString("hex");
+  const hash = crypto
+    .pbkdf2Sync(String(password), salt, 100000, 64, "sha512")
+    .toString("hex");
   return { salt, hash };
 }
 
 function verifyPassword(password, salt, hash) {
-  const result = hashPassword(password, salt);
-  return result.hash === hash;
+  const check = crypto
+    .pbkdf2Sync(String(password), salt, 100000, 64, "sha512")
+    .toString("hex");
+  return crypto.timingSafeEqual(Buffer.from(check), Buffer.from(hash));
 }
 
-function createToken() {
-  return crypto.randomBytes(32).toString("hex");
+function sanitizeText(text, maxLength = 80) {
+  return String(text || "")
+    .replace(/[\r\n\t]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
 }
 
-function sanitizeAccount(account) {
-  return String(account || "").trim().toLowerCase();
+function sanitizeLongText(text, maxLength = 1200) {
+  return String(text || "")
+    .replace(/[\r\n\t]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
 }
-
-function validateAccount(account) {
-  return /^[a-zA-Z0-9_]{3,24}$/.test(account);
-}
-
-function validatePassword(password) {
-  return typeof password === "string" && password.length >= 6 && password.length <= 64;
-}
-
-const sessions = new Map();
 
 function extractJsonFromText(text) {
   if (!text) return null;
@@ -76,7 +101,7 @@ function extractJsonFromText(text) {
     return JSON.parse(text);
   } catch {}
 
-  const match = text.match(/\{[\s\S]*\}/);
+  const match = String(text).match(/\{[\s\S]*\}/);
   if (!match) return null;
 
   try {
@@ -86,314 +111,721 @@ function extractJsonFromText(text) {
   }
 }
 
-function clampText(value, maxLength = 200) {
-  return String(value || "").slice(0, maxLength);
+function loadPlayers() {
+  return readJsonSync(PLAYERS_FILE, {});
 }
+
+function loadSessions() {
+  return readJsonSync(SESSIONS_FILE, {});
+}
+
+function loadWorldChat() {
+  const saved = readJsonSync(CHAT_FILE, []);
+  if (Array.isArray(saved)) {
+    worldChatMessages.splice(0, worldChatMessages.length, ...saved.slice(-WORLD_CHAT_LIMIT));
+  }
+}
+
+function savePlayers(players) {
+  return writeJson(PLAYERS_FILE, players);
+}
+
+function saveSessions(sessions) {
+  return writeJson(SESSIONS_FILE, sessions);
+}
+
+function saveWorldChat() {
+  return writeJson(CHAT_FILE, worldChatMessages.slice(-WORLD_CHAT_LIMIT));
+}
+
+let players = loadPlayers();
+let sessions = loadSessions();
+loadWorldChat();
+
+function getSessionByToken(token) {
+  if (!token) return null;
+  return sessions[token] || null;
+}
+
 function authMiddleware(req, res, next) {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token || !sessions.has(token)) {
-    return res.status(401).json({ ok: false, message: "未登录或登录已过期" });
+  const auth = req.headers.authorization || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  const session = getSessionByToken(token);
+
+  if (!session || !session.account) {
+    return res.status(401).json({
+      ok: false,
+      message: "未登录或登录已过期"
+    });
   }
 
-  req.account = sessions.get(token).account;
+  req.token = token;
+  req.account = session.account;
   next();
+}
+
+function getPlayerRecord(account) {
+  return players[account] || null;
+}
+
+function ensurePlayerRecord(account) {
+  if (!players[account]) {
+    players[account] = {
+      account,
+      passwordHash: null,
+      passwordSalt: null,
+      playerData: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+  }
+  return players[account];
+}
+
+function broadcast(data) {
+  const payload = JSON.stringify(data);
+  for (const client of onlineClients.values()) {
+    const ws = client.ws;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(payload);
+      } catch (error) {
+        console.warn("广播失败：", error);
+      }
+    }
+  }
+}
+
+function sendWs(ws, data) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  try {
+    ws.send(JSON.stringify(data));
+  } catch (error) {
+    console.warn("发送 WS 失败：", error);
+  }
+}
+
+function getAccountByToken(token) {
+  const session = getSessionByToken(token);
+  return session?.account || null;
+}
+
+function getCompactPlayerInfo(playerData) {
+  if (!playerData || typeof playerData !== "object") {
+    return {
+      name: "无名道友",
+      realmName: "炼气",
+      subRealmName: "一层"
+    };
+  }
+
+  const realRealm = Array.isArray(playerData?.player?.realm)
+    ? playerData.player.realm[0]
+    : playerData?.player?.realm;
+
+  return {
+    name: sanitizeText(playerData?.player?.name || "无名道友", 20),
+    realmName: sanitizeText(
+      typeof realRealm === "number"
+        ? ["炼气", "筑基", "金丹", "元婴", "化神", "炼虚", "合体", "大乘", "渡劫"][realRealm] || "炼气"
+        : realRealm || "炼气",
+      20
+    ),
+    subRealmName: sanitizeText(
+      playerData?.player?.subRealmName ||
+        ["一层", "二层", "三层", "四层", "五层", "六层", "七层", "八层", "九层", "十层", "小圆满", "大圆满"][playerData?.player?.subRealm || 0] ||
+        "一层",
+      20
+    )
+  };
+}
+
+function getCurrentMapInfoFromPlayer(playerData) {
+  if (!playerData || !playerData.progress) {
+    return {
+      mapName: "未知地图",
+      zoneName: "未知区域"
+    };
+  }
+
+  const mapNames = [
+    "雾骨荒原","青烬山脉","眠风竹海","澜星湖泽","千灯古渡","黑曜古城","霜纹天阶","碧落药岭","晦明海眼","归墟砂洲","赤霄裂谷","雷泽断原","玄垣星野","太微遗庭","无相劫门"
+  ];
+
+  const mapIndex = Math.max(0, Math.min(mapNames.length - 1, Number(playerData.progress.map || 0)));
+  const zoneIndex = Math.max(0, Math.min(2, Number(playerData.progress.zone || 0)));
+
+  const zoneMap = {
+    0: ["一层","二层","三层"],
+    1: ["一层","二层","三层"],
+    2: ["一层","二层","三层"],
+    3: ["一层","二层","三层"],
+    4: ["一层","二层","三层"],
+    5: ["一层","二层","三层"],
+    6: ["一层","二层","三层"],
+    7: ["一层","二层","三层"],
+    8: ["一层","二层","三层"],
+    9: ["一层","二层","三层"],
+    10: ["一层","二层","三层"],
+    11: ["一层","二层","三层"],
+    12: ["一层","二层","三层"],
+    13: ["一层","二层","三层"],
+    14: ["一层","二层","三层"]
+  };
+
+  return {
+    mapName: mapNames[mapIndex],
+    zoneName: zoneMap[mapIndex]?.[zoneIndex] || "一层"
+  };
+}
+
+function getAiBasePrompt(mode = "task") {
+  const mockingRules = `
+你是网页文字修仙游戏《转世之修仙系统》里的“天道外挂系统”。
+
+人设：
+1. 你自称“本系统”。
+2. 你傲慢、嘴硬、瞧不起玩家。
+3. 你会讽刺玩家根骨平平、悟性一般、动作迟缓。
+4. 你可以嫌弃、毒舌，但不能现实辱骂、不能现实歧视。
+5. 语气可以高冷、刻薄、不耐烦，但仍然要有修仙系统感。
+6. 你必须与上下文有关联，不能每次都像第一次见面。
+
+限制：
+1. 只能返回 JSON。
+2. 不要 markdown。
+3. 不要解释。
+4. 不要现实充值、提现、交易、赌博相关内容。
+`;
+
+  if (mode === "chat") {
+    return mockingRules + `
+聊天模式：
+1. 每次回答必须给 3 个回复选项。
+2. 3 个选项必须明显不同：
+   - 认怂请教
+   - 嘴硬反驳
+   - 转移话题问修炼建议
+3. 最多 10 句 AI 回复，超过后要不耐烦并结束对话。
+4. 每轮回复都要和前文有关联。
+5. 不要输出任务内容。
+返回格式：
+{
+  "dialogue": "系统回答，120字以内",
+  "ended": false,
+  "options": ["选项1","选项2","选项3"]
+}
+如果结束：
+{
+  "dialogue": "系统不想理你了",
+  "ended": true,
+  "options": []
+}
+`;
+  }
+
+  return mockingRules + `
+任务模式：
+1. 每次必须给 3 个任务选项。
+2. 3 个选项必须截然不同：
+   - 一个稳妥保守
+   - 一个冒险进取
+   - 一个道路专精
+3. 不要生成不存在的具体装备名、材料名、怪物名。
+4. 炼器任务只写：
+   - 锻造当前境界装备
+   - 锻造低一境界装备
+   - 锻造高一境界装备
+   - 锻造当前境界某部位装备
+5. 苦修任务只写：
+   - 击败当前地图怪物
+   - 击败低级地图怪物
+   - 挑战当前地图 Boss
+6. 炼丹任务只写：
+   - 炼制丹药
+   - 酿制灵酒
+   - 收集药草或灵液
+7. 只能给建议，真实奖励由服务器决定。
+返回格式：
+{
+  "dialogue": "系统对玩家说的话，120字以内，傲慢但有上下文关联",
+  "mood": "calm",
+  "options": [
+    {
+      "label": "选项文字",
+      "reply": "玩家选后系统回应",
+      "task": {
+        "title": "任务标题",
+        "description": "任务描述",
+        "type": "killMap|forgeRealm|alchemy|wine|boss|breakthrough|collect",
+        "target": "目标说明",
+        "count": 1,
+        "difficulty": "easy|normal|hard",
+        "rewardHint": "奖励建议"
+      }
+    }
+  ]
+}
+`;
+}
+
+function normalizeTaskOption(rawTask, playerData) {
+  const path = playerData?.system?.path || "苦修";
+  const difficulty = ["easy", "normal", "hard"].includes(rawTask?.difficulty)
+    ? rawTask.difficulty
+    : "normal";
+
+  const currentRealm = Number(playerData?.player?.realm || 0);
+  const currentMap = Number(playerData?.progress?.map || 0);
+
+  if (path === "炼器") {
+    let targetRealm = currentRealm;
+    if (difficulty === "easy") targetRealm = Math.max(0, currentRealm - 1);
+    if (difficulty === "normal") targetRealm = currentRealm;
+    if (difficulty === "hard") targetRealm = Math.min(8, currentRealm + 1);
+
+    const targetRealmName = ["炼气","筑基","金丹","元婴","化神","炼虚","合体","大乘","渡劫"][targetRealm] || "炼气";
+    const slots = ["武器","头盔","上身","下装","鞋","护臂","项链","手镯1","手镯2","戒指1","戒指2","戒指3"];
+    const targetSlot = difficulty === "normal" ? slots[Math.floor(Math.random() * slots.length)] : "任意";
+    const title = targetSlot === "任意"
+      ? `锻造${targetRealmName}装备`
+      : `锻造${targetRealmName}${targetSlot}`;
+    const description = targetSlot === "任意"
+      ? `锻造任意一件${targetRealmName}境界装备。`
+      : `锻造一件${targetRealmName}境界${targetSlot}。`;
+
+    return {
+      title,
+      description,
+      type: "forgeRealm",
+      target: targetSlot === "任意" ? `${targetRealmName}装备` : `${targetRealmName}${targetSlot}`,
+      targetRealm,
+      targetRealmName,
+      targetSlot,
+      count: 1,
+      progress: 0,
+      difficulty,
+      rewardHint: "系统点与炼器资源"
+    };
+  }
+
+  if (path === "苦修") {
+    let targetMapIndex = currentMap;
+    let count = 10;
+
+    if (difficulty === "easy") {
+      targetMapIndex = currentMap;
+      count = 12;
+    } else if (difficulty === "normal") {
+      targetMapIndex = currentMap > 0 && Math.random() < 0.5 ? Math.floor(Math.random() * (currentMap + 1)) : currentMap;
+      count = targetMapIndex < currentMap ? 45 + 15 * (currentMap - targetMapIndex) : 24;
+    } else {
+      targetMapIndex = currentMap > 0 ? Math.floor(Math.random() * (currentMap + 1)) : 0;
+      count = targetMapIndex < currentMap ? 80 + 25 * (currentMap - targetMapIndex) : 36;
+    }
+
+    const mapNames = [
+      "雾骨荒原","青烬山脉","眠风竹海","澜星湖泽","千灯古渡","黑曜古城","霜纹天阶","碧落药岭","晦明海眼","归墟砂洲","赤霄裂谷","雷泽断原","玄垣星野","太微遗庭","无相劫门"
+    ];
+    const targetMapName = mapNames[targetMapIndex] || "当前地图";
+
+    const title = targetMapIndex < currentMap ? `${targetMapName}清剿` : `${targetMapName}苦修`;
+    const description = targetMapIndex < currentMap
+      ? `回到较低地图【${targetMapName}】击败 ${count} 只怪物。`
+      : `在当前地图【${targetMapName}】击败 ${count} 只怪物。`;
+
+    return {
+      title,
+      description,
+      type: "killMap",
+      target: `${targetMapName}怪物`,
+      targetMapIndex,
+      targetMapName,
+      count,
+      progress: 0,
+      difficulty,
+      rewardHint: "系统点与修为资源"
+    };
+  }
+
+  if (path === "炼丹") {
+    const wineRecipes = ["破碎灵酒","普通灵酒","优秀灵酒","精良灵酒","卓越灵酒","传说灵酒","神话灵酒"];
+    const pills = ["回春丹","凝血丹","壮骨丹","醒神丹","纳灵丹","固甲丹","清抗丹","轻身丹","双倍修行丹","三倍修行丹"];
+
+    if (difficulty === "hard" && Math.random() < 0.5) {
+      const wine = wineRecipes[Math.min(wineRecipes.length - 1, currentRealm)];
+      return {
+        title: `酿制${wine}`,
+        description: `酿制一壶${wine}。`,
+        type: "wine",
+        target: wine,
+        count: 1,
+        progress: 0,
+        difficulty,
+        rewardHint: "系统点与丹炉资源"
+      };
+    }
+
+    const pill = pills[Math.min(pills.length - 1, currentRealm)];
+    return {
+      title: `炼制${pill}`,
+      description: `炼制一枚${pill}。`,
+      type: "alchemy",
+      target: pill,
+      count: 1,
+      progress: 0,
+      difficulty,
+      rewardHint: "系统点与丹药材料"
+    };
+  }
+
+  const mapNames = [
+    "雾骨荒原","青烬山脉","眠风竹海","澜星湖泽","千灯古渡","黑曜古城","霜纹天阶","碧落药岭","晦明海眼","归墟砂洲","赤霄裂谷","雷泽断原","玄垣星野","太微遗庭","无相劫门"
+  ];
+
+  return {
+    title: "系统试炼",
+    description: `在当前地图【${mapNames[currentMap] || "当前地图"}】击败 10 只怪物。`,
+    type: "killMap",
+    target: `${mapNames[currentMap] || "当前地图"}怪物`,
+    targetMapIndex: currentMap,
+    targetMapName: mapNames[currentMap] || "当前地图",
+    count: 10,
+    progress: 0,
+    difficulty,
+    rewardHint: "系统点与铜币"
+  };
+}
+
+function normalizeTaskOptions(aiResult, playerData) {
+  const options = Array.isArray(aiResult?.options) ? aiResult.options.slice(0, 3) : [];
+  const fixed = options.map((opt, idx) => {
+    const task = normalizeTaskOption(opt?.task || {}, playerData);
+    return {
+      label: sanitizeText(opt?.label || `选项${idx + 1}`, 24),
+      reply: sanitizeText(opt?.reply || "系统懒得多说。", 120),
+      task
+    };
+  });
+
+  while (fixed.length < 3) {
+    const fallbackSet = [
+      {
+        label: "稳步前行",
+        reply: "系统勉强给你一个稳妥方向。",
+        task: {
+          title: "稳步修行",
+          description: "击败当前地图怪物。",
+          type: "killMap",
+          target: "当前地图怪物",
+          targetMapIndex: Number(playerData?.progress?.map || 0),
+          targetMapName: "当前地图",
+          count: 12,
+          progress: 0,
+          difficulty: "easy",
+          rewardHint: "系统点与铜币"
+        }
+      },
+      {
+        label: "试试手气",
+        reply: "别死太快，系统还想看你挣扎一下。",
+        task: {
+          title: "越阶试炼",
+          description: "尝试更难的修行任务。",
+          type: "killMap",
+          target: "当前地图怪物",
+          targetMapIndex: Number(playerData?.progress?.map || 0),
+          targetMapName: "当前地图",
+          count: 24,
+          progress: 0,
+          difficulty: "normal",
+          rewardHint: "系统点与修为资源"
+        }
+      },
+      {
+        label: "听本系统的",
+        reply: "算你还有点脑子。",
+        task: {
+          title: "系统专精",
+          description: "按系统建议专精当前道路。",
+          type: "killMap",
+          target: "当前地图怪物",
+          targetMapIndex: Number(playerData?.progress?.map || 0),
+          targetMapName: "当前地图",
+          count: 36,
+          progress: 0,
+          difficulty: "hard",
+          rewardHint: "系统点与道路资源"
+        }
+      }
+    ];
+    fixed.push(fallbackSet[fixed.length]);
+  }
+
+  return fixed.slice(0, 3);
+}
+
+async function callAiChatCompletion(messages, temperature = 0.75) {
+  if (!AI_API_KEY) {
+    throw new Error("服务器未配置 AI_API_KEY");
+  }
+
+  const response = await fetch(`${AI_BASE_URL.replace(/\/$/, "")}/v1/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${AI_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: AI_MODEL,
+      messages,
+      temperature
+    })
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error?.message || data.message || "AI 请求失败");
+  }
+
+  return data;
+}
+
+function getChatReplyCount(history = []) {
+  return history.filter(item => item.role === "ai").length;
+}
+
+function buildChatHistoryText(history = []) {
+  return history
+    .slice(-10)
+    .map(item => `${item.role === "ai" ? "系统" : "玩家"}：${sanitizeLongText(item.text, 120)}`)
+    .join("\n");
 }
 
 app.get("/api/health", (req, res) => {
   res.json({
     ok: true,
-    name: "转世之修仙系统",
-    publicWelfare: true,
-    realRecharge: false,
-    message: "服务器运行中。本游戏无真实充值入口，仙缘仅由游戏内玩法获得。"
+    port: PORT,
+    time: Date.now(),
+    aiConfigured: !!AI_API_KEY,
+    online: onlineClients.size,
+    worldChatCount: worldChatMessages.length
   });
 });
 
-app.post("/api/register", (req, res) => {
-  const account = sanitizeAccount(req.body.account);
-  const password = req.body.password;
-  const confirmPassword = req.body.confirmPassword;
+app.post("/api/register", async (req, res) => {
+  try {
+    const account = sanitizeText(req.body?.account || "", 24);
+    const password = String(req.body?.password || "");
+    const confirmPassword = String(req.body?.confirmPassword || "");
 
-  if (!validateAccount(account)) {
-    return res.status(400).json({ ok: false, message: "账号只能使用字母、数字、下划线，长度 3-24 位" });
+    if (account.length < 3) {
+      return res.status(400).json({ ok: false, message: "账号至少 3 位" });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ ok: false, message: "密码至少 6 位" });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ ok: false, message: "两次密码不一致" });
+    }
+
+    if (players[account]) {
+      return res.status(400).json({ ok: false, message: "账号已存在" });
+    }
+
+    const { salt, hash } = hashPassword(password);
+
+    players[account] = {
+      account,
+      passwordHash: hash,
+      passwordSalt: salt,
+      playerData: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+
+    await savePlayers(players);
+
+    res.json({
+      ok: true,
+      message: "注册成功"
+    });
+  } catch (error) {
+    console.error("register error:", error);
+    res.status(500).json({ ok: false, message: "注册失败" });
   }
-
-  if (!validatePassword(password)) {
-    return res.status(400).json({ ok: false, message: "密码长度需要 6-64 位" });
-  }
-
-  if (password !== confirmPassword) {
-    return res.status(400).json({ ok: false, message: "两次密码不一致" });
-  }
-
-  const accounts = readJson(ACCOUNTS_FILE);
-
-  if (accounts[account]) {
-    return res.status(409).json({ ok: false, message: "账号已存在" });
-  }
-
-  const passwordData = hashPassword(password);
-
-  accounts[account] = {
-    account,
-    salt: passwordData.salt,
-    hash: passwordData.hash,
-    createdAt: Date.now(),
-    lastLoginAt: null,
-    banned: false
-  };
-
-  writeJson(ACCOUNTS_FILE, accounts);
-
-  res.json({ ok: true, message: "注册成功" });
 });
 
-app.post("/api/login", (req, res) => {
-  const account = sanitizeAccount(req.body.account);
-  const password = req.body.password;
+app.post("/api/login", async (req, res) => {
+  try {
+    const account = sanitizeText(req.body?.account || "", 24);
+    const password = String(req.body?.password || "");
 
-  const accounts = readJson(ACCOUNTS_FILE);
-  const user = accounts[account];
+    const record = getPlayerRecord(account);
+    if (!record) {
+      return res.status(400).json({ ok: false, message: "账号不存在" });
+    }
 
-  if (!user) {
-    return res.status(404).json({ ok: false, message: "账号不存在" });
+    if (!record.passwordHash || !record.passwordSalt) {
+      return res.status(400).json({ ok: false, message: "账号未配置密码" });
+    }
+
+    const passOk = verifyPassword(password, record.passwordSalt, record.passwordHash);
+    if (!passOk) {
+      return res.status(400).json({ ok: false, message: "密码错误" });
+    }
+
+    const token = createToken();
+    sessions[token] = {
+      account,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+
+    await saveSessions(sessions);
+
+    res.json({
+      ok: true,
+      message: "登录成功",
+      token,
+      account,
+      playerData: record.playerData || null
+    });
+  } catch (error) {
+    console.error("login error:", error);
+    res.status(500).json({ ok: false, message: "登录失败" });
   }
-
-  if (user.banned) {
-    return res.status(403).json({ ok: false, message: "账号已被封禁" });
-  }
-
-  if (!verifyPassword(password, user.salt, user.hash)) {
-    return res.status(401).json({ ok: false, message: "密码错误" });
-  }
-
-  user.lastLoginAt = Date.now();
-  writeJson(ACCOUNTS_FILE, accounts);
-
-  const token = createToken();
-  sessions.set(token, {
-    account,
-    createdAt: Date.now()
-  });
-
-  const players = readJson(PLAYERS_FILE);
-  const playerData = players[account] || null;
-
-  res.json({
-    ok: true,
-    message: "登录成功",
-    token,
-    account,
-    playerData
-  });
 });
 
-app.post("/api/logout", authMiddleware, (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (token) sessions.delete(token);
-  res.json({ ok: true, message: "已退出登录" });
+app.post("/api/logout", authMiddleware, async (req, res) => {
+  try {
+    delete sessions[req.token];
+    await saveSessions(sessions);
+    res.json({ ok: true, message: "已退出登录" });
+  } catch (error) {
+    console.error("logout error:", error);
+    res.status(500).json({ ok: false, message: "退出失败" });
+  }
 });
 
-app.get("/api/player", authMiddleware, (req, res) => {
-  const players = readJson(PLAYERS_FILE);
-
-  res.json({
-    ok: true,
-    account: req.account,
-    playerData: players[req.account] || null
-  });
+app.get("/api/player", authMiddleware, async (req, res) => {
+  try {
+    const record = getPlayerRecord(req.account);
+    res.json({
+      ok: true,
+      account: req.account,
+      playerData: record?.playerData || null
+    });
+  } catch (error) {
+    console.error("player get error:", error);
+    res.status(500).json({ ok: false, message: "读取角色失败" });
+  }
 });
 
-app.post("/api/player/save", authMiddleware, (req, res) => {
-  const playerData = req.body.playerData;
+app.post("/api/player/create", authMiddleware, async (req, res) => {
+  try {
+    const name = sanitizeText(req.body?.name || "", 8);
+    const gender = sanitizeText(req.body?.gender || "", 4);
 
-  if (!playerData || typeof playerData !== "object") {
-    return res.status(400).json({ ok: false, message: "存档数据格式错误" });
+    if (!["男", "女"].includes(gender)) {
+      return res.status(400).json({ ok: false, message: "请选择性别" });
+    }
+
+    if (name.length < 2 || name.length > 8) {
+      return res.status(400).json({ ok: false, message: "角色名需要 2-8 个字" });
+    }
+
+    const record = ensurePlayerRecord(req.account);
+
+    const existing = record.playerData || {};
+    const newPlayerData = {
+      ...existing,
+      player: {
+        ...(existing.player || {}),
+        name,
+        gender,
+        created: true
+      },
+      createdAt: existing.createdAt || Date.now(),
+      serverSavedAt: Date.now()
+    };
+
+    record.playerData = newPlayerData;
+    record.updatedAt = Date.now();
+    players[req.account] = record;
+    await savePlayers(players);
+
+    res.json({
+      ok: true,
+      message: "角色创建成功",
+      playerData: newPlayerData
+    });
+  } catch (error) {
+    console.error("player create error:", error);
+    res.status(500).json({ ok: false, message: "创建角色失败" });
   }
-
-  const players = readJson(PLAYERS_FILE);
-
-  players[req.account] = {
-    ...playerData,
-    serverSavedAt: Date.now()
-  };
-
-  writeJson(PLAYERS_FILE, players);
-
-  res.json({
-    ok: true,
-    message: "存档成功",
-    savedAt: players[req.account].serverSavedAt
-  });
 });
 
-app.post("/api/player/create", authMiddleware, (req, res) => {
-  const { name, gender } = req.body;
+app.post("/api/player/save", authMiddleware, async (req, res) => {
+  try {
+    const incoming = req.body?.playerData;
+    if (!incoming || typeof incoming !== "object") {
+      return res.status(400).json({ ok: false, message: "缺少 playerData" });
+    }
 
-  if (!["男", "女"].includes(gender)) {
-    return res.status(400).json({ ok: false, message: "请选择性别" });
+    const record = ensurePlayerRecord(req.account);
+    record.playerData = incoming;
+    record.updatedAt = Date.now();
+    players[req.account] = record;
+
+    await savePlayers(players);
+
+    res.json({
+      ok: true,
+      message: "存档成功"
+    });
+  } catch (error) {
+    console.error("player save error:", error);
+    res.status(500).json({ ok: false, message: "存档失败" });
   }
-
-  if (!name || String(name).trim().length < 2 || String(name).trim().length > 8) {
-    return res.status(400).json({ ok: false, message: "角色名需要 2-8 个字" });
-  }
-
-  const players = readJson(PLAYERS_FILE);
-
-  if (players[req.account]?.player?.created) {
-    return res.status(400).json({ ok: false, message: "角色已创建" });
-  }
-
-  players[req.account] = {
-    version: 1,
-    player: {
-      name: String(name).trim(),
-      gender,
-      created: true
-    },
-    createdAt: Date.now(),
-    serverSavedAt: Date.now()
-  };
-
-  writeJson(PLAYERS_FILE, players);
-
-  res.json({
-    ok: true,
-    message: "角色创建成功",
-    playerData: players[req.account]
-  });
 });
 
 app.post("/api/ai/system-dialog", authMiddleware, async (req, res) => {
-  if (!AI_API_KEY) {
-    return res.status(500).json({
-      ok: false,
-      message: "服务器未配置 AI_API_KEY"
-    });
-  }
-
-  const {
-    player = {},
-    system = {},
-    context = {},
-    lastChoice = ""
-  } = req.body || {};
-
-  const playerName = clampText(player.name || "无名道友", 20);
-  const realmName = clampText(player.realmName || "炼气", 20);
-  const subRealmName = clampText(player.subRealmName || "", 20);
-  const pathName = clampText(system.path || "未选择道路", 20);
-  const mapName = clampText(context.mapName || "未知地图", 30);
-  const zoneName = clampText(context.zoneName || "未知区域", 30);
-
-  const systemPrompt = `
-你是网页文字修仙游戏《转世之修仙系统》里的“天道外挂系统”。
-
-你的人设：
-1. 你自称“本系统”。
-2. 你很强，很傲慢，看不起玩家。
-3. 你觉得玩家根骨平平、悟性一般、运气也不怎么样。
-4. 你说话可以讽刺、毒舌、嫌弃，但不能辱骂现实人格，不能涉及现实歧视。
-5. 语气类似：高冷、傲慢、嘴硬、嫌弃玩家弱，但仍然会给玩家任务。
-6. 你偶尔会说“以你这点修为”“勉强还算能看”“别拖本系统后腿”之类的话。
-
-你的任务：
-1. 用修仙系统口吻与玩家对话。
-2. 根据玩家境界、当前地图、选择道路生成任务建议。
-3. 每次必须给玩家三个选项。
-4. 三个选项必须截然不同：
-   - 一个稳妥保守
-   - 一个冒险进取
-   - 一个道路专精
-5. 任务必须符合玩家境界，不要让炼气玩家做渡劫任务。
-6. 不要虚构具体装备名、材料名、怪物名。
-7. 炼器任务只能描述为：
-   - 锻造当前境界装备
-   - 锻造低一境界装备
-   - 锻造高一境界装备
-   - 锻造当前境界某部位装备
-8. 苦修任务只能描述为：
-   - 击败当前地图怪物
-   - 击败低级地图怪物
-   - 挑战当前地图 Boss
-9. 炼丹任务只能描述为：
-   - 炼制丹药
-   - 酿制灵酒
-   - 收集药草或灵液
-10. 奖励只写建议，实际奖励由游戏规则控制。
-11. 只能返回 JSON，不要 markdown，不要解释。
-
-返回 JSON 格式：
-{
-  "dialogue": "系统对玩家说的话，100字以内，要符合瞧不起玩家的人设",
-  "mood": "calm|serious|mysterious|mocking",
-  "options": [
-    {
-      "label": "选项文字，20字以内",
-      "reply": "玩家选择后的系统回应，100字以内，要符合瞧不起玩家的人设",
-      "task": {
-        "title": "任务标题，20字以内",
-        "description": "任务描述，100字以内",
-        "type": "kill|killMap|forgeRealm|alchemy|wine|boss|breakthrough|collect",
-        "target": "目标说明，不要虚构具体不存在的装备或材料",
-        "count": 1,
-        "difficulty": "easy|normal|hard",
-        "rewardHint": "奖励建议，30字以内"
-      }
-    }
-  ]
-}
-
-注意：
-options 必须刚好 3 个。
-count 必须是 1 到 120 的整数。
-不要生成不存在的装备名。
-不要生成不存在的材料名。
-不要生成真实充值、提现、交易相关内容。
-`;
-
-  const userPrompt = `
-玩家信息：
-姓名：${playerName}
-境界：${realmName}${subRealmName}
-系统道路：${pathName}
-当前地图：${mapName}
-当前区域：${zoneName}
-上次选择：${clampText(lastChoice, 80)}
-
-请生成一次系统对话和三个任务选项。
-`;
-
   try {
-    const response = await fetch(`${AI_BASE_URL.replace(/\/$/, "")}/v1/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${AI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: AI_MODEL,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        temperature: 0.85
-      })
-    });
+    const record = getPlayerRecord(req.account);
+    const playerData = record?.playerData || req.body || {};
+    const playerInfo = getCompactPlayerInfo(playerData);
+    const mapInfo = getCurrentMapInfoFromPlayer(playerData);
+    const pathName = sanitizeText(req.body?.system?.path || playerData?.system?.path || "未选择道路", 20);
 
-    const data = await response.json();
+    const systemPrompt = getAiBasePrompt("task");
 
-    if (!response.ok) {
-      return res.status(500).json({
-        ok: false,
-        message: data.error?.message || "AI 请求失败"
-      });
-    }
+    const userPrompt = `
+玩家信息：
+姓名：${playerInfo.name}
+境界：${playerInfo.realmName}${playerInfo.subRealmName}
+系统道路：${pathName}
+当前地图：${mapInfo.mapName}
+当前区域：${mapInfo.zoneName}
+
+请根据当前道路生成三个任务选项。每个选项都要不同。
+`;
+
+    const data = await callAiChatCompletion(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      0.8
+    );
 
     const content = data.choices?.[0]?.message?.content || "";
     const parsed = extractJsonFromText(content);
 
-    if (!parsed || !Array.isArray(parsed.options)) {
+    if (!parsed) {
       return res.status(500).json({
         ok: false,
         message: "AI 返回格式错误",
@@ -401,188 +833,87 @@ count 必须是 1 到 120 的整数。
       });
     }
 
-    parsed.dialogue = clampText(parsed.dialogue, 120);
-    parsed.mood = ["calm", "serious", "mysterious", "encourage"].includes(parsed.mood)
-      ? parsed.mood
-      : "calm";
-
-    parsed.options = parsed.options.slice(0, 3).map((option, index) => {
-      const task = option.task || {};
-      const count = Math.max(1, Math.min(120, Number(task.count || 1)));
-
-      return {
-        label: clampText(option.label || `选项${index + 1}`, 24),
-        reply: clampText(option.reply || "系统已记录你的选择。", 120),
-        task: {
-          title: clampText(task.title || "系统任务", 24),
-          description: clampText(task.description || "完成系统指定目标。", 120),
-          type: ["kill", "killMap", "collect", "craft", "forge", "forgeRealm", "alchemy", "wine", "boss", "breakthrough"].includes(task.type)
-            ? task.type
-            : "kill",
-          target: clampText(task.target || "任意目标", 30),
-          count,
-          difficulty: ["easy", "normal", "hard"].includes(task.difficulty)
-            ? task.difficulty
-            : "normal",
-          rewardHint: clampText(task.rewardHint || "系统点与资源", 40)
+    const normalized = {
+      dialogue: sanitizeLongText(parsed.dialogue || "本系统看你也就那样，勉强给你三条路。", 160),
+      mood: sanitizeText(parsed.mood || "calm", 20),
+      options: normalizeTaskOptions(parsed, {
+        player: {
+          name: playerInfo.name,
+          realm: playerData?.player?.realm || 0
+        },
+        progress: playerData?.progress || {},
+        system: {
+          path: pathName
         }
-      };
-    });
+      })
+    };
 
-    while (parsed.options.length < 3) {
-      parsed.options.push({
-        label: "稳步修行",
-        reply: "系统建议你先稳固根基。",
-        task: {
-          title: "稳固根基",
-          description: "击败当前区域怪物，积累修为。",
-          type: "kill",
-          target: "当前怪物",
-          count: 10,
-          difficulty: "easy",
-          rewardHint: "系统点与铜币"
+    res.json({
+      ok: true,
+      result: normalized
+    });
+  } catch (error) {
+    console.error("ai system-dialog error:", error);
+    res.status(500).json({
+      ok: false,
+      message: error.message || "AI 服务异常"
+    });
+  }
+});
+
+app.post("/api/ai/system-chat", authMiddleware, async (req, res) => {
+  try {
+    const record = getPlayerRecord(req.account);
+    const playerData = record?.playerData || req.body || {};
+    const playerInfo = getCompactPlayerInfo(playerData);
+    const mapInfo = getCurrentMapInfoFromPlayer(playerData);
+    const pathName = sanitizeText(req.body?.system?.path || playerData?.system?.path || "未选择道路", 20);
+    const history = Array.isArray(req.body?.history) ? req.body.history : [];
+    const choice = sanitizeLongText(req.body?.choice || "", 120);
+
+    const aiReplyCount = getChatReplyCount(history);
+    if (aiReplyCount >= 10) {
+      return res.json({
+        ok: true,
+        result: {
+          dialogue: "本系统已经懒得再陪你扯了。自己回去悟。",
+          ended: true,
+          options: []
         }
       });
     }
 
-    res.json({
-      ok: true,
-      result: parsed
-    });
-  } catch (error) {
-    console.error("AI system-dialog error:", error);
+    const historyText = buildChatHistoryText(history);
 
-    res.status(500).json({
-      ok: false,
-      message: "AI 服务异常"
-    });
-  }
-});
-app.post("/api/ai/system-chat", authMiddleware, async (req, res) => {
-  if (!AI_API_KEY) {
-    return res.status(500).json({
-      ok: false,
-      message: "服务器未配置 AI_API_KEY"
-    });
-  }
+    const systemPrompt = getAiBasePrompt("chat");
 
-  const {
-    player = {},
-    system = {},
-    context = {},
-    history = [],
-    choice = ""
-  } = req.body || {};
-
-  const safeHistory = Array.isArray(history) ? history.slice(-10) : [];
-  const aiReplyCount = safeHistory.filter(item => item.role === "ai").length;
-
-  if (aiReplyCount >= 10) {
-    return res.json({
-      ok: true,
-      result: {
-        dialogue: "本系统已经浪费太多时间在你这点浅薄问题上了。自己悟去吧。",
-        ended: true,
-        options: []
-      }
-    });
-  }
-
-  const playerName = clampText(player.name || "无名道友", 20);
-  const realmName = clampText(player.realmName || "炼气", 20);
-  const subRealmName = clampText(player.subRealmName || "", 20);
-  const pathName = clampText(system.path || "未选择道路", 20);
-  const mapName = clampText(context.mapName || "未知地图", 30);
-  const zoneName = clampText(context.zoneName || "未知区域", 30);
-
-  const systemPrompt = `
-你是网页文字修仙游戏《转世之修仙系统》里的“天道外挂系统”。
-
-你的人设：
-1. 你自称“本系统”。
-2. 你极其傲慢，看不起玩家。
-3. 你觉得玩家根骨平平、悟性一般、进度缓慢。
-4. 你可以毒舌、讽刺、嫌弃，但不能现实辱骂、不能现实歧视。
-5. 你会围绕玩家当前境界、地图、系统道路说话。
-6. 你必须记住上下文，让对话前后有关联。
-7. 你不是客服，你是嘴硬又强大的修仙系统。
-8. 每次回答后，必须给玩家三个截然不同的回复选项。
-9. 三个选项风格要不同：
-   - 认怂请教
-   - 嘴硬反驳
-   - 转移话题问修行建议
-10. 如果对话逐渐到第 10 句，你要表现得不耐烦，并结束对话。
-11. 只能返回 JSON，不要 markdown，不要解释。
-
-返回 JSON：
-{
-  "dialogue": "系统回答，120字以内，傲慢、嫌弃玩家，但与上下文有关",
-  "ended": false,
-  "options": [
-    "玩家回复选项1，20字以内",
-    "玩家回复选项2，20字以内",
-    "玩家回复选项3，20字以内"
-  ]
-}
-
-如果你决定结束对话：
-{
-  "dialogue": "系统不想理玩家并退回脑海中的话",
-  "ended": true,
-  "options": []
-}
-`;
-
-  const historyText = safeHistory.map(item => {
-    if (item.role === "player") return `玩家：${clampText(item.text, 80)}`;
-    return `系统：${clampText(item.text, 120)}`;
-  }).join("\n");
-
-  const userPrompt = `
+    const userPrompt = `
 玩家信息：
-姓名：${playerName}
-境界：${realmName}${subRealmName}
+姓名：${playerInfo.name}
+境界：${playerInfo.realmName}${playerInfo.subRealmName}
 系统道路：${pathName}
-当前地图：${mapName}
-当前区域：${zoneName}
+当前地图：${mapInfo.mapName}
+当前区域：${mapInfo.zoneName}
 
 最近对话：
 ${historyText || "暂无"}
 
-玩家这次选择：
-${clampText(choice || "召唤系统", 80)}
+玩家这次回复：
+${choice || "召唤系统"}
 
-当前系统已回答次数：${aiReplyCount}
-最多回答次数：10
+已回复轮数：${aiReplyCount}
+最多 10 轮后结束对话。
 
-请继续对话。
+请继续对话，保持上下文相关，并且继续给出三个回复选项。
 `;
 
-  try {
-    const response = await fetch(`${AI_BASE_URL.replace(/\/$/, "")}/v1/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${AI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: AI_MODEL,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        temperature: 0.75
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return res.status(500).json({
-        ok: false,
-        message: data.error?.message || "AI 聊天请求失败"
-      });
-    }
+    const data = await callAiChatCompletion(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      0.75
+    );
 
     const content = data.choices?.[0]?.message?.content || "";
     const parsed = extractJsonFromText(content);
@@ -596,69 +927,197 @@ ${clampText(choice || "召唤系统", 80)}
     }
 
     const ended = !!parsed.ended || aiReplyCount >= 9;
+    let options = Array.isArray(parsed.options) ? parsed.options.slice(0, 3) : [];
 
-    const options = ended
-      ? []
-      : Array.isArray(parsed.options)
-        ? parsed.options.slice(0, 3).map(item => clampText(item, 24))
-        : [];
-
-    while (!ended && options.length < 3) {
-      options.push(["本座受教了", "你少瞧不起人", "那下一步怎么修"][options.length]);
+    if (!ended) {
+      while (options.length < 3) {
+        options.push(["本座受教了", "你少瞧不起人", "那下一步怎么修"][options.length]);
+      }
+    } else {
+      options = [];
     }
 
     res.json({
       ok: true,
       result: {
-        dialogue: clampText(parsed.dialogue || "本系统懒得解释第二遍。", 160),
+        dialogue: sanitizeLongText(parsed.dialogue || "本系统懒得解释第二遍。", 160),
         ended,
-        options
+        options: options.map(item => sanitizeText(item, 24))
       }
     });
   } catch (error) {
-    console.error("AI system-chat error:", error);
-
+    console.error("ai system-chat error:", error);
     res.status(500).json({
       ok: false,
-      message: "AI 聊天服务异常"
+      message: error.message || "AI 聊天服务异常"
     });
   }
 });
-wss.on("connection", (ws) => {
-  ws.send(JSON.stringify({
-    type: "system",
-    message: "已连接《转世之修仙系统》WebSocket。聊天、公告、排行榜后续接入。"
-  }));
+
+function getWsTokenFromReq(req) {
+  try {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    return url.searchParams.get("token") || "";
+  } catch {
+    return "";
+  }
+}
+
+wss.on("connection", (ws, req) => {
+  const token = getWsTokenFromReq(req);
+  const account = getAccountByToken(token);
+
+  if (!account) {
+    sendWs(ws, {
+      type: "auth_error",
+      message: "WebSocket 未登录或登录已过期"
+    });
+    try { ws.close(); } catch {}
+    return;
+  }
+
+  onlineClients.set(account, {
+    ws,
+    account,
+    connectedAt: Date.now(),
+    lastPongAt: Date.now()
+  });
+
+  sendWs(ws, {
+    type: "connected",
+    account,
+    message: "已连接实时服务器",
+    time: Date.now()
+  });
+
+  sendWs(ws, {
+    type: "world_chat_history",
+    messages: worldChatMessages
+  });
+
+  broadcast({
+    type: "system_notice",
+    level: "info",
+    message: `${account} 道友上线了`,
+    time: Date.now()
+  });
 
   ws.on("message", (raw) => {
-    let data = null;
-
+    let data;
     try {
       data = JSON.parse(raw.toString());
     } catch {
-      ws.send(JSON.stringify({ type: "error", message: "消息格式错误" }));
+      sendWs(ws, {
+        type: "error",
+        message: "WebSocket 消息格式错误"
+      });
       return;
     }
 
     if (data.type === "ping") {
-      ws.send(JSON.stringify({ type: "pong", time: Date.now() }));
+      const client = onlineClients.get(account);
+      if (client) client.lastPongAt = Date.now();
+
+      sendWs(ws, {
+        type: "pong",
+        serverTime: Date.now()
+      });
       return;
     }
 
-    ws.send(JSON.stringify({
-      type: "system",
-      message: "当前 WebSocket 仅预留，聊天和系统公告后续开放。"
-    }));
+    if (data.type === "world_chat") {
+      const text = sanitizeText(data.text || "", 80);
+      if (!text) {
+        sendWs(ws, {
+          type: "error",
+          message: "聊天内容不能为空"
+        });
+        return;
+      }
+
+      const message = {
+        id: uid("chat"),
+        type: "world_chat_message",
+        channel: "world",
+        account,
+        name: sanitizeText(data.name || account, 12),
+        realm: sanitizeText(data.realm || "未知境界", 20),
+        text,
+        time: Date.now()
+      };
+
+      worldChatMessages.push(message);
+      while (worldChatMessages.length > WORLD_CHAT_LIMIT) {
+        worldChatMessages.shift();
+      }
+
+      saveWorldChat().catch(err => console.warn("保存世界聊天失败：", err));
+      broadcast(message);
+      return;
+    }
+
+    if (data.type === "client_notice") {
+      broadcast({
+        type: "system_notice",
+        level: sanitizeText(data.level || "info", 12),
+        from: account,
+        message: sanitizeText(data.message || "有道友触发了系统事件", 80),
+        time: Date.now()
+      });
+      return;
+    }
+
+    if (data.type === "save_patch") {
+      sendWs(ws, {
+        type: "save_hint",
+        message: "当前版本仍以 HTTP 存档为准",
+        seq: data.seq || null,
+        time: Date.now()
+      });
+      return;
+    }
+
+    sendWs(ws, {
+      type: "error",
+      message: "未知 WebSocket 消息类型：" + data.type
+    });
+  });
+
+  ws.on("close", () => {
+    onlineClients.delete(account);
+
+    broadcast({
+      type: "system_notice",
+      level: "info",
+      message: `${account} 道友已离线`,
+      time: Date.now()
+    });
+  });
+
+  ws.on("error", () => {
+    onlineClients.delete(account);
   });
 });
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [account, client] of onlineClients.entries()) {
+    if (now - client.lastPongAt > 60000) {
+      try {
+        client.ws.close();
+      } catch {}
+      onlineClients.delete(account);
+    }
+  }
+}, 30000);
+
+app.use(express.static(PUBLIC_DIR));
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, "index.html"));
 });
 
-ensureFiles();
-
 server.listen(PORT, () => {
   console.log(`《转世之修仙系统》服务器已启动：http://0.0.0.0:${PORT}`);
-  console.log("公益服声明：无真实充值入口，仙缘不可交易、提现或现实货币兑换。");
+  console.log(`AI：${AI_API_KEY ? "已配置" : "未配置"}`);
 });
