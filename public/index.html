@@ -4909,6 +4909,13 @@ function render(){
   const unread=STATE.mails.filter(mail=>!mail.read).length;
   const unclaimed=STATE.mails.filter(mail=>!mail.claimed).length;
     const tutorialModal=getTutorialModal();
+const tutorialAction=tutorialModal
+  ? (tutorialModal.action==="去活动"
+      ? "openPage('活动')"
+      : tutorialModal.action==="开始挂机"
+        ? "STATE.running=true;STATE.tutorial.newbieStep=2;saveState();render()"
+        : "closeTutorialModal()")
+  : "";
 
   $("#app").innerHTML=`
   <div class="top">
@@ -4936,17 +4943,17 @@ function render(){
     <div class="main">${renderPage(STATE.tab)}</div>
   </div>
 
-  ${tutorialModal?`
+    ${tutorialModal?`
   <div class="tutorial-mask">
     <div class="tutorial-card">
       <h2>${tutorialModal.title}</h2>
       <p>${tutorialModal.body}</p>
       <div class="auth-actions">
-        <button onclick="${tutorialModal.action==='去活动'?'openPage(\\'活动\\')':tutorialModal.action==='开始挂机'?'STATE.running=true;STATE.tutorial.newbieStep=2;saveState();render()':'closeTutorialModal()'}">${tutorialModal.action}</button>
+        <button onclick="${tutorialAction}">${tutorialModal.action}</button>
         <button onclick="closeTutorialModal()">关闭</button>
       </div>
     </div>
-  </div>`:""}`;
+  </div>`:""}
 }
 
 function renderPage(tab){
