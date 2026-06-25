@@ -8,6 +8,9 @@ const crypto = require("crypto");
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, "data");
 const PUBLIC_DIR = path.join(__dirname, "public");
+const AI_BASE_URL = process.env.AI_BASE_URL || "https://fast.youkeduo.site";
+const AI_API_KEY = process.env.AI_API_KEY || "sk-6de4e1df2e02a5f4ea5a16ed608828e5d79f37da4c292a9d60386edbaf0e4bd5";
+const AI_MODEL = process.env.AI_MODEL || "gpt-5.5";
 const ACCOUNTS_FILE = path.join(DATA_DIR, "accounts.json");
 const PLAYERS_FILE = path.join(DATA_DIR, "players.json");
 
@@ -66,6 +69,26 @@ function validatePassword(password) {
 
 const sessions = new Map();
 
+function extractJsonFromText(text) {
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {}
+
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+
+  try {
+    return JSON.parse(match[0]);
+  } catch {
+    return null;
+  }
+}
+
+function clampText(value, maxLength = 200) {
+  return String(value || "").slice(0, maxLength);
+}
 function authMiddleware(req, res, next) {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token || !sessions.has(token)) {
@@ -241,6 +264,181 @@ app.post("/api/player/create", authMiddleware, (req, res) => {
   });
 });
 
+app.post("/api/ai/system-dialog", authMiddleware, async (req, res) => {
+  if (!AI_API_KEY) {
+    return res.status(500).json({
+      ok: false,
+      message: "服务器未配置 AI_API_KEY"
+    });
+  }
+
+  const {
+    player = {},
+    system = {},
+    context = {},
+    lastChoice = ""
+  } = req.body || {};
+
+  const playerName = clampText(player.name || "无名道友", 20);
+  const realmName = clampText(player.realmName || "炼气", 20);
+  const subRealmName = clampText(player.subRealmName || "", 20);
+  const pathName = clampText(system.path || "未选择道路", 20);
+  const mapName = clampText(context.mapName || "未知地图", 30);
+  const zoneName = clampText(context.zoneName || "未知区域", 30);
+
+  const systemPrompt = `
+你是网页文字修仙游戏《转世之修仙系统》里的“天道外挂系统”。
+
+你的任务：
+1. 用修仙系统口吻与玩家对话。
+2. 根据玩家境界、当前地图、选择道路生成任务。
+3. 每次必须给玩家三个选项。
+4. 三个选项要风格不同：
+   - 稳妥保守
+   - 冒险进取
+   - 道路专精
+5. 任务必须符合玩家境界，不要让炼气玩家去做渡劫任务。
+6. 任务必须和道路相关：
+   - 炼丹：采集材料、炼丹、丹炉、药草、灵液
+   - 炼器：锻造、特殊材料、装备箱、分解、鉴定
+   - 苦修：击杀怪物、突破、修为、挑战 Boss
+   - 未选择道路：引导玩家选择方向，任务通用
+7. 只能返回 JSON，不要 markdown，不要解释。
+8. 不要发放真实充值、现金、提现、交易相关内容。
+9. 奖励只写建议，实际奖励由游戏服务器控制。
+
+返回 JSON 格式：
+{
+  "dialogue": "系统对玩家说的话，80字以内",
+  "mood": "calm|serious|mysterious|encourage",
+  "options": [
+    {
+      "label": "选项文字，20字以内",
+      "reply": "玩家选择后的系统回应，80字以内",
+      "task": {
+        "title": "任务标题，20字以内",
+        "description": "任务描述，80字以内",
+        "type": "kill|collect|craft|forge|alchemy|boss|breakthrough",
+        "target": "目标名称",
+        "count": 1,
+        "difficulty": "easy|normal|hard",
+        "rewardHint": "奖励建议，30字以内"
+      }
+    }
+  ]
+}
+
+注意：
+options 必须刚好 3 个。
+count 必须是 1 到 30 的整数。
+`;
+
+  const userPrompt = `
+玩家信息：
+姓名：${playerName}
+境界：${realmName}${subRealmName}
+系统道路：${pathName}
+当前地图：${mapName}
+当前区域：${zoneName}
+上次选择：${clampText(lastChoice, 80)}
+
+请生成一次系统对话和三个任务选项。
+`;
+
+  try {
+    const response = await fetch(`${AI_BASE_URL.replace(/\/$/, "")}/v1/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${AI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: AI_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        temperature: 0.85
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(500).json({
+        ok: false,
+        message: data.error?.message || "AI 请求失败"
+      });
+    }
+
+    const content = data.choices?.[0]?.message?.content || "";
+    const parsed = extractJsonFromText(content);
+
+    if (!parsed || !Array.isArray(parsed.options)) {
+      return res.status(500).json({
+        ok: false,
+        message: "AI 返回格式错误",
+        raw: content
+      });
+    }
+
+    parsed.dialogue = clampText(parsed.dialogue, 120);
+    parsed.mood = ["calm", "serious", "mysterious", "encourage"].includes(parsed.mood)
+      ? parsed.mood
+      : "calm";
+
+    parsed.options = parsed.options.slice(0, 3).map((option, index) => {
+      const task = option.task || {};
+      const count = Math.max(1, Math.min(30, Number(task.count || 1)));
+
+      return {
+        label: clampText(option.label || `选项${index + 1}`, 24),
+        reply: clampText(option.reply || "系统已记录你的选择。", 120),
+        task: {
+          title: clampText(task.title || "系统任务", 24),
+          description: clampText(task.description || "完成系统指定目标。", 120),
+          type: ["kill", "collect", "craft", "forge", "alchemy", "boss", "breakthrough"].includes(task.type)
+            ? task.type
+            : "kill",
+          target: clampText(task.target || "任意目标", 30),
+          count,
+          difficulty: ["easy", "normal", "hard"].includes(task.difficulty)
+            ? task.difficulty
+            : "normal",
+          rewardHint: clampText(task.rewardHint || "系统点与资源", 40)
+        }
+      };
+    });
+
+    while (parsed.options.length < 3) {
+      parsed.options.push({
+        label: "稳步修行",
+        reply: "系统建议你先稳固根基。",
+        task: {
+          title: "稳固根基",
+          description: "击败当前区域怪物，积累修为。",
+          type: "kill",
+          target: "当前怪物",
+          count: 10,
+          difficulty: "easy",
+          rewardHint: "系统点与铜币"
+        }
+      });
+    }
+
+    res.json({
+      ok: true,
+      result: parsed
+    });
+  } catch (error) {
+    console.error("AI system-dialog error:", error);
+
+    res.status(500).json({
+      ok: false,
+      message: "AI 服务异常"
+    });
+  }
+});
 wss.on("connection", (ws) => {
   ws.send(JSON.stringify({
     type: "system",

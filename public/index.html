@@ -179,6 +179,37 @@ hr{border:0;border-top:1px solid var(--line);margin:10px 0}
   right:4%;
   transform:scaleX(-1);
 }
+.battle-monster-dead{
+  position:absolute;
+  right:4%;
+  bottom:16px;
+  width:34%;
+  height:72%;
+  object-fit:contain;
+  z-index:3;
+  filter:drop-shadow(0 10px 12px rgba(0,0,0,.55));
+  transform-origin:70% 90%;
+  animation:monsterDeathFall .9s ease-out forwards;
+  pointer-events:none;
+}
+
+@keyframes monsterDeathFall{
+  0%{
+    opacity:1;
+    transform:scaleX(-1) rotate(0deg) translateY(0) scale(1);
+    filter:drop-shadow(0 10px 12px rgba(0,0,0,.55)) brightness(1);
+  }
+  45%{
+    opacity:.78;
+    transform:scaleX(-1) rotate(58deg) translateY(16px) scale(.96);
+    filter:drop-shadow(0 5px 8px rgba(0,0,0,.45)) brightness(.82);
+  }
+  100%{
+    opacity:0;
+    transform:scaleX(-1) rotate(82deg) translateY(34px) scale(.88);
+    filter:drop-shadow(0 2px 4px rgba(0,0,0,.25)) brightness(.45);
+  }
+}
 
 .battle-fx{
   position:absolute;
@@ -612,6 +643,96 @@ transform:translateX(-50%);
   margin-bottom:10px;
 }
 
+.material-hover{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+
+.material-tooltip{
+  display:none;
+  position:absolute;
+  left:0;
+  top:48px;
+  z-index:80;
+  width:260px;
+  padding:9px 10px;
+  border:1px solid rgba(119,230,255,.32);
+  border-radius:10px;
+  background:rgba(8,12,20,.96);
+  box-shadow:0 10px 28px rgba(0,0,0,.45);
+  font-size:13px;
+  line-height:1.55;
+  pointer-events:none;
+}
+
+.material-hover:hover .material-tooltip{
+  display:block;
+}
+
+.craft-layout{
+  display:grid;
+  grid-template-columns:260px 1fr;
+  gap:12px;
+}
+
+.craft-sidebar{
+  background:rgba(10,15,26,.72);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:10px;
+}
+
+.craft-category-title{
+  width:100%;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:#1c2740;
+  border:1px solid #405073;
+  border-radius:10px;
+  padding:9px 10px;
+  color:var(--text);
+}
+
+.craft-category-title.active{
+  background:#31446f;
+  border-color:#6b85c8;
+}
+
+.craft-item-list{
+  margin-top:8px;
+  display:grid;
+  grid-template-columns:1fr;
+  gap:6px;
+}
+
+.craft-item-btn{
+  text-align:left;
+  padding:8px;
+  border-radius:9px;
+  border:1px solid rgba(64,80,115,.75);
+  background:rgba(18,32,51,.7);
+}
+
+.craft-item-btn.active{
+  border-color:var(--gold);
+  background:rgba(80,62,28,.62);
+  color:var(--gold);
+}
+
+.craft-preview{
+  display:grid;
+  grid-template-columns:90px 1fr;
+  gap:12px;
+  align-items:start;
+}
+
+@media(max-width:820px){
+  .craft-layout{grid-template-columns:1fr}
+  .craft-preview{grid-template-columns:1fr}
+}
 @media(max-width:820px){
   .forge-layout{grid-template-columns:1fr}
   .forge-preview{grid-template-columns:1fr}
@@ -756,12 +877,18 @@ CONFIG.realmConfigs=CONFIG.realms.map((realm,index)=>({
 CONFIG.maps=[
   ["雾骨荒原","残碑坡","冷萤谷","碎月滩","雾骨魇主"],
   ["青烬山脉","松火岭","赤苔洞","眠蛇涧","青烬岩君"],
+  ["眠风竹海","听竹径","青露坞","风眠台","眠风竹君"],
   ["澜星湖泽","银藻洲","镜水湾","沉星潭","澜星水魈"],
+  ["千灯古渡","旧灯埠","残舟湾","渡魂桥","千灯渡灵"],
   ["黑曜古城","断钟街","玄瓦巷","无灯台","黑曜城灵"],
   ["霜纹天阶","雪纹径","寒钟坪","白魄台","霜纹天将"],
+  ["碧落药岭","青芝坡","玉露谷","丹霞坞","碧落药王"],
   ["晦明海眼","潮骨礁","暗珠沟","归墟口","晦明潮皇"],
+  ["归墟砂洲","沉沙滩","蚀风峡","黑盐台","归墟砂主"],
   ["赤霄裂谷","焦玉坡","焚碑窟","鸣雷峡","赤霄裂尊"],
+  ["雷泽断原","残雷坪","电纹沼","断云岭","雷泽荒君"],
   ["玄垣星野","落星丘","尘光林","古轨原","玄垣星兽"],
+  ["太微遗庭","星阶廊","残庭苑","太微台","太微庭主"],
   ["无相劫门","静劫廊","虚命桥","问终台","无相劫主"]
 ].map((row,index)=>({
   id:index,
@@ -771,24 +898,36 @@ CONFIG.maps=[
   image:[
     "assets/images/maps/wugu_huangyuan.webp",
     "assets/images/maps/qingjin_shanmai.webp",
+    "assets/images/maps/mianfeng_zhuhai.webp",
     "assets/images/maps/lanxing_huze.webp",
+    "assets/images/maps/qiandeng_gudu.webp",
     "assets/images/maps/heiyao_gucheng.webp",
     "assets/images/maps/shuangwen_tianjie.webp",
+    "assets/images/maps/biluo_yaoling.webp",
     "assets/images/maps/huiming_haiyan.webp",
+    "assets/images/maps/guixu_shazhou.webp",
     "assets/images/maps/chixiao_liegu.webp",
+    "assets/images/maps/leize_duanyuan.webp",
     "assets/images/maps/xuanyuan_xingye.webp",
+    "assets/images/maps/taiwei_yiting.webp",
     "assets/images/maps/wuxiang_jiemen.webp"
   ][index]
 }));
 CONFIG.battleBackgrounds=[
   "assets/images/battle/backgrounds/battle_wugu_huangyuan.webp",
   "assets/images/battle/backgrounds/battle_qingjin_shanmai.webp",
+  "assets/images/battle/backgrounds/battle_mianfeng_zhuhai.webp",
   "assets/images/battle/backgrounds/battle_lanxing_huze.webp",
+  "assets/images/battle/backgrounds/battle_qiandeng_gudu.webp",
   "assets/images/battle/backgrounds/battle_heiyao_gucheng.webp",
   "assets/images/battle/backgrounds/battle_shuangwen_tianjie.webp",
+  "assets/images/battle/backgrounds/battle_biluo_yaoling.webp",
   "assets/images/battle/backgrounds/battle_huiming_haiyan.webp",
+  "assets/images/battle/backgrounds/battle_guixu_shazhou.webp",
   "assets/images/battle/backgrounds/battle_chixiao_liegu.webp",
+  "assets/images/battle/backgrounds/battle_leize_duanyuan.webp",
   "assets/images/battle/backgrounds/battle_xuanyuan_xingye.webp",
+  "assets/images/battle/backgrounds/battle_taiwei_yiting.webp",
   "assets/images/battle/backgrounds/battle_wuxiang_jiemen.webp"
 ];
 
@@ -808,34 +947,167 @@ CONFIG.battleAssets={
   }
 };
 
-CONFIG.monsterNames=[
-  "腐灯游魂","裂甲石奴","青鬃食露兽","玄斑毒蛾","抱月纸妖","断角魇鹿",
-  "灰鳞穴蛇","铜喙山魈","赤羽焰鸦","白骨铃童","沉砂鬼蚌","雾面狐灵"
+CONFIG.mapMonsters=[
+  [
+    {name:"腐灯游魂",image:"assets/images/monsters/normal/wugu_fudeng_youhun.webp"},
+    {name:"裂骨犬",image:"assets/images/monsters/normal/wugu_liegu_quan.webp"},
+    {name:"残碑石奴",image:"assets/images/monsters/normal/wugu_canbei_shinu.webp"}
+  ],
+  [
+    {name:"青烬岩蜥",image:"assets/images/monsters/normal/qingjin_yanxi.webp"},
+    {name:"松火鸦",image:"assets/images/monsters/normal/qingjin_songhuo_ya.webp"},
+    {name:"眠蛇藤怪",image:"assets/images/monsters/normal/qingjin_mianshe_tengguai.webp"}
+  ],
+  [
+    {name:"竹叶风魈",image:"assets/images/monsters/normal/mianfeng_zhuye_fengxiao.webp"},
+    {name:"青露竹蛾",image:"assets/images/monsters/normal/mianfeng_qinglu_zhue.webp"},
+    {name:"风眠竹偶",image:"assets/images/monsters/normal/mianfeng_fengmian_zhuou.webp"}
+  ],
+  [
+    {name:"银藻水妖",image:"assets/images/monsters/normal/lanxing_yinzao_shuiyao.webp"},
+    {name:"镜水蚌灵",image:"assets/images/monsters/normal/lanxing_jingshui_bangling.webp"},
+    {name:"沉星鳞蛇",image:"assets/images/monsters/normal/lanxing_chenxing_linshe.webp"}
+  ],
+  [
+    {name:"残灯渡鬼",image:"assets/images/monsters/normal/qiandeng_candeng_dugui.webp"},
+    {name:"黑水舟尸",image:"assets/images/monsters/normal/qiandeng_heishui_zhoushi.webp"},
+    {name:"纸灯魇童",image:"assets/images/monsters/normal/qiandeng_zhideng_yantong.webp"}
+  ],
+  [
+    {name:"玄瓦鬼兵",image:"assets/images/monsters/normal/heiyao_xuanwa_guibing.webp"},
+    {name:"断钟铜魇",image:"assets/images/monsters/normal/heiyao_duanzhong_tongyan.webp"},
+    {name:"无灯巷影",image:"assets/images/monsters/normal/heiyao_wudeng_xiangying.webp"}
+  ],
+  [
+    {name:"霜纹雪傀",image:"assets/images/monsters/normal/shuangwen_xuekui.webp"},
+    {name:"寒钟雪魄",image:"assets/images/monsters/normal/shuangwen_hanzhong_xuepo.webp"},
+    {name:"白魄霜狼",image:"assets/images/monsters/normal/shuangwen_baipo_shuanglang.webp"}
+  ],
+  [
+    {name:"青芝药灵",image:"assets/images/monsters/normal/biluo_qingzhi_yaoling.webp"},
+    {name:"玉露毒蟾",image:"assets/images/monsters/normal/biluo_yulu_duchan.webp"},
+    {name:"丹霞藤妖",image:"assets/images/monsters/normal/biluo_danxia_tengyao.webp"}
+  ],
+  [
+    {name:"潮骨鱼妖",image:"assets/images/monsters/normal/huiming_chaogu_yuyao.webp"},
+    {name:"暗珠海蚌",image:"assets/images/monsters/normal/huiming_anzhu_haibang.webp"},
+    {name:"归墟潮魇",image:"assets/images/monsters/normal/huiming_guixu_chaoyan.webp"}
+  ],
+  [
+    {name:"黑盐沙蝎",image:"assets/images/monsters/normal/guixu_heiyan_shaxie.webp"},
+    {name:"沉沙骨偶",image:"assets/images/monsters/normal/guixu_chensha_guou.webp"},
+    {name:"蚀风砂灵",image:"assets/images/monsters/normal/guixu_shifeng_shaling.webp"}
+  ],
+  [
+    {name:"焚碑火奴",image:"assets/images/monsters/normal/chixiao_fenbei_huonu.webp"},
+    {name:"赤羽雷鸦",image:"assets/images/monsters/normal/chixiao_chiyu_leiya.webp"},
+    {name:"焦玉裂兽",image:"assets/images/monsters/normal/chixiao_jiaoyu_lieshou.webp"}
+  ],
+  [
+    {name:"电纹雷蛭",image:"assets/images/monsters/normal/leize_dianwen_leizhi.webp"},
+    {name:"残雷石犀",image:"assets/images/monsters/normal/leize_canlei_shixi.webp"},
+    {name:"断云雷隼",image:"assets/images/monsters/normal/leize_duanyun_leisun.webp"}
+  ],
+  [
+    {name:"落星岩兽",image:"assets/images/monsters/normal/xuanyuan_luoxing_yanshou.webp"},
+    {name:"尘光星狐",image:"assets/images/monsters/normal/xuanyuan_chenguang_xinghu.webp"},
+    {name:"古轨星偶",image:"assets/images/monsters/normal/xuanyuan_gugui_xingou.webp"}
+  ],
+  [
+    {name:"星阶玉卫",image:"assets/images/monsters/normal/taiwei_xingjie_yuwei.webp"},
+    {name:"残庭星灵",image:"assets/images/monsters/normal/taiwei_canting_xingling.webp"},
+    {name:"太微阵兽",image:"assets/images/monsters/normal/taiwei_zhen_shou.webp"}
+  ],
+  [
+    {name:"静劫影奴",image:"assets/images/monsters/normal/wuxiang_jingjie_yingnu.webp"},
+    {name:"虚命劫蛛",image:"assets/images/monsters/normal/wuxiang_xuming_jiezhu.webp"},
+    {name:"问终劫灵",image:"assets/images/monsters/normal/wuxiang_wenzhong_jieling.webp"}
+  ]
 ];
-CONFIG.monsterImages={
-  "腐灯游魂":"assets/images/monsters/normal/fudeng_youhun.webp",
-  "裂甲石奴":"assets/images/monsters/normal/liejia_shinu.webp",
-  "青鬃食露兽":"assets/images/monsters/normal/qingzong_shilushou.webp",
-  "玄斑毒蛾":"assets/images/monsters/normal/xuanban_due.webp",
-  "抱月纸妖":"assets/images/monsters/normal/baoyue_zhiyao.webp",
-  "断角魇鹿":"assets/images/monsters/normal/duanjiao_yanlu.webp",
-  "灰鳞穴蛇":"assets/images/monsters/normal/huilin_xueshe.webp",
-  "铜喙山魈":"assets/images/monsters/normal/tonghui_shanxiao.webp",
-  "赤羽焰鸦":"assets/images/monsters/normal/chiyu_yanya.webp",
-  "白骨铃童":"assets/images/monsters/normal/baigu_lingtong.webp",
-  "沉砂鬼蚌":"assets/images/monsters/normal/chensha_guibang.webp",
-  "雾面狐灵":"assets/images/monsters/normal/wumian_huling.webp"
-};
 
+CONFIG.monsterNames=CONFIG.mapMonsters.flat().map(monster=>monster.name);
+
+CONFIG.monsterImages=Object.fromEntries(
+  CONFIG.mapMonsters.flat().map(monster=>[monster.name,monster.image])
+);
+
+
+CONFIG.monsterSpecialDrops={
+  "腐灯游魂":{name:"腐灯魂芯",type:"天地奇物",description:"腐灯游魂残留的幽魂灯芯。"},
+  "裂骨犬":{name:"裂骨犬牙",type:"妖兽材料",description:"裂骨犬断裂后仍泛着魂火的犬牙。"},
+  "残碑石奴":{name:"残碑石心",type:"灵矿",description:"残碑石奴体内凝成的碑纹石心。"},
+
+  "青烬岩蜥":{name:"青烬岩鳞",type:"妖兽材料",description:"青烬岩蜥身上带有余烬温度的岩鳞。"},
+  "松火鸦":{name:"松火鸦羽",type:"妖兽材料",description:"燃着青色松火的妖鸦羽毛。"},
+  "眠蛇藤怪":{name:"眠蛇藤须",type:"灵木",description:"眠蛇藤怪身上带毒性的青藤须。"},
+
+  "竹叶风魈":{name:"风魈竹刃",type:"灵木",description:"竹叶风魈背部脱落的锋利竹叶。"},
+  "青露竹蛾":{name:"青露蛾粉",type:"妖兽材料",description:"青露竹蛾翅上带有迷幻效果的蛾粉。"},
+  "风眠竹偶":{name:"风眠竹节",type:"灵木",description:"风眠竹偶关节处遗留的灵竹节。"},
+
+  "银藻水妖":{name:"银藻灵丝",type:"药草",description:"银藻水妖体内缠绕的银色灵藻丝。"},
+  "镜水蚌灵":{name:"镜水蚌珠",type:"妖兽材料",description:"镜水蚌灵孕育出的星光蚌珠。"},
+  "沉星鳞蛇":{name:"沉星蛇鳞",type:"妖兽材料",description:"沉星鳞蛇身上带星纹的深水蛇鳞。"},
+
+  "残灯渡鬼":{name:"残灯魂油",type:"灵液",description:"残灯渡鬼灯中未燃尽的魂油。"},
+  "黑水舟尸":{name:"黑水尸木",type:"灵木",description:"黑水舟尸背上浸满怨气的船木。"},
+  "纸灯魇童":{name:"魇童灯纸",type:"天地奇物",description:"纸灯魇童身上残留的诡异灯纸。"},
+
+  "玄瓦鬼兵":{name:"玄瓦甲片",type:"灵矿",description:"玄瓦鬼兵残甲上脱落的玄瓦甲片。"},
+  "断钟铜魇":{name:"断钟铜屑",type:"灵矿",description:"断钟铜魇破裂钟体中剥落的铜屑。"},
+  "无灯巷影":{name:"无灯影纱",type:"天地奇物",description:"无灯巷影消散后留下的阴影薄纱。"},
+
+  "霜纹雪傀":{name:"霜纹冰核",type:"天地奇物",description:"霜纹雪傀胸口凝结的冰核。"},
+  "寒钟雪魄":{name:"寒钟魄晶",type:"天地奇物",description:"寒钟雪魄体内凝成的寒魄晶。"},
+  "白魄霜狼":{name:"白魄狼毫",type:"妖兽材料",description:"白魄霜狼背颈处的寒霜狼毫。"},
+
+  "青芝药灵":{name:"青芝灵冠",type:"药草",description:"青芝药灵头顶脱落的灵芝冠。"},
+  "玉露毒蟾":{name:"玉露毒囊",type:"妖兽材料",description:"玉露毒蟾背部凝结的毒囊。"},
+  "丹霞藤妖":{name:"丹霞藤珠",type:"药草",description:"丹霞藤妖藤蔓上结出的丹珠果实。"},
+
+  "潮骨鱼妖":{name:"潮骨鱼刺",type:"妖兽材料",description:"潮骨鱼妖体内泛着潮光的鱼骨刺。"},
+  "暗珠海蚌":{name:"暗珠蚌核",type:"妖兽材料",description:"暗珠海蚌壳中孕育的暗明灵核。"},
+  "归墟潮魇":{name:"归墟潮泪",type:"灵液",description:"归墟潮魇消散时凝成的潮汐泪滴。"},
+
+  "黑盐沙蝎":{name:"黑盐蝎尾",type:"妖兽材料",description:"黑盐沙蝎尾端带毒的黑盐尾钩。"},
+  "沉沙骨偶":{name:"沉沙骨核",type:"天地奇物",description:"沉沙骨偶胸腔内旋转的骨沙核心。"},
+  "蚀风砂灵":{name:"蚀风砂眼",type:"天地奇物",description:"蚀风砂灵风暴中心凝成的砂眼。"},
+
+  "焚碑火奴":{name:"焚碑火石",type:"灵矿",description:"焚碑火奴体内燃烧的碑火石。"},
+  "赤羽雷鸦":{name:"赤羽雷翎",type:"妖兽材料",description:"赤羽雷鸦翅尖脱落的雷火翎羽。"},
+  "焦玉裂兽":{name:"焦玉兽核",type:"妖兽材料",description:"焦玉裂兽胸腔中凝成的熔火兽核。"},
+
+  "电纹雷蛭":{name:"电纹蛭液",type:"灵液",description:"电纹雷蛭体内带电的沼泽灵液。"},
+  "残雷石犀":{name:"残雷犀角",type:"妖兽材料",description:"残雷石犀断角上残留的紫蓝雷光。"},
+  "断云雷隼":{name:"断云雷羽",type:"妖兽材料",description:"断云雷隼翼尖脱落的雷羽。"},
+
+  "落星岩兽":{name:"落星岩核",type:"灵矿",description:"落星岩兽体内嵌着星光的岩核。"},
+  "尘光星狐":{name:"尘光狐尾",type:"妖兽材料",description:"尘光星狐尾端凝聚的星尘狐毛。"},
+  "古轨星偶":{name:"古轨星环",type:"天地奇物",description:"古轨星偶体外悬浮的残破星环。"},
+
+  "星阶玉卫":{name:"星阶玉片",type:"灵矿",description:"星阶玉卫破损甲胄上的白玉片。"},
+  "残庭星灵":{name:"残庭星尘",type:"天地奇物",description:"残庭星灵消散后留下的银白星尘。"},
+  "太微阵兽":{name:"太微阵骨",type:"妖兽材料",description:"太微阵兽体内刻满阵纹的骨片。"},
+
+  "静劫影奴":{name:"静劫影纤",type:"天地奇物",description:"静劫影奴身上剥离出的黑白影纤。"},
+  "虚命劫蛛":{name:"虚命蛛丝",type:"妖兽材料",description:"虚命劫蛛吐出的空间裂隙蛛丝。"},
+  "问终劫灵":{name:"问终劫核",type:"天地奇物",description:"问终劫灵胸口凝聚的终劫核心。"}
+};
 CONFIG.bossImages={
   "雾骨魇主":"assets/images/monsters/boss/wugu_yanzhu.webp",
   "青烬岩君":"assets/images/monsters/boss/qingjin_yanjun.webp",
+  "眠风竹君":"assets/images/monsters/boss/mianfeng_zhujun.webp",
   "澜星水魈":"assets/images/monsters/boss/lanxing_shuixiao.webp",
+  "千灯渡灵":"assets/images/monsters/boss/qiandeng_duling.webp",
   "黑曜城灵":"assets/images/monsters/boss/heiyao_chengling.webp",
   "霜纹天将":"assets/images/monsters/boss/shuangwen_tianjiang.webp",
+  "碧落药王":"assets/images/monsters/boss/biluo_yaowang.webp",
   "晦明潮皇":"assets/images/monsters/boss/huiming_chaohuang.webp",
+  "归墟砂主":"assets/images/monsters/boss/guixu_shazhu.webp",
   "赤霄裂尊":"assets/images/monsters/boss/chixiao_liezun.webp",
+  "雷泽荒君":"assets/images/monsters/boss/leize_huangjun.webp",
   "玄垣星兽":"assets/images/monsters/boss/xuanyuan_xingshou.webp",
+  "太微庭主":"assets/images/monsters/boss/taiwei_tingzhu.webp",
   "无相劫主":"assets/images/monsters/boss/wuxiang_jiezhu.webp"
 };
 
@@ -948,6 +1220,7 @@ CONFIG.iconPaths={
   currency:"assets/images/icons/currency/",
   materials:"assets/images/icons/materials/",
   materialQuality:"assets/images/icons/materials/quality/",
+  materialSpecial:"assets/images/icons/materials/special/",
   packages:"assets/images/icons/items/packages/",
   tools:"assets/images/icons/items/tools/",
   items:"assets/images/icons/items/",
@@ -960,6 +1233,7 @@ CONFIG.iconPaths={
   status:"assets/images/icons/status/",
   ui:"assets/images/icons/ui/"
 };
+CONFIG.specialMaterialFrame=CONFIG.iconPaths.materialSpecial+"special_material_frame.webp";
 
 CONFIG.currencyIcons={
   coin:CONFIG.iconPaths.currency+"coin.webp",
@@ -1040,6 +1314,13 @@ CONFIG.itemIconMap={
   "无垢仙炉":CONFIG.iconPaths.furnaces+"wugou_xianlu.webp",
   "太微神炉":CONFIG.iconPaths.furnaces+"taiwei_shenlu.webp",
 
+  "破碎灵酒":CONFIG.iconPaths.items+"wine/wine_0_broken.webp",
+  "普通灵酒":CONFIG.iconPaths.items+"wine/wine_1_normal.webp",
+  "优秀灵酒":CONFIG.iconPaths.items+"wine/wine_2_fine.webp",
+  "精良灵酒":CONFIG.iconPaths.items+"wine/wine_3_rare.webp",
+  "卓越灵酒":CONFIG.iconPaths.items+"wine/wine_4_epic.webp",
+  "传说灵酒":CONFIG.iconPaths.items+"wine/wine_5_legend.webp",
+  "神话灵酒":CONFIG.iconPaths.items+"wine/wine_6_myth.webp",
   "照夜指残页":CONFIG.iconPaths.skillItems+"skill_page.webp",
   "功法残卷":CONFIG.iconPaths.skillItems+"skill_page.webp",
   "心法玉简":CONFIG.iconPaths.skillItems+"mind_jade_slip.webp",
@@ -1168,6 +1449,12 @@ CONFIG.forgeCategoryConfigs=[
     name:"装备",
     description:"打造武器、防具、饰品等基础装备。",
     slots:CONFIG.equipSlots
+  },
+  {
+    id:"礼物",
+    name:"礼物",
+    description:"制作可赠送好友或 NPC 的礼物。",
+    slots:[]
   }
 ];
 
@@ -1179,6 +1466,122 @@ CONFIG.forgeMaterialRules={
   targetRealmExtra:1.35,
   overRealmPenalty:1.65
 };
+CONFIG.giftRecipes=[
+  {
+    name:"安神香囊",
+    quality:1,
+    special:"腐灯魂芯",
+    materials:[["雾纹草",3],["冷萤液",2]],
+    yuanbao:80,
+    effect:"赠送后少量提升好感。后续可赠送好友或 NPC。"
+  },
+  {
+    name:"青竹风铃",
+    quality:2,
+    special:"风眠竹节",
+    materials:[["青烬木",3],["风铃芽",2]],
+    yuanbao:150,
+    effect:"赠送后提升风雅类 NPC 好感。"
+  },
+  {
+    name:"镜水玉佩",
+    quality:3,
+    special:"镜水蚌珠",
+    materials:[["碎月玉",2],["澜星泉",3]],
+    yuanbao:320,
+    effect:"赠送后提升清冷、水系 NPC 好感。"
+  },
+  {
+    name:"千灯魂盏",
+    quality:4,
+    special:"残灯魂油",
+    materials:[["残碑墨",2],["晦明珠",1]],
+    yuanbao:680,
+    effect:"赠送后提升古渡、魂系 NPC 好感。"
+  },
+  {
+    name:"雷纹护符",
+    quality:4,
+    special:"残雷犀角",
+    materials:[["赤雷晶",3],["空纹石",2]],
+    yuanbao:900,
+    effect:"赠送后提升雷系、战斗型 NPC 好感。"
+  },
+  {
+    name:"太微星匣",
+    quality:5,
+    special:"残庭星尘",
+    materials:[["太微星砂",1],["古轨星屑",2]],
+    yuanbao:1800,
+    effect:"高阶礼物，后续可用于重要 NPC 任务。"
+  }
+];
+
+CONFIG.wineRecipes=[
+  {
+    name:"破碎灵酒",
+    quality:0,
+    special:"裂骨犬牙",
+    materials:[["雾纹草",2],["冷萤液",1]],
+    yuanbao:30,
+    buff:{name:"粗劣酒劲",attr:"力量",value:5,duration:30*60*1000},
+    effect:"使用后半小时力量 +5。"
+  },
+  {
+    name:"普通灵酒",
+    quality:1,
+    special:"青烬岩鳞",
+    materials:[["青焰芝",2],["赤露髓",1]],
+    yuanbao:80,
+    buff:{name:"温酒入脉",attr:"力量",value:12,duration:30*60*1000},
+    effect:"使用后半小时力量 +12。"
+  },
+  {
+    name:"优秀灵酒",
+    quality:2,
+    special:"青露蛾粉",
+    materials:[["听霜花",3],["眠火蜜",2]],
+    yuanbao:180,
+    buff:{name:"青露酒意",attr:"精神",value:20,duration:30*60*1000},
+    effect:"使用后半小时精神 +20。"
+  },
+  {
+    name:"精良灵酒",
+    quality:3,
+    special:"沉星蛇鳞",
+    materials:[["月砂莲",3],["澜星泉",3]],
+    yuanbao:420,
+    buff:{name:"沉星酒劲",attr:"力量",value:38,duration:30*60*1000},
+    effect:"使用后半小时力量 +38。"
+  },
+  {
+    name:"卓越灵酒",
+    quality:4,
+    special:"丹霞藤珠",
+    materials:[["无垢莲心",1],["归潮灵液",3]],
+    yuanbao:900,
+    buff:{name:"丹霞醉意",attr:"精神",value:65,duration:30*60*1000},
+    effect:"使用后半小时精神 +65。"
+  },
+  {
+    name:"传说灵酒",
+    quality:5,
+    special:"赤羽雷翎",
+    materials:[["太微星砂",1],["天烬凰羽",1]],
+    yuanbao:1800,
+    buff:{name:"雷火神酿",attr:"力量",value:120,duration:30*60*1000},
+    effect:"使用后半小时力量 +120。"
+  },
+  {
+    name:"神话灵酒",
+    quality:6,
+    special:"问终劫核",
+    materials:[["劫初道尘",1],["太虚源露",1]],
+    yuanbao:3600,
+    buff:{name:"太虚仙酿",attr:"精神",value:220,duration:30*60*1000},
+    effect:"使用后半小时精神 +220。"
+  }
+];
 CONFIG.skillItemConfigs={
   "功法残卷":{
     kind:"功法",
@@ -1361,6 +1764,10 @@ function createDefaultState(){
 forgeCategory:"装备",
 forgeSlot:"武器",
 forgeRealm:0,
+craftGift:"安神香囊",
+alchemyCategory:"丹药",
+alchemyItem:"回春丹",
+wineItem:"破碎灵酒",
     selectedStoreEquipId:null,
     running:false,
     hideLog:false,
@@ -1369,7 +1776,8 @@ forgeRealm:0,
     currentMonsterHp:null,
     currentMonsterMaxHp:0,
     battleVisual:{fx:"slash",text:"",nonce:0},
-    buffs:{cultMultiplier2Until:0,cultMultiplier3Until:0},
+    battleDeath:{image:null,name:"",nonce:0,expireAt:0},
+    buffs:{cultMultiplier2Until:0,cultMultiplier3Until:0,wine:null},
     player:{
       name:"无名道友",
       gender:null,
@@ -1390,6 +1798,7 @@ forgeRealm:0,
     progress:{
       map:0,
       zone:0,
+      unlockedMaps:[0],
       kills:[0,0,0],
       clearedZones:{},
       bossKilled:[],
@@ -1416,7 +1825,19 @@ forgeRealm:0,
     },
     vip:{level:0,exp:0,cumulative:0,claimed:{},daily:null},
     month:{active:false,start:0,lastDaily:null},
-    system:{path:null,tasks:[],shopBought:{}},
+    system:{
+  path:null,
+  tasks:[],
+  shopBought:{},
+  ai:{
+    dialogue:"",
+    mood:"calm",
+    options:[],
+    lastReply:"",
+    loading:false,
+    history:[]
+  }
+},
     dungeon:{used:{},running:null},
     flow:[]
   };
@@ -1636,6 +2057,16 @@ function loadState(){
       };
     }
 
+    if(saved.progress&&!saved.progress.unlockedMaps){
+      saved.progress.unlockedMaps=[0];
+      if(saved.progress.map>0){
+        for(let i=0;i<=saved.progress.map;i++){
+          if(!saved.progress.unlockedMaps.includes(i)){
+            saved.progress.unlockedMaps.push(i);
+          }
+        }
+      }
+    }
     if(!saved.equipped&&saved.eq)saved.equipped=saved.eq;
     if(!saved.bag)saved.bag=[];
     if(!saved.store)saved.store=[];
@@ -1643,14 +2074,47 @@ function loadState(){
     if(!saved.logs)saved.logs=base.logs;
     if(!saved.useLogs)saved.useLogs=[];
     if(!saved.buffs)saved.buffs=base.buffs;
+    if(saved.buffs&&!saved.buffs.hasOwnProperty("wine"))saved.buffs.wine=null;
     if(!saved.battleVisual)saved.battleVisual=base.battleVisual;
+if(!saved.battleDeath)saved.battleDeath=base.battleDeath;
+
+if(saved.battleVisual&&saved.battleVisual.nonce&&Date.now()-saved.battleVisual.nonce>1000){
+  saved.battleVisual=base.battleVisual;
+}
+
+if(saved.battleDeath&&saved.battleDeath.nonce&&Date.now()-saved.battleDeath.nonce>1200){
+  saved.battleDeath=base.battleDeath;
+}
     if(!saved.alchemy)saved.alchemy=base.alchemy;
     if(!saved.activity)saved.activity=base.activity;
     if(!saved.vip)saved.vip=base.vip;
     if(!saved.month)saved.month=base.month;
     if(!saved.system)saved.system=base.system;
+    if(saved.system&&!saved.system.ai){
+      saved.system.ai=base.system.ai;
+    }
     if(!saved.dungeon)saved.dungeon=base.dungeon;
     if(!saved.flow)saved.flow=[];
+    if(saved.progress){
+      if(typeof saved.progress.map!=="number"||saved.progress.map<0||saved.progress.map>=CONFIG.maps.length){
+        saved.progress.map=0;
+      }
+
+      if(!Array.isArray(saved.progress.unlockedMaps)){
+        saved.progress.unlockedMaps=[0];
+      }
+
+      saved.progress.unlockedMaps=saved.progress.unlockedMaps
+        .filter(index=>typeof index==="number"&&index>=0&&index<CONFIG.maps.length);
+
+      if(!saved.progress.unlockedMaps.includes(0)){
+        saved.progress.unlockedMaps.unshift(0);
+      }
+
+      if(!saved.progress.unlockedMaps.includes(saved.progress.map)){
+        saved.progress.unlockedMaps.push(saved.progress.map);
+      }
+    }
     if(saved.skills&&saved.skills.equipped&&saved.skills.equipped.length===1&&saved.skills.equipped[0]==="sk1"&&!saved.skills.manualSkillFixed){
       saved.skills.equipped=[];
       saved.skills.manualSkillFixed=true;
@@ -1732,6 +2196,10 @@ function totalAttrs(){
   });
   const vipConfig=CONFIG.vip[STATE.vip.level]||CONFIG.vip[0];
   const monthBonus = STATE.month.active ? .02 : 0;
+  if(STATE.buffs?.wine&&STATE.buffs.wine.until>now()){
+    const wine=STATE.buffs.wine;
+    attrs[wine.attr]=(attrs[wine.attr]||0)+wine.value;
+  }
   for(const key in attrs) attrs[key]=Math.floor(attrs[key]*(1+(vipConfig.bonus||0)+monthBonus));
   return attrs;
 }
@@ -1750,11 +2218,19 @@ function getMaterialConfigByName(name){
   return CONFIG.materials.find(material=>material.name===name);
 }
 
+function getSpecialMaterialConfigByName(name){
+  return Object.values(CONFIG.monsterSpecialDrops||{}).find(material=>material.name===name);
+}
+
 function getItemIconPath(name,type=null){
   if(CONFIG.itemIconMap[name])return CONFIG.itemIconMap[name];
 
   const material=getMaterialConfigByName(name);
   if(material)return CONFIG.materialTypeIcons[material.type]||CONFIG.iconPaths.materials+"material_treasure.webp";
+  const specialMaterial=getSpecialMaterialConfigByName(name);
+  if(specialMaterial){
+    return CONFIG.materialTypeIcons[specialMaterial.type]||CONFIG.iconPaths.materials+"material_treasure.webp";
+  }
 
   if(name.includes("破境丹"))return CONFIG.iconPaths.pills+"breakthrough_dan.webp";
   if(name.includes("丹"))return CONFIG.iconPaths.pills+"attribute_dan.webp";
@@ -1773,13 +2249,16 @@ function getItemIconPath(name,type=null){
 
 function itemIconHtml(name,type=null,size=""){
   const material=getMaterialConfigByName(name);
+  const specialMaterial=getSpecialMaterialConfigByName(name);
   const icon=getItemIconPath(name,type);
   const qualityIcon=material?CONFIG.materialQualityIcons[material.quality]:null;
+  const specialFrame=specialMaterial?CONFIG.specialMaterialFrame:null;
 
-  if(qualityIcon){
+  if(qualityIcon||specialFrame){
     return `<span class="item-icon-stack ${size}">
       <img src="${icon}" onerror="this.style.display='none'">
-      <img class="item-quality-overlay" src="${qualityIcon}" onerror="this.style.display='none'">
+      ${qualityIcon?`<img class="item-quality-overlay" src="${qualityIcon}" onerror="this.style.display='none'">`:""}
+      ${specialFrame?`<img class="item-quality-overlay" src="${specialFrame}" onerror="this.style.display='none'">`:""}
     </span>`;
   }
 
@@ -1792,7 +2271,55 @@ function resourceIconHtml(resourceKey){
   const icon=CONFIG.currencyIcons[resourceKey];
   return icon?`<img class="resource-icon" src="${icon}" onerror="this.style.display='none'">`:"";
 }
+function getMaterialSourceAndUse(name){
+  const normal=getMaterialConfigByName(name);
+  const special=getSpecialMaterialConfigByName(name);
+
+  if(special){
+    const monsterName=Object.entries(CONFIG.monsterSpecialDrops||{}).find(([monster,drop])=>drop.name===name)?.[0]||"对应小怪";
+    return {
+      source:`击败【${monsterName}】概率掉落。`,
+      use:"特殊材料。当前可用于锻造礼物、丹炉酿酒；后续可扩展 NPC 任务、好感、专属装备。"
+    };
+  }
+
+  if(normal){
+    return {
+      source:`${CONFIG.realms[normal.realm]||"对应境界"}附近地图怪物、材料包、副本掉落。`,
+      use:`可用于${normal.use||"炼丹、锻造、任务"}。`
+    };
+  }
+
+  if(name==="锻造石"){
+    return {
+      source:"分解装备、副本、系统商城、活动礼包获得。",
+      use:"用于装备锻造、特殊物品制作。"
+    };
+  }
+
+  return {
+    source:"活动、邮件、副本、怪物掉落或商城获得。",
+    use:"后续玩法消耗材料。"
+  };
+}
+
+function materialCostHtml(name,owned,need){
+  const info=getMaterialSourceAndUse(name);
+  return `<span class="material-hover">
+    ${itemIconHtml(name,guessItemType(name))}
+    <span class="${owned>=need?"green":"red"}">${name}：${owned}/${need}</span>
+    <span class="material-tooltip">
+      <b>${name}</b><br>
+      <span class="cyan">获取：</span>${info.source}<br>
+      <span class="gold">用途：</span>${info.use}
+    </span>
+  </span>`;
+}
 function guessItemType(name){
+
+  if(getSpecialMaterialConfigByName(name))return "特殊材料";
+  if(CONFIG.giftRecipes?.some(item=>item.name===name))return "礼物";
+  if(CONFIG.wineRecipes?.some(item=>item.name===name))return "酒";
   if(name.includes("仙缘箱"))return "仙缘箱";
   if(name.includes("丹"))return "丹药";
   if(name.includes("灵石"))return "灵石";
@@ -2031,20 +2558,41 @@ function pickBattleFxBySkill(skill){
 }
 
 function triggerBattleVisual(fx,text){
+  const time=Date.now();
   STATE.battleVisual={
     fx:fx||"slash",
     text:text||"",
-    nonce:Date.now()
+    nonce:time,
+    expireAt:time+800
   };
+}
+function triggerMonsterDeath(monster){
+  if(!monster||!monster.image)return;
+
+  const time=Date.now();
+  STATE.battleDeath={
+    image:monster.image,
+    name:monster.name,
+    nonce:time,
+    expireAt:time+1000
+  };
+
 }
 function currentMonster(isBoss=false){
   const mapIndex=STATE.progress.map;
   const zoneIndex=STATE.progress.zone;
-  const base=30*Math.pow(2.05,mapIndex)*(1+zoneIndex*.22)*(isBoss?5.5:1);
-  const monsterName=isBoss?CONFIG.maps[mapIndex].boss:CONFIG.monsterNames[(mapIndex*3+zoneIndex)%CONFIG.monsterNames.length];
-  return {
-    name:monsterName,
-    image:isBoss?CONFIG.bossImages[monsterName]:CONFIG.monsterImages[monsterName],
+  let earlyEase=1;
+if(mapIndex===0)earlyEase=.55;
+if(mapIndex===1)earlyEase=.75;
+
+const base=18*Math.pow(1.58,mapIndex)*(1+zoneIndex*.16)*(isBoss?4.5:1)*earlyEase;
+const monsterData=CONFIG.mapMonsters?.[mapIndex]?.[zoneIndex] || CONFIG.mapMonsters?.[0]?.[0];
+const monsterName=isBoss?CONFIG.maps[mapIndex].boss:monsterData.name;
+const monsterImage=isBoss?CONFIG.bossImages[monsterName]:monsterData.image;
+
+return {
+  name:monsterName,
+  image:monsterImage,
     hp:Math.floor(base*8),
     atk:Math.floor(base*.9),
     def:Math.floor(base*.32),
@@ -2111,14 +2659,20 @@ if(skill){
   damage=Math.max(1,Math.floor(attrs.力量*.9-monster.def*.35));
 }
 
-      if(chance(.08+attrs.速度/1200)){
-        damage=Math.floor(damage*1.8);
-        battleLogs.push(`<span class="crit">暴击！</span>`);
-        triggerBattleVisual("criticalFlash","暴击 "+damage);
-      }
+     let isCrit=false;
+const critChance=Math.min(.18,.035+attrs.速度/5000);
 
-      monsterHp-=damage;
-      if(!STATE.battleVisual.text||!String(STATE.battleVisual.text).includes("暴击")){
+if(chance(critChance)){
+  isCrit=true;
+  damage=Math.floor(damage*1.8);
+  battleLogs.push(`<span class="crit">暴击！</span>`);
+}
+
+monsterHp-=damage;
+
+if(isCrit){
+  triggerBattleVisual("criticalFlash","暴击 "+damage);
+}else{
   triggerBattleVisual(skill?pickBattleFxBySkill(skill):"slash",damage);
 }
       battleLogs.push(attackName==="体术攻击"
@@ -2198,10 +2752,11 @@ if(skill){
   const win=monsterHp<=0;
 
   if(win){
-    STATE.currentMonsterHp=null;
-    rewardBattle(isBoss);
-    battleLogs.push(`<span class="good">战斗胜利。</span>`);
-  }else if(playerHp<=0){
+  triggerMonsterDeath(monster);
+  STATE.currentMonsterHp=null;
+  rewardBattle(isBoss);
+  battleLogs.push(`<span class="good">战斗胜利。</span>`);
+}else if(playerHp<=0){
     STATE.player.lifespan-=isBoss?2:1;
     if(STATE.player.lifespan<=0){
       STATE.player.dying=true;
@@ -2216,12 +2771,26 @@ if(skill){
   saveState();
 }
 
+function tryDropMonsterSpecialMaterial(monsterName,isBoss=false){
+  if(isBoss)return;
+
+  const special=CONFIG.monsterSpecialDrops?.[monsterName];
+  if(!special)return;
+
+  const dropRate=.045;
+
+  if(chance(dropRate)){
+    addItem(special.name,1,"特殊材料");
+    pushLog(`<span class="purple">特殊掉落：</span>${special.name}`);
+  }
+}
 function rewardBattle(isBoss){
   const mapIndex=STATE.progress.map;
   const zoneIndex=STATE.progress.zone;
+  const defeatedMonster=currentMonster(isBoss);
   const monthMultiplier=STATE.month.active?1.5:1;
   const cultivationMultiplier=getCultivationMultiplier();
-  const cultivation=Math.floor((8+mapIndex*22+zoneIndex*6)*(isBoss?5:1)*monthMultiplier*cultivationMultiplier);
+  const cultivation=Math.floor((3+mapIndex*8+zoneIndex*2)*(isBoss?4:1)*monthMultiplier*cultivationMultiplier);
   const coin=Math.floor((30+mapIndex*55+zoneIndex*15)*(isBoss?12:1)*monthMultiplier);
 
   STATE.player.cultivation+=cultivation;
@@ -2229,6 +2798,7 @@ function rewardBattle(isBoss){
 
   if(!isBoss){
   STATE.progress.kills[zoneIndex]++;
+  tryDropMonsterSpecialMaterial(defeatedMonster.name,isBoss);
   if(STATE.progress.kills[zoneIndex]>=30) STATE.progress.clearedZones[`${mapIndex}_${zoneIndex}`]=true;
 
   if(chance(.028)){
@@ -2251,7 +2821,7 @@ function rewardBattle(isBoss){
     pushLog(`<span class="cyan">怪物掉落：功法残卷。</span>`);
   }
 
-  if(chance(.002)){
+  if(chance(.0005)){
     addItem("心法玉简",1,"心法玉简");
     pushLog(`<span class="crit">极稀有掉落：心法玉简！</span>`);
   }
@@ -2268,7 +2838,7 @@ function rewardBattle(isBoss){
     addItem("神技残卷",rnd(2,5),"神技残卷");
   }
 
-  if(chance(.04)){
+  if(chance(.015)){
     addItem("心法玉简",1,"心法玉简");
   }
 
@@ -2290,17 +2860,26 @@ function rewardBattle(isBoss){
     addItem(CONFIG.xianyuanBoxes[boxIndex].name,1,"仙缘箱");
   }
 
-  if(isBoss){
-    STATE.progress.bossKilled.push(STATE.progress.map);
-    STATE.progress.clearedZones[`${STATE.progress.map}_boss`]=true;
-    if(STATE.progress.map<CONFIG.maps.length-1){
-      STATE.progress.map++;
-      STATE.progress.zone=0;
-      STATE.progress.kills=[0,0,0];
-      STATE.currentMonsterHp=null;
-      pushLog(`<span class="crit">你踏入新的试炼地图：${CONFIG.maps[STATE.progress.map].name}</span>`);
-    }
+ if(isBoss){
+  STATE.progress.bossKilled.push(STATE.progress.map);
+  STATE.progress.clearedZones[`${STATE.progress.map}_boss`]=true;
+
+  const nextMap=STATE.progress.map+1;
+  if(nextMap<CONFIG.maps.length&&!STATE.progress.unlockedMaps.includes(nextMap)){
+    STATE.progress.unlockedMaps.push(nextMap);
+    pushLog(`<span class="crit">新试炼地图已解锁：${CONFIG.maps[nextMap].name}</span>`);
   }
+
+  if(nextMap<CONFIG.maps.length){
+    STATE.progress.map=nextMap;
+    STATE.progress.zone=0;
+    STATE.progress.kills=[0,0,0];
+    STATE.currentMonsterHp=null;
+STATE.battleDeath={image:null,name:"",nonce:0,expireAt:0};
+STATE.battleVisual={fx:"slash",text:"",nonce:0};
+    pushLog(`<span class="crit">你踏入新的试炼地图：${CONFIG.maps[STATE.progress.map].name}</span>`);
+  }
+}
 }
 
 function tick(){
@@ -2491,6 +3070,22 @@ function useItem(item){
   if(item.type==="仙缘箱") return openXianyuanBox(item);
   if(CONFIG.skillItemConfigs[item.name]){
     return useSkillItem(item);
+  }
+  const wineRecipe=CONFIG.wineRecipes?.find(recipe=>recipe.name===item.name);
+  if(wineRecipe){
+    item.count--;
+    STATE.buffs.wine={
+      name:wineRecipe.buff.name,
+      attr:wineRecipe.buff.attr,
+      value:wineRecipe.buff.value,
+      until:now()+wineRecipe.buff.duration
+    };
+    pushUseLog(`饮用 ${item.name}，${wineRecipe.buff.attr}+${wineRecipe.buff.value}，持续30分钟`);
+    pushLog(`<span class="gold">饮用 ${item.name}：${wineRecipe.buff.attr}+${wineRecipe.buff.value}，持续30分钟。</span>`);
+    cleanBag();
+    saveState();
+    safeRender();
+    return;
   }
 if(item.name==="新手套装箱") {
   openNoviceSuitBox(item);
@@ -2707,6 +3302,45 @@ function getForgeSuccessRate(targetRealm){
 
   return Math.max(.08,Math.min(.92,rate));
 }
+function getOwnedItemCount(name){
+  return STATE.bag.find(item=>item.name===name)?.count||0;
+}
+
+function hasGenericCost(cost){
+  if(STATE.resources.yuanbao<cost.yuanbao)return false;
+  return cost.items.every(item=>getOwnedItemCount(item.name)>=item.count);
+}
+
+function consumeGenericCost(cost){
+  STATE.resources.yuanbao-=cost.yuanbao;
+  cost.items.forEach(costItem=>{
+    const item=STATE.bag.find(bagItem=>bagItem.name===costItem.name);
+    if(item)item.count-=costItem.count;
+  });
+  cleanBag();
+}
+
+function recipeToCost(recipe){
+  return {
+    yuanbao:recipe.yuanbao||0,
+    items:[
+      {name:recipe.special,count:1},
+      ...(recipe.materials||[]).map(([name,count])=>({name,count}))
+    ]
+  };
+}
+
+function genericCostHtml(cost){
+  return `<div class="forge-cost-card">
+    <div class="forge-cost-line">
+      ${resourceIconHtml("yuanbao")}<span class="${STATE.resources.yuanbao>=cost.yuanbao?"green":"red"}">元宝：${fmt(STATE.resources.yuanbao)} / ${fmt(cost.yuanbao)}</span>
+    </div>
+    ${cost.items.map(item=>{
+      const owned=getOwnedItemCount(item.name);
+      return `<div class="forge-cost-line">${materialCostHtml(item.name,owned,item.count)}</div>`;
+    }).join("")}
+  </div>`;
+}
 function hasForgeCost(cost){
   if(STATE.resources.coin<cost.coin)return false;
   return cost.materials.every(costItem=>{
@@ -2724,6 +3358,26 @@ function consumeForgeCost(cost){
   cleanBag();
 }
 
+function craftGift(){
+  const recipe=CONFIG.giftRecipes.find(item=>item.name===STATE.craftGift)||CONFIG.giftRecipes[0];
+  const cost=recipeToCost(recipe);
+
+  if(!hasGenericCost(cost)){
+    alert("礼物制作材料不足。");
+    return;
+  }
+
+  consumeGenericCost(cost);
+  addItem(recipe.name,1,"礼物",{
+    quality:recipe.quality,
+    description:recipe.effect
+  });
+
+  pushLog(`<span class="good">制作礼物成功：${recipe.name}</span>`);
+  pushUseLog(`制作礼物：${recipe.name}`);
+  saveState();
+  safeRender();
+}
 function forge(){
   const slot=STATE.forgeSlot||"武器";
   const targetRealm=Number(STATE.forgeRealm??STATE.player.realm);
@@ -2763,6 +3417,78 @@ function forge(){
   safeRender();
 }
 
+function craftWine(){
+  const recipe=CONFIG.wineRecipes.find(item=>item.name===STATE.wineItem)||CONFIG.wineRecipes[0];
+  const cost=recipeToCost(recipe);
+
+  if(!hasGenericCost(cost)){
+    alert("酿酒材料不足。");
+    return;
+  }
+
+  consumeGenericCost(cost);
+  addItem(recipe.name,1,"酒",{
+    quality:recipe.quality,
+    description:recipe.effect
+  });
+
+  pushLog(`<span class="good">酿酒成功：${recipe.name}</span>`);
+  pushUseLog(`酿酒：${recipe.name}`);
+  saveState();
+  safeRender();
+}
+
+function craftPillFromFurnace(){
+  const pillName=STATE.alchemyItem||"回春丹";
+  const pillConfig=CONFIG.pills.find(item=>item.name===pillName);
+  const cost=Math.floor((pillConfig?.baseCost||200)*(1+STATE.player.realm*.25));
+
+  if(STATE.resources.coin<cost)return alert("铜币不足。");
+
+  STATE.resources.coin-=cost;
+
+  const furnace=CONFIG.alchemyFurnaces.find(item=>item.name===STATE.alchemy.furnace);
+  const vipBonus=CONFIG.vip[STATE.vip.level]?.alchemy||0;
+  let probability=pillName.includes("破境") ? .45 : .68;
+
+  probability += STATE.system.path === "炼丹" ? .15 : 0;
+  probability+=furnace?furnace.successBonus:0;
+  probability+=vipBonus+(STATE.system.alchemyShopBonus||0);
+  probability+=Math.min(.15,STATE.alchemy.failCompensation);
+
+  if(chance(probability)){
+    addItem(pillName,1,"丹药");
+    STATE.alchemy.failCompensation=Math.max(0,STATE.alchemy.failCompensation-.04);
+    pushLog(`<span class="good">炼丹成功：${pillName}</span>`);
+  }else{
+    STATE.alchemy.failCompensation+=.03;
+    let returnRate = STATE.month.active ? .6 : 0;
+    if(furnace) returnRate=Math.max(returnRate,furnace.materialReturn);
+    if(returnRate) STATE.resources.coin+=Math.floor(cost*returnRate);
+    pushLog(`<span class="bad">炼丹失败。${returnRate?`返还 ${Math.round(returnRate*100)}% 铜币。`:""}</span>`);
+  }
+
+  saveState();
+  safeRender();
+}
+
+function getPillPreview(pillName){
+  const pill=CONFIG.pills.find(item=>item.name===pillName);
+  if(!pill)return {effect:"未知效果",attr:"无",value:"-"};
+
+  if(pill.type==="恢复生命")return {effect:"使用后恢复生命。",attr:"生命恢复",value:"约 35% 最大生命"};
+  if(pill.type==="增加寿命")return {effect:"使用后增加寿命。",attr:"寿命",value:"+10"};
+  if(pill.type==="永久力量")return {effect:"永久增加力量。",attr:"力量",value:"+1"};
+  if(pill.type==="永久精神")return {effect:"永久增加精神。",attr:"精神",value:"+1"};
+  if(pill.type==="永久灵力")return {effect:"永久增加灵力。",attr:"灵力",value:"+1"};
+  if(pill.type==="永久耐力")return {effect:"永久增加耐力。",attr:"耐力",value:"+1"};
+  if(pill.type==="永久抗性")return {effect:"永久增加抗性。",attr:"抗性",value:"+1"};
+  if(pill.type==="永久速度")return {effect:"永久增加速度。",attr:"速度",value:"+1"};
+  if(pill.type==="修行倍率")return {effect:`使用后 ${pill.duration/60000} 分钟修行倍率 ×${pill.multiplier}。`,attr:"修为获取",value:`×${pill.multiplier}`};
+  if(pill.type==="突破丹")return {effect:"大圆满突破大境界时自动消耗。",attr:"突破辅助",value:"必需材料"};
+
+  return {effect:pill.type,attr:"效果",value:pill.type};
+}
 function alchemy(){
   const pillName=$("#pillSelect")?.value||"回春丹";
   const pillConfig=CONFIG.pills.find(item=>item.name===pillName);
@@ -2922,6 +3648,122 @@ function claimRushReward(totalSubRealm){
   render();
 }
 
+function getCurrentMapInfo(){
+  const map=CONFIG.maps[STATE.progress.map];
+  return {
+    mapName:map?.name||"未知地图",
+    zoneName:map?.zones?.[STATE.progress.zone]||"未知区域"
+  };
+}
+
+function getAiTaskReward(task){
+  const difficulty=task.difficulty||"normal";
+  const realmRate=STATE.player.realm+1;
+
+  const diffRate={
+    easy:1,
+    normal:1.5,
+    hard:2.2
+  }[difficulty]||1;
+
+  return {
+    systemPoint:Math.floor(8*realmRate*diffRate),
+    coin:Math.floor(800*realmRate*diffRate),
+    items:difficulty==="hard"
+      ? [["普通仙缘箱",1]]
+      : []
+  };
+}
+
+async function requestAISystemDialog(lastChoice=""){
+  if(!STATE.system.ai){
+    STATE.system.ai={
+      dialogue:"",
+      mood:"calm",
+      options:[],
+      lastReply:"",
+      loading:false,
+      history:[]
+    };
+  }
+
+  STATE.system.ai.loading=true;
+  saveState();
+  safeRender();
+
+  const mapInfo=getCurrentMapInfo();
+
+  try{
+    const result=await apiRequest("/api/ai/system-dialog",{
+      method:"POST",
+      body:JSON.stringify({
+        player:{
+          name:STATE.player.name,
+          realmName:CONFIG.realms[STATE.player.realm],
+          subRealmName:CONFIG.subRealms[STATE.player.subRealm]
+        },
+        system:{
+          path:STATE.system.path||"未选择道路"
+        },
+        context:mapInfo,
+        lastChoice
+      })
+    });
+
+    STATE.system.ai.loading=false;
+    STATE.system.ai.dialogue=result.result.dialogue;
+    STATE.system.ai.mood=result.result.mood;
+    STATE.system.ai.options=result.result.options;
+    STATE.system.ai.history.unshift({
+      time:now(),
+      dialogue:result.result.dialogue,
+      options:result.result.options
+    });
+    STATE.system.ai.history=STATE.system.ai.history.slice(0,20);
+
+    saveState();
+    safeRender();
+  }catch(error){
+    STATE.system.ai.loading=false;
+    saveState();
+    alert(error.message||"AI 系统暂时无响应");
+    safeRender();
+  }
+}
+
+function acceptAISystemOption(index){
+  const ai=STATE.system.ai;
+  if(!ai||!ai.options||!ai.options[index])return;
+
+  const option=ai.options[index];
+  const task=option.task;
+  const reward=getAiTaskReward(task);
+
+  const taskId=uid("ai_task");
+
+  STATE.system.tasks.unshift({
+    id:taskId,
+    name:"AI系统｜"+task.title,
+    description:task.description,
+    state:"可领取",
+    aiGenerated:true,
+    taskType:task.type,
+    target:task.target,
+    count:task.count,
+    difficulty:task.difficulty,
+    reward,
+    created:now()
+  });
+
+  ai.lastReply=option.reply;
+  ai.options=[];
+
+  pushLog(`<span class="cyan">AI系统：</span>${option.reply}`);
+  pushLog(`<span class="gold">新的系统任务：</span>${task.title}`);
+
+  saveState();
+  safeRender();
+}
 function chooseSystemPath(path){
   if(STATE.system.path)return;
   STATE.system.path=path;
@@ -3134,7 +3976,7 @@ function equipHtml(equip){
   </div>`;
 }
 
-const mainTabs=["主页","装备","人物","背包","功法","活动","副本","系统","储物戒","锻造","炼丹","商城","聊天","充值","VIP","宗门","日常","邮件"];
+const mainTabs=["主页","装备","人物","背包","功法","活动","副本","系统","储物戒","锻造","丹炉","商城","聊天","充值","VIP","宗门","日常","邮件"];
 
 function safeRender(){
   const activeElement=document.activeElement;
@@ -3281,7 +4123,7 @@ function renderPage(tab){
     "系统":renderSystem,
     "储物戒":renderStore,
     "锻造":renderForge,
-    "炼丹":renderAlchemy,
+    "丹炉":renderAlchemy,
     "商城":renderShop,
     "聊天":renderChat,
     "充值":renderRecharge,
@@ -3297,10 +4139,15 @@ function renderBattleScene(monster,monsterHp,monsterMax){
   const bg=getBattleBackground();
   const playerImage=getPlayerBattleImage();
   const monsterImage=monster.image;
-  const fxKey=STATE.battleVisual?.fx||"slash";
-  const fxImage=CONFIG.battleAssets.fx[fxKey]||CONFIG.battleAssets.fx.slash;
-  const nonce=STATE.battleVisual?.nonce||0;
-  const text=STATE.battleVisual?.text||"";
+  const death=STATE.battleDeath||{};
+  const deathAlive=death.nonce&&Date.now()-(death.nonce||0)<1000;
+  const visual=STATE.battleVisual||{};
+const nonce=visual.nonce||0;
+const visualAlive=nonce&&Date.now()-(visual.nonce||0)<800;
+
+const fxKey=visualAlive?(visual.fx||"slash"):"";
+const fxImage=fxKey?(CONFIG.battleAssets.fx[fxKey]||CONFIG.battleAssets.fx.slash):"";
+const text=visualAlive?(visual.text||""):"";
   const playerHpPct=Math.max(0,Math.min(100,STATE.player.life/STATE.player.lifeMax*100));
   const monsterHpPct=Math.max(0,Math.min(100,monsterHp/monsterMax*100));
 
@@ -3314,14 +4161,34 @@ function renderBattleScene(monster,monsterHp,monsterMax){
     </div>
 
     <img class="battle-unit battle-player" src="${playerImage}" onerror="this.style.display='none'">
-    ${monsterImage?`<img class="battle-unit battle-monster" src="${monsterImage}" onerror="this.style.display='none'">`:""}
+    ${!deathAlive&&monsterImage?`<img class="battle-unit battle-monster" src="${monsterImage}" onerror="this.style.display='none'">`:""}
+${deathAlive&&death.image?`<img class="battle-monster-dead" src="${death.image}" onerror="this.style.display='none'">`:""}
 
-    <img class="battle-fx ${nonce?'play':''}" src="${fxImage}?v=${nonce}" onerror="this.style.display='none'">
-    <div class="battle-float-text ${nonce?'play':''}">${text}</div>
+    ${visualAlive?`<img class="battle-fx play" src="${fxImage}?v=${nonce}" onerror="this.style.display='none'">`:""}
+${visualAlive?`<div class="battle-float-text play">${text}</div>`:""}
 
     <div class="battle-mini-hp battle-player-hp"><span style="width:${playerHpPct}%"></span></div>
     <div class="battle-mini-hp battle-monster-hp"><span style="width:${monsterHpPct}%"></span></div>
   </div>`;
+}
+function selectTrialMap(mapIndex){
+  if(!STATE.progress.unlockedMaps.includes(mapIndex)){
+    alert("该试炼地图尚未解锁。");
+    return;
+  }
+
+  STATE.progress.map=mapIndex;
+  STATE.progress.zone=0;
+  STATE.currentMonsterHp=null;
+STATE.battleDeath={image:null,name:"",nonce:0,expireAt:0};
+STATE.battleVisual={fx:"slash",text:"",nonce:0};
+
+  if(!STATE.progress.kills||STATE.progress.kills.length!==3){
+    STATE.progress.kills=[0,0,0];
+  }
+
+  saveState();
+  render();
 }
 function renderHome(){
   const map=CONFIG.maps[STATE.progress.map];
@@ -3337,6 +4204,13 @@ function renderHome(){
 return `<div class="map-hero">
     ${map.image?`<img class="map-bg-img" src="${map.image}" alt="${map.name}" onerror="console.warn('地图背景缺失：${map.image}');this.remove()">`:""}
     <div class="map-hero-content">
+      <div class="row" style="margin-bottom:10px">
+        <span class="muted">试炼地图：</span>
+        ${CONFIG.maps.map((trialMap,index)=>{
+          const unlocked=STATE.progress.unlockedMaps.includes(index);
+          return `<button ${unlocked?"":"disabled"} class="${STATE.progress.map===index?'active':''}" onclick="selectTrialMap(${index})">${trialMap.name}${unlocked?"":" 🔒"}</button>`;
+        }).join("")}
+      </div>
       <div class="map-title-line">
         <div>
           <div class="map-name">${map.name}</div>
@@ -3361,7 +4235,7 @@ return `<div class="map-hero">
           ${map.zones.map((zone,index)=>{
             const cleared=STATE.progress.clearedZones[`${STATE.progress.map}_${index}`];
             const canSelect=index<=STATE.progress.zone||cleared;
-            return `<button ${canSelect?"":"disabled"} class="${STATE.progress.zone===index?'active':''}" onclick="STATE.progress.zone=${index};STATE.currentMonsterHp=null;saveState();render()">${zone}${cleared?" ✓":""}</button>`;
+            return `<button ${canSelect?"":"disabled"} class="${STATE.progress.zone===index?'active':''}" onclick="STATE.progress.zone=${index};STATE.currentMonsterHp=null;STATE.battleDeath={image:null,name:'',nonce:0,expireAt:0};saveState();render()">${zone}${cleared?" ✓":""}</button>`;
           }).join("")}
         </div>
         <p class="muted">已通关小地图可随时回去刷材料；未通关层需要按顺序推进。</p>
@@ -3474,7 +4348,7 @@ function renderPerson(){
 }
 
 function renderBag(){
-  const bagTabs=["全部","丹药","仙缘箱","灵石","材料","礼包","炼丹炉","道具","功法残页"];
+  const bagTabs=["全部","丹药","酒","礼物","仙缘箱","灵石","材料","特殊材料","礼包","炼丹炉","道具","功法残卷","神技残卷","心法玉简","功法残页"];
   const currentTab=STATE.bagTab||"全部";
   const shownItems=currentTab==="全部"?STATE.bag:STATE.bag.filter(item=>item.type===currentTab);
 
@@ -3661,6 +4535,14 @@ function renderSystem(){
   }
 
   const goods=getSystemShopGoods();
+  const ai=STATE.system.ai||{
+    dialogue:"",
+    mood:"calm",
+    options:[],
+    lastReply:"",
+    loading:false,
+    history:[]
+  };
   return `<div class="panel">
     <h2>天道外挂系统</h2>
     <div class="cards">
@@ -3679,17 +4561,41 @@ function renderSystem(){
         <p class="muted">系统点来自系统任务。普通兑换可直接入账；活动/限时/仙缘类兑换通过邮件发放，方便后续服务端防刷。</p>
         <button onclick="refreshSystemTasks();saveState();render()">刷新任务</button>
       </div>
+        </div>
+
+    <div class="panel">
+      <h3>AI 系统对话</h3>
+      <p class="muted">AI 会根据你的境界、当前地图、系统道路生成三个任务选项。实际奖励由游戏规则控制。</p>
+
+      <div class="card">
+        <h3 class="cyan">天道系统</h3>
+        <p>${ai.dialogue||"系统沉默片刻，似乎正在观察你的修行轨迹。"}</p>
+        ${ai.lastReply?`<p class="gold">系统回应：${ai.lastReply}</p>`:""}
+        <button ${ai.loading?"disabled":""} onclick="requestAISystemDialog()">${ai.loading?"系统推演中...":"召唤系统"}</button>
+      </div>
+
+      ${ai.options&&ai.options.length?`<div class="cards">
+        ${ai.options.map((option,index)=>`<div class="card">
+          <h3>${option.label}</h3>
+          <p>${option.task.description}</p>
+          <p class="muted">任务类型：${option.task.type}｜目标：${option.task.target} × ${option.task.count}</p>
+          <p class="gold">建议奖励：${option.task.rewardHint}</p>
+          <button onclick="acceptAISystemOption(${index})">选择此项</button>
+        </div>`).join("")}
+      </div>`:""}
     </div>
 
     <div class="panel">
       <h3>系统任务</h3>
       <div class="list">
         ${STATE.system.tasks.map(task=>`<div class="item">
-          <b>${task.name}</b>
-          <span class="muted">${task.state}</span>
-          <div>奖励：${attachmentHtml(task.reward)}</div>
-<button onclick="claimSystemTask('${task.id}')">领取</button>
-        </div>`).join("")}
+  <b>${task.name}</b>
+  <span class="muted">${task.state}</span>
+  ${task.description?`<p class="muted">${task.description}</p>`:""}
+  ${task.aiGenerated?`<p class="cyan">目标：${task.target} × ${task.count}｜难度：${task.difficulty}</p>`:""}
+  <div>奖励：${attachmentHtml(task.reward)}</div>
+  <button onclick="claimSystemTask('${task.id}')">领取</button>
+</div>`).join("")}
       </div>
     </div>
 
@@ -3750,6 +4656,51 @@ function renderStore(){
 
 function renderForge(){
   const currentCategory=STATE.forgeCategory||"装备";
+
+  if(currentCategory==="礼物"){
+    const selected=CONFIG.giftRecipes.find(item=>item.name===STATE.craftGift)||CONFIG.giftRecipes[0];
+    const cost=recipeToCost(selected);
+
+    return `<div class="panel">
+      <h2>锻造</h2>
+      <p class="muted">锻造分为装备与礼物。礼物后续可赠送好友或 NPC 增加好感。</p>
+
+      <div class="craft-layout">
+        <div class="craft-sidebar">
+          ${CONFIG.forgeCategoryConfigs.map(cat=>`<button class="craft-category-title ${currentCategory===cat.id?"active":""}" onclick="STATE.forgeCategory='${cat.id}';saveState();safeRender()">
+            <span>${cat.name}</span><span>${currentCategory===cat.id?"▾":"▸"}</span>
+          </button>`).join("")}
+
+          <div class="craft-item-list">
+            ${CONFIG.giftRecipes.map(item=>`<button class="craft-item-btn ${selected.name===item.name?"active":""}" onclick="STATE.craftGift='${item.name}';saveState();safeRender()">
+              ${item.name}
+            </button>`).join("")}
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <h3>礼物预览</h3>
+            <div class="craft-preview">
+              <div>${itemIconHtml(selected.name,"礼物","large")}</div>
+              <div>
+                <p><b class="${CONFIG.qualities[selected.quality]?.className||"gold"}">${selected.name}</b></p>
+                <p>品质：${CONFIG.qualities[selected.quality]?.name||"普通"}</p>
+                <p class="cyan">${selected.effect}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>材料消耗</h3>
+            ${genericCostHtml(cost)}
+            <button onclick="craftGift()">制作礼物：${selected.name}</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
   const selectedSlot=STATE.forgeSlot||"武器";
   const maxRealm=Math.min(CONFIG.realms.length-1,STATE.player.realm+1);
 
@@ -3779,7 +4730,7 @@ function renderForge(){
 
   return `<div class="panel">
     <h2>锻造</h2>
-    <p class="muted">可打造自身境界 +1 及以下装备。目标境界越高，材料消耗越高，成功率越低。锻造成品默认进入储物戒，未鉴定。</p>
+    <p class="muted">可打造自身境界 +1 及以下装备。目标境界越高，材料消耗越高，成功率越低。</p>
 
     <div class="forge-layout">
       <div class="forge-sidebar">
@@ -3789,13 +4740,10 @@ function renderForge(){
             <span>${currentCategory===cat.id?"▾":"▸"}</span>
           </button>
 
-          ${currentCategory===cat.id?`<div class="forge-slot-list">
+          ${currentCategory===cat.id&&cat.id==="装备"?`<div class="forge-slot-list">
             ${cat.slots.map(slot=>`<button class="forge-slot-btn ${selectedSlot===slot?"active":""}" onclick="STATE.forgeSlot='${slot}';saveState();safeRender()">${slot}</button>`).join("")}
           </div>`:""}
         </div>`).join("")}
-
-        <hr>
-        <p class="muted">后续这里可增加：法宝、符器、外观、强化、精炼等同级分类。</p>
       </div>
 
       <div>
@@ -3819,40 +4767,24 @@ function renderForge(){
               <p>预览品质：精良 · 中品</p>
               <p>实际结果：品质、品级随机，低概率出现蓝字。</p>
               <p>成功率：<span class="gold">${Math.round(successRate*100)}%</span></p>
-              ${targetRealm>STATE.player.realm?`<p class="warn">正在打造高一境界装备，材料消耗和失败风险更高。</p>`:""}
             </div>
           </div>
         </div>
 
         <div class="card">
           <h3>可能出现的属性范围</h3>
-          ${statRanges.map(stat=>`<div class="forge-stat-range">
-            ${stat.name}：${fmt(stat.min)} ~ ${fmt(stat.max)}
-          </div>`).join("")}
-        </div>
-
-        <div class="card">
-          <h3>可能出现的蓝字</h3>
-          <div class="forge-blue-list">
-            ${CONFIG.blueEffects.map(effect=>`<div class="forge-blue-item">
-              <b class="cyan">${effect.name}</b><br>
-              <span class="muted">${effect.description}</span>
-            </div>`).join("")}
-          </div>
+          ${statRanges.map(stat=>`<div class="forge-stat-range">${stat.name}：${fmt(stat.min)} ~ ${fmt(stat.max)}</div>`).join("")}
         </div>
 
         <div class="card">
           <h3>材料消耗</h3>
           <div class="forge-cost-card">
             <div class="forge-cost-line">
-              ${resourceIconHtml?resourceIconHtml("coin"):""}<span>铜币：${fmt(STATE.resources.coin)} / ${fmt(cost.coin)}</span>
+              ${resourceIconHtml("coin")}<span>铜币：${fmt(STATE.resources.coin)} / ${fmt(cost.coin)}</span>
             </div>
             ${cost.materials.map(item=>{
-              const owned=STATE.bag.find(bagItem=>bagItem.name===item.name)?.count||0;
-              return `<div class="forge-cost-line">
-                ${typeof itemIconHtml==="function"?itemIconHtml(item.name,guessItemType(item.name)):""}
-                <span class="${owned>=item.count?"green":"red"}">${item.name}：${owned}/${item.count}</span>
-              </div>`;
+              const owned=getOwnedItemCount(item.name);
+              return `<div class="forge-cost-line">${materialCostHtml(item.name,owned,item.count)}</div>`;
             }).join("")}
           </div>
 
@@ -3864,14 +4796,105 @@ function renderForge(){
 }
 
 function renderAlchemy(){
+  const currentCategory=STATE.alchemyCategory||"丹药";
+  const categories=["丹药","酒"];
+
+  if(currentCategory==="酒"){
+    const selected=CONFIG.wineRecipes.find(item=>item.name===STATE.wineItem)||CONFIG.wineRecipes[0];
+    const cost=recipeToCost(selected);
+
+    return `<div class="panel">
+      <h2>丹炉</h2>
+      <p class="muted">丹炉可炼制丹药，也可酿制灵酒。酒后续可用于 NPC 任务，或直接使用获得半小时临时属性。</p>
+
+      <div class="craft-layout">
+        <div class="craft-sidebar">
+          ${categories.map(cat=>`<button class="craft-category-title ${currentCategory===cat?"active":""}" onclick="STATE.alchemyCategory='${cat}';saveState();safeRender()">
+            <span>${cat}</span><span>${currentCategory===cat?"▾":"▸"}</span>
+          </button>`).join("")}
+
+          <div class="craft-item-list">
+            ${CONFIG.wineRecipes.map(item=>`<button class="craft-item-btn ${selected.name===item.name?"active":""}" onclick="STATE.wineItem='${item.name}';saveState();safeRender()">
+              ${item.name}
+            </button>`).join("")}
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <h3>灵酒预览</h3>
+            <div class="craft-preview">
+              <div>${itemIconHtml(selected.name,"酒","large")}</div>
+              <div>
+                <p><b class="${CONFIG.qualities[selected.quality].className}">${selected.name}</b></p>
+                <p>品质：${CONFIG.qualities[selected.quality].name}</p>
+                <p class="cyan">${selected.effect}</p>
+                <p>临时加成：${selected.buff.attr} +${selected.buff.value}</p>
+                <p>持续时间：30 分钟</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>材料消耗</h3>
+            ${genericCostHtml(cost)}
+            <button onclick="craftWine()">开始酿制：${selected.name}</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  const selectedName=STATE.alchemyItem||"回春丹";
+  const selected=CONFIG.pills.find(item=>item.name===selectedName)||CONFIG.pills[0];
+  const preview=getPillPreview(selected.name);
+  const cost=Math.floor((selected.baseCost||200)*(1+STATE.player.realm*.25));
   const furnace=CONFIG.alchemyFurnaces.find(item=>item.name===STATE.alchemy.furnace);
+
   return `<div class="panel">
-    <h2>炼丹</h2>
-    <p>当前炼丹炉：<b class="gold">${STATE.alchemy.furnace||"未装备"}</b>${furnace?`，成功率 +${Math.round(furnace.successBonus*100)}%，失败返还 +${Math.round(furnace.materialReturn*100)}%`:""}</p>
-    <p>当前境界可炼制下一境界突破丹；速度类永久丹药价格与限制最高，避免速度失衡。</p>
-    <select id="pillSelect">${CONFIG.pills.map(pill=>`<option>${pill.name}</option>`).join("")}</select>
-    <button onclick="alchemy()">开始炼丹</button>
-    <p class="muted">连续失败会增加少量失败补偿，成功后补偿降低。</p>
+    <h2>丹炉</h2>
+    <p class="muted">丹炉页包含丹药与酒。丹药用于恢复、永久属性、修行倍率和突破。</p>
+
+    <div class="craft-layout">
+      <div class="craft-sidebar">
+        ${categories.map(cat=>`<button class="craft-category-title ${currentCategory===cat?"active":""}" onclick="STATE.alchemyCategory='${cat}';saveState();safeRender()">
+          <span>${cat}</span><span>${currentCategory===cat?"▾":"▸"}</span>
+        </button>`).join("")}
+
+        <div class="craft-item-list">
+          ${CONFIG.pills.filter(pill=>pill.realm<=STATE.player.realm+1).map(pill=>`<button class="craft-item-btn ${selected.name===pill.name?"active":""}" onclick="STATE.alchemyItem='${pill.name}';saveState();safeRender()">
+            ${pill.name}
+          </button>`).join("")}
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h3>丹药预览</h3>
+          <div class="craft-preview">
+            <div>${itemIconHtml(selected.name,"丹药","large")}</div>
+            <div>
+              <p><b class="gold">${selected.name}</b></p>
+              <p>类型：${selected.type}</p>
+              <p class="cyan">${preview.effect}</p>
+              <p>增加属性预览：${preview.attr} ${preview.value}</p>
+              <p>当前丹炉：<b class="gold">${STATE.alchemy.furnace||"未装备"}</b></p>
+              ${furnace?`<p>丹炉加成：成功率 +${Math.round(furnace.successBonus*100)}%，失败返还 +${Math.round(furnace.materialReturn*100)}%</p>`:""}
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>材料消耗</h3>
+          <div class="forge-cost-card">
+            <div class="forge-cost-line">
+              ${resourceIconHtml("coin")}<span class="${STATE.resources.coin>=cost?"green":"red"}">铜币：${fmt(STATE.resources.coin)} / ${fmt(cost)}</span>
+            </div>
+          </div>
+          <button onclick="craftPillFromFurnace()">开始炼制：${selected.name}</button>
+        </div>
+      </div>
+    </div>
   </div>`;
 }
 
