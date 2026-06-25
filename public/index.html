@@ -1830,13 +1830,14 @@ wineItem:"破碎灵酒",
   tasks:[],
   shopBought:{},
   ai:{
-    dialogue:"",
-    mood:"calm",
-    options:[],
-    lastReply:"",
-    loading:false,
-    history:[]
-  }
+  dialogue:"",
+  mood:"calm",
+  options:[],
+  lastReply:"",
+  loading:false,
+  chatInput:"",
+  history:[]
+}
 },
     dungeon:{used:{},running:null},
     flow:[]
@@ -2092,6 +2093,9 @@ if(saved.battleDeath&&saved.battleDeath.nonce&&Date.now()-saved.battleDeath.nonc
     if(!saved.system)saved.system=base.system;
     if(saved.system&&!saved.system.ai){
       saved.system.ai=base.system.ai;
+    }
+    if(saved.system&&Array.isArray(saved.system.tasks)){
+      saved.system.tasks=saved.system.tasks.filter(task=>task.aiGenerated);
     }
     if(!saved.dungeon)saved.dungeon=base.dungeon;
     if(!saved.flow)saved.flow=[];
@@ -2787,6 +2791,7 @@ function tryDropMonsterSpecialMaterial(monsterName,isBoss=false){
 function rewardBattle(isBoss){
   const mapIndex=STATE.progress.map;
   const zoneIndex=STATE.progress.zone;
+const killedMapIndex=mapIndex;
   const defeatedMonster=currentMonster(isBoss);
   const monthMultiplier=STATE.month.active?1.5:1;
   const cultivationMultiplier=getCultivationMultiplier();
@@ -2798,6 +2803,10 @@ function rewardBattle(isBoss){
 
   if(!isBoss){
   STATE.progress.kills[zoneIndex]++;
+  updateAISystemTaskProgress({
+    type:"kill",
+    mapIndex:killedMapIndex
+  });
   tryDropMonsterSpecialMaterial(defeatedMonster.name,isBoss);
   if(STATE.progress.kills[zoneIndex]>=30) STATE.progress.clearedZones[`${mapIndex}_${zoneIndex}`]=true;
 
@@ -3400,6 +3409,11 @@ function forge(){
   if(chance(probability)){
     const equip=createEquip(targetRealm,slot,false);
     STATE.store.push(equip);
+updateAISystemTaskProgress({
+  type:"forgeRealm",
+  targetRealm,
+  slot
+});
     pushLog(`<span class="good">锻造成功：${CONFIG.realms[targetRealm]}${slot}，装备已进入储物戒待鉴定。</span>`);
   }else{
     let returnRate=STATE.month.active ? .6 : 0;
@@ -3428,10 +3442,15 @@ function craftWine(){
 
   consumeGenericCost(cost);
   addItem(recipe.name,1,"酒",{
+
     quality:recipe.quality,
     description:recipe.effect
   });
 
+updateAISystemTaskProgress({
+  type:"wine",
+  name:recipe.name
+});
   pushLog(`<span class="good">酿酒成功：${recipe.name}</span>`);
   pushUseLog(`酿酒：${recipe.name}`);
   saveState();
@@ -3458,6 +3477,10 @@ function craftPillFromFurnace(){
 
   if(chance(probability)){
     addItem(pillName,1,"丹药");
+updateAISystemTaskProgress({
+  type:"alchemy",
+  name:pillName
+});
     STATE.alchemy.failCompensation=Math.max(0,STATE.alchemy.failCompensation-.04);
     pushLog(`<span class="good">炼丹成功：${pillName}</span>`);
   }else{
@@ -3675,6 +3698,136 @@ function getAiTaskReward(task){
   };
 }
 
+function pickAiTaskSlot(difficulty){
+  if(difficulty==="easy")return "任意";
+  if(difficulty==="normal")return pick(["武器","头盔","上身","鞋","项链"]);
+  return "任意";
+}
+
+function createLegalAITask(rawTask){
+  const path=STATE.system.path||"苦修";
+  const difficulty=rawTask.difficulty||"normal";
+  const mapIndex=STATE.progress.map;
+  const zoneIndex=STATE.progress.zone;
+  const currentMap=CONFIG.maps[mapIndex];
+
+  if(path==="炼器"){
+    const maxRealm=Math.min(CONFIG.realms.length-1,STATE.player.realm+1);
+    let targetRealm=STATE.player.realm;
+
+    if(difficulty==="easy"){
+      targetRealm=Math.max(0,STATE.player.realm-1);
+    }else if(difficulty==="normal"){
+      targetRealm=STATE.player.realm;
+    }else{
+      targetRealm=maxRealm;
+    }
+
+    const targetSlot=pickAiTaskSlot(difficulty);
+    const targetRealmName=CONFIG.realms[targetRealm];
+    const targetName=targetSlot==="任意"
+      ? `${targetRealmName}装备`
+      : `${targetRealmName}${targetSlot}`;
+
+    return {
+      title:rawTask.title||`${targetRealmName}炼器`,
+      description:targetSlot==="任意"
+        ? `锻造任意一件${targetRealmName}境界装备。`
+        : `锻造一件${targetRealmName}境界${targetSlot}。`,
+      type:"forgeRealm",
+      target:targetName,
+      targetRealm,
+      targetRealmName,
+      targetSlot,
+      count:1,
+      progress:0,
+      difficulty,
+      rewardHint:rawTask.rewardHint||"系统点与锻造材料"
+    };
+  }
+
+  if(path==="苦修"){
+    let targetMapIndex=mapIndex;
+    let count=10;
+
+    if(difficulty==="easy"){
+      targetMapIndex=mapIndex;
+      count=12;
+    }else if(difficulty==="normal"){
+      if(mapIndex>0&&chance(.5)){
+        targetMapIndex=rnd(0,mapIndex);
+      }
+      count=targetMapIndex<mapIndex?45+15*(mapIndex-targetMapIndex):24;
+    }else{
+      if(mapIndex>0){
+        targetMapIndex=rnd(0,mapIndex);
+      }
+      count=targetMapIndex<mapIndex?80+25*(mapIndex-targetMapIndex):36;
+    }
+
+    const targetMap=CONFIG.maps[targetMapIndex];
+    const targetMonster=CONFIG.mapMonsters?.[targetMapIndex]?.[0]?.name||"该地图怪物";
+
+    return {
+      title:rawTask.title||`${targetMap.name}苦修`,
+      description:targetMapIndex<mapIndex
+        ? `回到较低地图【${targetMap.name}】击败大量怪物。别嫌麻烦，根基差就多练。`
+        : `在当前地图【${targetMap.name}】击败怪物。`,
+      type:"killMap",
+      target:`${targetMap.name}怪物`,
+      targetMapIndex,
+      targetMapName:targetMap.name,
+      exampleMonster:targetMonster,
+      count,
+      progress:0,
+      difficulty,
+      rewardHint:rawTask.rewardHint||"系统点与修为资源"
+    };
+  }
+
+  if(path==="炼丹"){
+    if(difficulty==="hard"&&CONFIG.wineRecipes?.length){
+      const wine=CONFIG.wineRecipes[Math.min(CONFIG.wineRecipes.length-1,STATE.player.realm)];
+      return {
+        title:rawTask.title||"丹炉酿酒",
+        description:`酿制一壶${wine.name}。`,
+        type:"wine",
+        target:wine.name,
+        count:1,
+        progress:0,
+        difficulty,
+        rewardHint:rawTask.rewardHint||"系统点与丹炉材料"
+      };
+    }
+
+    const available=CONFIG.pills.filter(pill=>pill.realm<=STATE.player.realm+1);
+    const pill=pick(available.length?available:CONFIG.pills);
+
+    return {
+      title:rawTask.title||"丹炉炼药",
+      description:`炼制一枚${pill.name}。`,
+      type:"alchemy",
+      target:pill.name,
+      count:1,
+      progress:0,
+      difficulty,
+      rewardHint:rawTask.rewardHint||"系统点与丹药材料"
+    };
+  }
+
+  return {
+    title:rawTask.title||"系统试炼",
+    description:"击败当前地图怪物。",
+    type:"killMap",
+    target:`${currentMap.name}怪物`,
+    targetMapIndex:mapIndex,
+    targetMapName:currentMap.name,
+    count:10,
+    progress:0,
+    difficulty,
+    rewardHint:rawTask.rewardHint||"系统点与铜币"
+  };
+}
 async function requestAISystemDialog(lastChoice=""){
   if(!STATE.system.ai){
     STATE.system.ai={
@@ -3697,17 +3850,17 @@ async function requestAISystemDialog(lastChoice=""){
     const result=await apiRequest("/api/ai/system-dialog",{
       method:"POST",
       body:JSON.stringify({
-        player:{
-          name:STATE.player.name,
-          realmName:CONFIG.realms[STATE.player.realm],
-          subRealmName:CONFIG.subRealms[STATE.player.subRealm]
-        },
-        system:{
-          path:STATE.system.path||"未选择道路"
-        },
-        context:mapInfo,
-        lastChoice
-      })
+  player:{
+    name:STATE.player.name,
+    realmName:CONFIG.realms[STATE.player.realm],
+    subRealmName:CONFIG.subRealms[STATE.player.subRealm]
+  },
+  system:{
+    path:STATE.system.path||"未选择道路"
+  },
+  context:mapInfo,
+  lastChoice:lastChoice||STATE.system.ai.chatInput||""
+})
     });
 
     STATE.system.ai.loading=false;
@@ -3715,10 +3868,12 @@ async function requestAISystemDialog(lastChoice=""){
     STATE.system.ai.mood=result.result.mood;
     STATE.system.ai.options=result.result.options;
     STATE.system.ai.history.unshift({
-      time:now(),
-      dialogue:result.result.dialogue,
-      options:result.result.options
-    });
+  time:now(),
+  input:lastChoice||STATE.system.ai.chatInput||"",
+  dialogue:result.result.dialogue,
+  options:result.result.options
+});
+STATE.system.ai.chatInput="";
     STATE.system.ai.history=STATE.system.ai.history.slice(0,20);
 
     saveState();
@@ -3736,21 +3891,28 @@ function acceptAISystemOption(index){
   if(!ai||!ai.options||!ai.options[index])return;
 
   const option=ai.options[index];
-  const task=option.task;
-  const reward=getAiTaskReward(task);
+  const rawTask=option.task||{};
+  const legalTask=createLegalAITask(rawTask);
+  const reward=getAiTaskReward(legalTask);
 
   const taskId=uid("ai_task");
 
   STATE.system.tasks.unshift({
     id:taskId,
-    name:"AI系统｜"+task.title,
-    description:task.description,
-    state:"可领取",
+    name:"AI系统｜"+legalTask.title,
+    description:legalTask.description,
+    state:"进行中",
     aiGenerated:true,
-    taskType:task.type,
-    target:task.target,
-    count:task.count,
-    difficulty:task.difficulty,
+    taskType:legalTask.type,
+    target:legalTask.target,
+    targetRealm:legalTask.targetRealm,
+    targetRealmName:legalTask.targetRealmName,
+    targetSlot:legalTask.targetSlot,
+    targetMapIndex:legalTask.targetMapIndex,
+    targetMapName:legalTask.targetMapName,
+    count:legalTask.count,
+    progress:0,
+    difficulty:legalTask.difficulty,
     reward,
     created:now()
   });
@@ -3759,7 +3921,7 @@ function acceptAISystemOption(index){
   ai.options=[];
 
   pushLog(`<span class="cyan">AI系统：</span>${option.reply}`);
-  pushLog(`<span class="gold">新的系统任务：</span>${task.title}`);
+  pushLog(`<span class="gold">新的系统任务：</span>${legalTask.description}`);
 
   saveState();
   safeRender();
@@ -3767,8 +3929,8 @@ function acceptAISystemOption(index){
 function chooseSystemPath(path){
   if(STATE.system.path)return;
   STATE.system.path=path;
-  refreshSystemTasks();
-  pushLog(`你选择了系统道路：${path}`);
+  STATE.system.tasks=[];
+  pushLog(`你选择了系统道路：${path}。本系统会亲自给你派任务，别指望那些旧任务还能糊弄过去。`);
   saveState();
   render();
 }
@@ -3825,7 +3987,6 @@ function buySystemShopGood(goodId){
   if(!good)return;
   if(STATE.resources.systemPoint<good.cost)return alert("系统点不足。");
   const boughtKey=STATE.system.path+"_"+good.id;
-  if(good.type==="permanent"&&STATE.system.shopBought[boughtKey])return alert("该永久加成已兑换。");
 
   STATE.resources.systemPoint-=good.cost;
 
@@ -3845,12 +4006,57 @@ function buySystemShopGood(goodId){
   render();
 }
 
+function updateAISystemTaskProgress(event){
+  if(!STATE.system?.tasks?.length)return;
+
+  STATE.system.tasks.forEach(task=>{
+    if(!task.aiGenerated||task.state==="可领取"||task.state==="已完成")return;
+
+    if(task.taskType==="killMap"&&event.type==="kill"){
+      if(task.targetMapIndex===event.mapIndex){
+        task.progress=(task.progress||0)+1;
+      }
+    }
+
+    if(task.taskType==="forgeRealm"&&event.type==="forgeRealm"){
+      const realmOk=task.targetRealm===event.targetRealm;
+      const slotOk=!task.targetSlot||task.targetSlot==="任意"||task.targetSlot===event.slot;
+      if(realmOk&&slotOk){
+        task.progress=(task.progress||0)+1;
+      }
+    }
+
+    if(task.taskType==="alchemy"&&event.type==="alchemy"){
+      if(task.target===event.name){
+        task.progress=(task.progress||0)+1;
+      }
+    }
+
+    if(task.taskType==="wine"&&event.type==="wine"){
+      if(task.target===event.name){
+        task.progress=(task.progress||0)+1;
+      }
+    }
+
+    if((task.progress||0)>=task.count){
+      task.progress=task.count;
+      task.state="可领取";
+      pushLog(`<span class="gold">AI系统任务完成：</span>${task.name}`);
+    }
+  });
+}
 function claimSystemTask(taskId){
   const task=STATE.system.tasks.find(item=>item.id===taskId);
   if(!task||task.state==="已完成")return;
-  gainReward(task.reward,"系统任务");
+
+  if(task.aiGenerated&&task.state!=="可领取"){
+    alert("任务尚未完成。");
+    return;
+  }
+
+  gainReward(task.reward,"AI系统任务");
   task.state="已完成";
-  pushLog(`完成系统任务：${task.name}`);
+  pushLog(`<span class="good">领取 AI 系统任务奖励：</span>${task.name}`);
   saveState();
   render();
 }
@@ -4559,7 +4765,7 @@ function renderSystem(){
       <div class="card">
         <h3>系统说明</h3>
         <p class="muted">系统点来自系统任务。普通兑换可直接入账；活动/限时/仙缘类兑换通过邮件发放，方便后续服务端防刷。</p>
-        <button onclick="refreshSystemTasks();saveState();render()">刷新任务</button>
+        <button onclick="requestAISystemDialog()">让系统派任务</button>
       </div>
         </div>
 
@@ -4571,7 +4777,11 @@ function renderSystem(){
         <h3 class="cyan">天道系统</h3>
         <p>${ai.dialogue||"系统沉默片刻，似乎正在观察你的修行轨迹。"}</p>
         ${ai.lastReply?`<p class="gold">系统回应：${ai.lastReply}</p>`:""}
-        <button ${ai.loading?"disabled":""} onclick="requestAISystemDialog()">${ai.loading?"系统推演中...":"召唤系统"}</button>
+        <div class="row">
+          <input id="aiChatInput" style="min-width:260px" placeholder="想问系统什么？比如：本座下一步该做什么" value="${ai.chatInput||""}" oninput="STATE.system.ai.chatInput=this.value;saveState()">
+          <button ${ai.loading?"disabled":""} onclick="requestAISystemDialog()">${ai.loading?"系统推演中...":"与系统对话"}</button>
+        </div>
+        
       </div>
 
       ${ai.options&&ai.options.length?`<div class="cards">
@@ -4592,9 +4802,9 @@ function renderSystem(){
   <b>${task.name}</b>
   <span class="muted">${task.state}</span>
   ${task.description?`<p class="muted">${task.description}</p>`:""}
-  ${task.aiGenerated?`<p class="cyan">目标：${task.target} × ${task.count}｜难度：${task.difficulty}</p>`:""}
+  ${task.aiGenerated?`<p class="cyan">目标：${task.target} ｜ 进度：${task.progress||0}/${task.count} ｜ 难度：${task.difficulty}</p>`:""}
   <div>奖励：${attachmentHtml(task.reward)}</div>
-  <button onclick="claimSystemTask('${task.id}')">领取</button>
+  <button ${task.state==="可领取"?"":"disabled"} onclick="claimSystemTask('${task.id}')">${task.state==="已完成"?"已完成":"领取"}</button>
 </div>`).join("")}
       </div>
     </div>
@@ -4604,12 +4814,12 @@ function renderSystem(){
       <div class="cards">
         ${goods.map(good=>{
           const boughtKey=STATE.system.path+"_"+good.id;
-          const bought=good.type==="permanent"&&STATE.system.shopBought[boughtKey];
+const bought=false;
           return `<div class="card">
             <h3>${good.name}</h3>
             <p>价格：${good.cost} 系统点</p>
             <p class="muted">${good.type==="mail"?"通过邮件发放":good.type==="permanent"?"永久加成，仅可购买一次":"直接入账"}</p>
-            <button ${bought?"disabled":""} onclick="buySystemShopGood('${good.id}')">${bought?"已兑换":"兑换"}</button>
+            <button onclick="buySystemShopGood('${good.id}')">兑换</button>
           </div>`;
         }).join("")}
       </div>
