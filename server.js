@@ -14,6 +14,7 @@ const PUBLIC_DIR = path.join(__dirname, "public");
 const PLAYERS_FILE = path.join(DATA_DIR, "players.json");
 const SESSIONS_FILE = path.join(DATA_DIR, "sessions.json");
 const CHAT_FILE = path.join(DATA_DIR, "world_chat.json");
+const TRADES_FILE = path.join(DATA_DIR, "trades.json");
 
 const AI_BASE_URL = process.env.AI_BASE_URL || "https://fast.youkeduo.site";
 const AI_API_KEY = process.env.AI_API_KEY || "sk-6de4e1df2e02a5f4ea5a16ed608828e5d79f37da4c292a9d60386edbaf0e4bd5";
@@ -140,7 +141,172 @@ function saveWorldChat() {
 
 let players = loadPlayers();
 let sessions = loadSessions();
+let trades = readJsonSync(TRADES_FILE, []);
 loadWorldChat();
+
+function saveTrades() {
+  return writeJson(TRADES_FILE, trades);
+}
+
+function cloneData(data) {
+  return JSON.parse(JSON.stringify(data));
+}
+
+function getPlayerData(account) {
+  return players[account]?.playerData || null;
+}
+
+function ensurePlayerData(account) {
+  const record = ensurePlayerRecord(account);
+  if (!record.playerData) {
+    record.playerData = {};
+  }
+  if (!record.playerData.resources) {
+    record.playerData.resources = { coin: 0, yuanbao: 0, xianyuan: 0, systemPoint: 0 };
+  }
+  if (!Array.isArray(record.playerData.bag)) {
+    record.playerData.bag = [];
+  }
+  if (!Array.isArray(record.playerData.store)) {
+    record.playerData.store = [];
+  }
+  return record.playerData;
+}
+
+function isTradableEquip(item) {
+  return item &&
+    item.id &&
+    item.craftedBy &&
+    item.identified === false &&
+    item.slot &&
+    item.attrs;
+}
+
+function isTradablePill(item) {
+  return item &&
+    item.id &&
+    item.type === "丹药" &&
+    item.craftedBy;
+}
+
+function isTradableItem(item, source) {
+  if (source === "store") return isTradableEquip(item);
+  if (source === "bag") return isTradablePill(item);
+  return false;
+}
+
+function getTradeItemKind(item, source) {
+  if (source === "store") return "equip";
+  if (source === "bag") return "pill";
+  return "item";
+}
+
+function removeTradeItemFromPlayer(playerData, source, itemId) {
+  if (source === "store") {
+    const index = playerData.store.findIndex(item => item.id === itemId);
+    if (index < 0) return null;
+    const item = playerData.store[index];
+    playerData.store.splice(index, 1);
+    return item;
+  }
+
+  if (source === "bag") {
+    const index = playerData.bag.findIndex(item => item.id === itemId);
+    if (index < 0) return null;
+    const item = playerData.bag[index];
+
+    if ((item.count || 1) > 1) {
+      item.count -= 1;
+      const one = cloneData(item);
+      one.id = uid("trade_item");
+      one.count = 1;
+      return one;
+    }
+
+    playerData.bag.splice(index, 1);
+    return item;
+  }
+
+  return null;
+}
+
+function addTradeItemToPlayer(playerData, listing) {
+  const item = cloneData(listing.item);
+
+  if (listing.itemKind === "equip") {
+    playerData.store.push(item);
+    return;
+  }
+
+  if (listing.itemKind === "pill") {
+    playerData.bag.push(item);
+    return;
+  }
+
+  playerData.bag.push(item);
+}
+
+function compactListing(listing) {
+  return {
+    id: listing.id,
+    seller: listing.seller,
+    sellerName: listing.sellerName,
+    type: listing.type,
+    itemKind: listing.itemKind,
+    item: listing.item,
+    price: listing.price,
+    basePrice: listing.basePrice,
+    bidStep: listing.bidStep,
+    highestBid: listing.highestBid,
+    highestBidder: listing.highestBidder,
+    highestBidderName: listing.highestBidderName,
+    startAt: listing.startAt,
+    endAt: listing.endAt,
+    status: listing.status
+  };
+}
+
+async function settleExpiredTrades() {
+  let changed = false;
+  const time = Date.now();
+
+  for (const listing of trades) {
+    if (listing.status !== "active") continue;
+    if (listing.type !== "auction") continue;
+    if (!listing.endAt || listing.endAt > time) continue;
+
+    if (listing.highestBidder && listing.highestBid > 0) {
+      const sellerData = ensurePlayerData(listing.seller);
+      const buyerData = ensurePlayerData(listing.highestBidder);
+
+      sellerData.resources.yuanbao = (sellerData.resources.yuanbao || 0) + listing.highestBid;
+      addTradeItemToPlayer(buyerData, listing);
+
+      players[listing.seller].updatedAt = Date.now();
+      players[listing.highestBidder].updatedAt = Date.now();
+
+      listing.status = "sold";
+      listing.soldAt = Date.now();
+      listing.buyer = listing.highestBidder;
+      listing.buyerName = listing.highestBidderName;
+    } else {
+      const sellerData = ensurePlayerData(listing.seller);
+      addTradeItemToPlayer(sellerData, listing);
+
+      players[listing.seller].updatedAt = Date.now();
+
+      listing.status = "expired";
+      listing.expiredAt = Date.now();
+    }
+
+    changed = true;
+  }
+
+  if (changed) {
+    await savePlayers(players);
+    await saveTrades();
+  }
+}
 
 function getSessionByToken(token) {
   if (!token) return null;
@@ -793,6 +959,259 @@ app.post("/api/player/save", authMiddleware, async (req, res) => {
   }
 });
 
+app.get("/api/trade/listings", authMiddleware, async (req, res) => {
+  try {
+    await settleExpiredTrades();
+
+    const active = trades
+      .filter(item => item.status === "active")
+      .sort((a, b) => b.startAt - a.startAt)
+      .map(compactListing);
+
+    const mine = trades
+      .filter(item => item.seller === req.account || item.highestBidder === req.account || item.buyer === req.account)
+      .sort((a, b) => (b.startAt || 0) - (a.startAt || 0))
+      .slice(0, 80)
+      .map(compactListing);
+
+    res.json({
+      ok: true,
+      active,
+      mine,
+      time: Date.now()
+    });
+  } catch (error) {
+    console.error("trade listings error:", error);
+    res.status(500).json({ ok: false, message: "读取交易行失败" });
+  }
+});
+
+app.post("/api/trade/list", authMiddleware, async (req, res) => {
+  try {
+    await settleExpiredTrades();
+
+    const source = sanitizeText(req.body?.source || "", 12);
+    const itemId = sanitizeText(req.body?.itemId || "", 80);
+    const listType = sanitizeText(req.body?.listType || "", 20);
+
+    const playerData = ensurePlayerData(req.account);
+    const item = removeTradeItemFromPlayer(playerData, source, itemId);
+
+    if (!item) {
+      return res.status(400).json({ ok: false, message: "物品不存在或已被移动" });
+    }
+
+    if (!isTradableItem(item, source)) {
+      addTradeItemToPlayer(playerData, { item, itemKind: getTradeItemKind(item, source) });
+      await savePlayers(players);
+      return res.status(400).json({ ok: false, message: "该物品不可交易" });
+    }
+
+    let listing = null;
+
+    if (listType === "fixed") {
+      const price = Math.floor(Number(req.body?.price || 0));
+
+      if (!Number.isFinite(price) || price <= 0) {
+        addTradeItemToPlayer(playerData, { item, itemKind: getTradeItemKind(item, source) });
+        await savePlayers(players);
+        return res.status(400).json({ ok: false, message: "一口价价格必须大于 0" });
+      }
+
+      listing = {
+        id: uid("trade"),
+        seller: req.account,
+        sellerName: sanitizeText(playerData?.player?.name || req.account, 20),
+        type: "fixed",
+        itemKind: getTradeItemKind(item, source),
+        item,
+        price,
+        status: "active",
+        startAt: Date.now()
+      };
+    } else if (listType === "auction") {
+      const basePrice = Math.floor(Number(req.body?.basePrice || 0));
+      const bidStep = Math.floor(Number(req.body?.bidStep || 0));
+      const durationHours = Number(req.body?.durationHours || 1);
+
+      if (!Number.isFinite(basePrice) || basePrice <= 0) {
+        addTradeItemToPlayer(playerData, { item, itemKind: getTradeItemKind(item, source) });
+        await savePlayers(players);
+        return res.status(400).json({ ok: false, message: "竞拍底价必须大于 0" });
+      }
+
+      if (!Number.isFinite(bidStep) || bidStep <= 0) {
+        addTradeItemToPlayer(playerData, { item, itemKind: getTradeItemKind(item, source) });
+        await savePlayers(players);
+        return res.status(400).json({ ok: false, message: "每次加价必须大于 0" });
+      }
+
+      if (![1, 3, 8, 12].includes(durationHours)) {
+        addTradeItemToPlayer(playerData, { item, itemKind: getTradeItemKind(item, source) });
+        await savePlayers(players);
+        return res.status(400).json({ ok: false, message: "竞拍时间只能选择 1、3、8、12 小时" });
+      }
+
+      listing = {
+        id: uid("trade"),
+        seller: req.account,
+        sellerName: sanitizeText(playerData?.player?.name || req.account, 20),
+        type: "auction",
+        itemKind: getTradeItemKind(item, source),
+        item,
+        basePrice,
+        bidStep,
+        highestBid: 0,
+        highestBidder: null,
+        highestBidderName: null,
+        status: "active",
+        startAt: Date.now(),
+        endAt: Date.now() + durationHours * 60 * 60 * 1000
+      };
+    } else {
+      addTradeItemToPlayer(playerData, { item, itemKind: getTradeItemKind(item, source) });
+      await savePlayers(players);
+      return res.status(400).json({ ok: false, message: "上架类型错误" });
+    }
+
+    trades.unshift(listing);
+    players[req.account].updatedAt = Date.now();
+
+    await savePlayers(players);
+    await saveTrades();
+
+    res.json({
+      ok: true,
+      message: "上架成功",
+      listing: compactListing(listing),
+      playerData
+    });
+  } catch (error) {
+    console.error("trade list error:", error);
+    res.status(500).json({ ok: false, message: "上架失败" });
+  }
+});
+
+app.post("/api/trade/buy", authMiddleware, async (req, res) => {
+  try {
+    await settleExpiredTrades();
+
+    const listingId = sanitizeText(req.body?.listingId || "", 80);
+    const listing = trades.find(item => item.id === listingId && item.status === "active");
+
+    if (!listing) {
+      return res.status(404).json({ ok: false, message: "商品不存在或已下架" });
+    }
+
+    if (listing.type !== "fixed") {
+      return res.status(400).json({ ok: false, message: "该商品不是一口价" });
+    }
+
+    if (listing.seller === req.account) {
+      return res.status(400).json({ ok: false, message: "不能购买自己的商品" });
+    }
+
+    const buyerData = ensurePlayerData(req.account);
+    const sellerData = ensurePlayerData(listing.seller);
+
+    if ((buyerData.resources.yuanbao || 0) < listing.price) {
+      return res.status(400).json({ ok: false, message: "元宝不足" });
+    }
+
+    buyerData.resources.yuanbao -= listing.price;
+    sellerData.resources.yuanbao = (sellerData.resources.yuanbao || 0) + listing.price;
+
+    addTradeItemToPlayer(buyerData, listing);
+
+    listing.status = "sold";
+    listing.buyer = req.account;
+    listing.buyerName = sanitizeText(buyerData?.player?.name || req.account, 20);
+    listing.soldAt = Date.now();
+
+    players[req.account].updatedAt = Date.now();
+    players[listing.seller].updatedAt = Date.now();
+
+    await savePlayers(players);
+    await saveTrades();
+
+    res.json({
+      ok: true,
+      message: "购买成功",
+      playerData: buyerData
+    });
+  } catch (error) {
+    console.error("trade buy error:", error);
+    res.status(500).json({ ok: false, message: "购买失败" });
+  }
+});
+
+app.post("/api/trade/bid", authMiddleware, async (req, res) => {
+  try {
+    await settleExpiredTrades();
+
+    const listingId = sanitizeText(req.body?.listingId || "", 80);
+    const bidAmount = Math.floor(Number(req.body?.bidAmount || 0));
+    const listing = trades.find(item => item.id === listingId && item.status === "active");
+
+    if (!listing) {
+      return res.status(404).json({ ok: false, message: "竞拍不存在或已结束" });
+    }
+
+    if (listing.type !== "auction") {
+      return res.status(400).json({ ok: false, message: "该商品不是竞拍" });
+    }
+
+    if (listing.seller === req.account) {
+      return res.status(400).json({ ok: false, message: "不能竞拍自己的商品" });
+    }
+
+    if (listing.endAt <= Date.now()) {
+      await settleExpiredTrades();
+      return res.status(400).json({ ok: false, message: "竞拍已结束" });
+    }
+
+    const minBid = listing.highestBid > 0
+      ? listing.highestBid + listing.bidStep
+      : listing.basePrice;
+
+    if (!Number.isFinite(bidAmount) || bidAmount < minBid) {
+      return res.status(400).json({ ok: false, message: `出价不能低于 ${minBid} 元宝` });
+    }
+
+    const bidderData = ensurePlayerData(req.account);
+
+    if ((bidderData.resources.yuanbao || 0) < bidAmount) {
+      return res.status(400).json({ ok: false, message: "元宝不足" });
+    }
+
+    bidderData.resources.yuanbao -= bidAmount;
+
+    if (listing.highestBidder) {
+      const oldBidderData = ensurePlayerData(listing.highestBidder);
+      oldBidderData.resources.yuanbao = (oldBidderData.resources.yuanbao || 0) + listing.highestBid;
+      players[listing.highestBidder].updatedAt = Date.now();
+    }
+
+    listing.highestBid = bidAmount;
+    listing.highestBidder = req.account;
+    listing.highestBidderName = sanitizeText(bidderData?.player?.name || req.account, 20);
+
+    players[req.account].updatedAt = Date.now();
+
+    await savePlayers(players);
+    await saveTrades();
+
+    res.json({
+      ok: true,
+      message: "出价成功",
+      playerData: bidderData,
+      listing: compactListing(listing)
+    });
+  } catch (error) {
+    console.error("trade bid error:", error);
+    res.status(500).json({ ok: false, message: "出价失败" });
+  }
+});
 app.post("/api/ai/system-dialog", authMiddleware, async (req, res) => {
   try {
     const record = getPlayerRecord(req.account);

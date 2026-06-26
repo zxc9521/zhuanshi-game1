@@ -2789,6 +2789,8 @@ forge:{failCompensation:0,logs:[]},
 },
     dungeon:{used:{},running:null},
     worldChat:{input:"",messages:[]},
+tradeListings:[],
+tradeMine:[],
 tutorial:{
   newbieStep:0,
   pageGuideSeen:{},
@@ -3276,6 +3278,8 @@ if(saved.system&&Array.isArray(saved.system.tasks)){
     if(!saved.worldChat)saved.worldChat=base.worldChat;
 if(!saved.worldChat)saved.worldChat=base.worldChat;
 if(!saved.worldChat)saved.worldChat=base.worldChat;
+if(!saved.tradeListings)saved.tradeListings=[];
+if(!saved.tradeMine)saved.tradeMine=[];
 if(!saved.tutorial)saved.tutorial=base.tutorial;
 if(!saved.tutorial.pageGuideSeen)saved.tutorial.pageGuideSeen={};
     if(!saved.flow)saved.flow=[];
@@ -5105,10 +5109,13 @@ for(let i=0;i<craftCount;i++){
   const itemName=createPillItemName(pillName,gradeIndex);
 
   addItem(itemName,1,"丹药",{
-    pillBaseName:pillName,
-    pillGrade:gradeIndex,
-    pillRealm:pillConfig.realm
-  });
+  pillBaseName:pillName,
+  pillGrade:gradeIndex,
+  pillRealm:pillConfig.realm,
+  craftedBy:STATE.player.name||STATE.auth.account||"无名道友",
+  tradable:true,
+  unique:true
+});
 
   created.push(itemName);
 }
@@ -6077,7 +6084,7 @@ ${equip.blue?`<span class="blue">蓝字：${equip.blue.name}，${equip.blue.desc
   </div>`;
 }
 
-const mainTabs=["主页","装备","人物","背包","功法","活动","副本","系统","储物戒","锻造","丹炉","商城","聊天","充值","VIP","宗门","日常","邮件"];
+const mainTabs=["主页","装备","人物","背包","功法","活动","副本","系统","储物戒","锻造","丹炉","交易行","商城","聊天","充值","VIP","宗门","日常","邮件"];
 
 function safeRender(){
   const activeElement=document.activeElement;
@@ -6429,6 +6436,7 @@ function renderPage(tab){
     "储物戒":renderStore,
     "锻造":renderForge,
     "丹炉":renderAlchemy,
+"交易行":renderTrade,
     "商城":renderShop,
     "聊天":renderChat,
     "充值":renderRecharge,
@@ -7538,6 +7546,289 @@ ${pillMaterialCostHtml(totalCost)}
     </div>`;
 }
 
+async function loadTradeListings(){
+  try{
+    const result=await apiRequest("/api/trade/listings",{method:"GET"});
+    STATE.tradeListings=result.active||[];
+    STATE.tradeMine=result.mine||[];
+    saveState();
+    render();
+  }catch(error){
+    alert(error.message||"读取交易行失败");
+  }
+}
+
+function isClientTradableEquip(equip){
+  return equip&&equip.craftedBy&&equip.identified===false;
+}
+
+function isClientTradablePill(item){
+  return item&&item.type==="丹药"&&item.craftedBy;
+}
+
+function getMyTradableItems(){
+  const equips=(STATE.store||[])
+    .filter(isClientTradableEquip)
+    .map(item=>({
+      source:"store",
+      id:item.id,
+      name:item.name,
+      type:"装备",
+      count:1,
+      item
+    }));
+
+  const pills=(STATE.bag||[])
+    .filter(isClientTradablePill)
+    .map(item=>({
+      source:"bag",
+      id:item.id,
+      name:item.name,
+      type:"丹药",
+      count:item.count||1,
+      item
+    }));
+
+  return equips.concat(pills);
+}
+
+async function tradeListFixed(source,itemId){
+  const price=Number(prompt("请输入一口价价格，单位：元宝"));
+
+  if(!price||price<=0){
+    alert("价格必须大于 0。");
+    return;
+  }
+
+  try{
+    await saveAccountState();
+
+    const result=await apiRequest("/api/trade/list",{
+      method:"POST",
+      body:JSON.stringify({
+        source,
+        itemId,
+        listType:"fixed",
+        price
+      })
+    });
+
+    if(result.playerData){
+      STATE=mergeState(createDefaultState(),result.playerData);
+      STATE.auth.loggedIn=true;
+      STATE.auth.account=result.account||STATE.auth.account;
+      STATE.auth.mode="game";
+    }
+
+    alert("一口价上架成功。");
+    await loadTradeListings();
+  }catch(error){
+    alert(error.message||"上架失败");
+  }
+}
+
+async function tradeListAuction(source,itemId){
+  const basePrice=Number(prompt("请输入竞拍底价，单位：元宝"));
+  if(!basePrice||basePrice<=0){
+    alert("底价必须大于 0。");
+    return;
+  }
+
+  const bidStep=Number(prompt("请输入每次加价区间，单位：元宝"));
+  if(!bidStep||bidStep<=0){
+    alert("每次加价必须大于 0。");
+    return;
+  }
+
+  const durationHours=Number(prompt("请输入竞拍时间，只能填 1、3、8、12"));
+  if(![1,3,8,12].includes(durationHours)){
+    alert("竞拍时间只能是 1、3、8、12 小时。");
+    return;
+  }
+
+  try{
+    await saveAccountState();
+
+    const result=await apiRequest("/api/trade/list",{
+      method:"POST",
+      body:JSON.stringify({
+        source,
+        itemId,
+        listType:"auction",
+        basePrice,
+        bidStep,
+        durationHours
+      })
+    });
+
+    if(result.playerData){
+      STATE=mergeState(createDefaultState(),result.playerData);
+      STATE.auth.loggedIn=true;
+      STATE.auth.account=result.account||STATE.auth.account;
+      STATE.auth.mode="game";
+    }
+
+    alert("竞拍上架成功。");
+    await loadTradeListings();
+  }catch(error){
+    alert(error.message||"竞拍上架失败");
+  }
+}
+
+async function tradeBuyNow(listingId){
+  if(!confirm("确定一口价购买该物品？")){
+    return;
+  }
+
+  try{
+    const result=await apiRequest("/api/trade/buy",{
+      method:"POST",
+      body:JSON.stringify({listingId})
+    });
+
+    if(result.playerData){
+      STATE=mergeState(createDefaultState(),result.playerData);
+      STATE.auth.loggedIn=true;
+      STATE.auth.mode="game";
+    }
+
+    alert("购买成功。");
+    await loadTradeListings();
+  }catch(error){
+    alert(error.message||"购买失败");
+  }
+}
+
+async function tradeBid(listingId,minBid){
+  const bidAmount=Number(prompt(`请输入出价，不能低于 ${minBid} 元宝`));
+
+  if(!bidAmount||bidAmount<minBid){
+    alert("出价不足。");
+    return;
+  }
+
+  try{
+    const result=await apiRequest("/api/trade/bid",{
+      method:"POST",
+      body:JSON.stringify({
+        listingId,
+        bidAmount
+      })
+    });
+
+    if(result.playerData){
+      STATE=mergeState(createDefaultState(),result.playerData);
+      STATE.auth.loggedIn=true;
+      STATE.auth.mode="game";
+    }
+
+    alert("出价成功。");
+    await loadTradeListings();
+  }catch(error){
+    alert(error.message||"出价失败");
+  }
+}
+
+function tradeItemHtml(item){
+  if(item.itemKind==="equip"){
+    return `<div class="equip-line">
+      ${equipIconHtml(item.item)}
+      <div>
+        <b class="${CONFIG.qualities[item.item.quality]?.className||""}">${item.item.name}</b><br>
+        <span class="muted">${CONFIG.realms[item.item.realm]} · ${CONFIG.grades[item.item.grade]?.name||""} · 未鉴定</span><br>
+        ${item.item.craftedBy?`<span class="gold">由 ${item.item.craftedBy} 打造</span>`:""}
+      </div>
+    </div>`;
+  }
+
+  return `<div class="item-line">
+    ${itemIconHtml(item.item.name,item.item.type)}
+    <div>
+      <b>${item.item.name}</b><br>
+      <span class="muted">${item.item.type}</span><br>
+      ${item.item.craftedBy?`<span class="gold">由 ${item.item.craftedBy} 炼制</span>`:""}
+    </div>
+  </div>`;
+}
+
+function renderTrade(){
+  const listings=STATE.tradeListings||[];
+  const mine=STATE.tradeMine||[];
+  const tradables=getMyTradableItems();
+
+  return `<div class="panel">
+    <h2>交易行</h2>
+    <p class="cyan">交易行只支持游戏内元宝交易，不涉及现实货币。只有玩家打造且未鉴定的装备、玩家炼制的丹药可以交易。</p>
+
+    <button onclick="loadTradeListings()">刷新交易行</button>
+
+    <div class="cards">
+      <div class="card" style="max-width:520px">
+        <h3>我的可上架物品</h3>
+        <div class="list">
+          ${tradables.length?tradables.map(entry=>`<div class="item">
+            ${entry.source==="store"?equipHtml(entry.item):`
+              <div class="item-line">
+                ${itemIconHtml(entry.item.name,entry.item.type)}
+                <div>
+                  <b>${entry.item.name}</b> × ${entry.item.count||1}<br>
+                  <span class="muted">${entry.item.type}</span><br>
+                  ${entry.item.craftedBy?`<span class="gold">由 ${entry.item.craftedBy} 炼制</span>`:""}
+                </div>
+              </div>
+            `}
+            <div class="row">
+              <button onclick="tradeListFixed('${entry.source}','${entry.id}')">一口价上架</button>
+              <button onclick="tradeListAuction('${entry.source}','${entry.id}')">竞拍上架</button>
+            </div>
+          </div>`).join(""):"<span class='muted'>暂无可交易物品。玩家打造且未鉴定装备、玩家炼制丹药可交易。</span>"}
+        </div>
+      </div>
+
+      <div class="card" style="max-width:760px">
+        <h3>正在交易</h3>
+        <div class="list">
+          ${listings.length?listings.map(listing=>{
+            const isMine=listing.seller===STATE.auth.account;
+            const minBid=listing.type==="auction"
+              ? (listing.highestBid>0?listing.highestBid+listing.bidStep:listing.basePrice)
+              : 0;
+
+            return `<div class="item">
+              ${tradeItemHtml(listing)}
+              <hr>
+              <p>卖家：<span class="gold">${listing.sellerName||listing.seller}</span></p>
+
+              ${listing.type==="fixed"?`
+                <p>类型：一口价</p>
+                <p>价格：<span class="gold">${fmt(listing.price)} 元宝</span></p>
+                <button ${isMine?"disabled":""} onclick="tradeBuyNow('${listing.id}')">${isMine?"自己的商品":"一口价购买"}</button>
+              `:`
+                <p>类型：竞拍</p>
+                <p>底价：${fmt(listing.basePrice)} 元宝 ｜ 加价区间：${fmt(listing.bidStep)} 元宝</p>
+                <p>当前最高价：<span class="gold">${fmt(listing.highestBid||0)} 元宝</span></p>
+                <p>最高出价者：${listing.highestBidderName||"暂无"}</p>
+                <p>结束时间：${new Date(listing.endAt).toLocaleString()}</p>
+                <button ${isMine?"disabled":""} onclick="tradeBid('${listing.id}',${minBid})">${isMine?"自己的竞拍":"出价，最低 "+fmt(minBid)}</button>
+              `}
+            </div>`;
+          }).join(""):"<span class='muted'>暂无交易物品，点击刷新试试。</span>"}
+        </div>
+      </div>
+
+      <div class="card" style="max-width:520px">
+        <h3>我的交易记录</h3>
+        <div class="list">
+          ${mine.length?mine.map(listing=>`<div class="item">
+            <b>${listing.item?.name||"未知物品"}</b><br>
+            <span class="muted">类型：${listing.type==="fixed"?"一口价":"竞拍"} ｜ 状态：${listing.status}</span><br>
+            ${listing.type==="fixed"?`价格：${fmt(listing.price)} 元宝`:`最高价：${fmt(listing.highestBid||0)} 元宝`}
+          </div>`).join(""):"<span class='muted'>暂无交易记录。</span>"}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
 function renderShop(){
   const realmName=CONFIG.realms[STATE.player.realm];
   const availablePills=CONFIG.pills.filter(pill=>pill.realm<=STATE.player.realm+1);
