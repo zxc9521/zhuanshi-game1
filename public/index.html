@@ -11,28 +11,97 @@
   --green:#7dff9e;--cyan:#77e6ff;--purple:#d997ff;--orange:#ffb86c;
 }
 *{box-sizing:border-box}
-body{margin:0;background:radial-gradient(circle at top,#18223a,#070911 55%);color:var(--text);font-family:"Microsoft YaHei",system-ui,sans-serif}
+body{
+  margin:0;
+  background:
+    linear-gradient(rgba(7,9,17,.72),rgba(7,9,17,.86)),
+    url("assets/images/ui/main_background.webp") center top/cover fixed no-repeat;
+  color:var(--text);
+  font-family:"Microsoft YaHei",system-ui,sans-serif;
+}color:var(--text);font-family:"Microsoft YaHei",system-ui,sans-serif}
 button,input,select{font:inherit}
-button{cursor:pointer;border:1px solid #405073;background:#1c2740;color:var(--text);border-radius:8px;padding:7px 10px;margin:2px}
-button:hover{background:#28375a}
-button:disabled{opacity:.45;cursor:not-allowed}
+button{
+  cursor:pointer;
+  border:1px solid rgba(255,211,106,.28);
+  background:
+    linear-gradient(rgba(28,39,64,.70),rgba(28,39,64,.88)),
+    url("assets/images/ui/button_normal.webp") center/100% 100% no-repeat;
+  color:var(--text);
+  border-radius:8px;
+  padding:7px 10px;
+  margin:2px;
+  box-shadow:inset 0 0 10px rgba(119,230,255,.04);
+}border:1px solid #405073;background:#1c2740;color:var(--text);border-radius:8px;padding:7px 10px;margin:2px}
+button:hover{
+  background:
+    linear-gradient(rgba(40,55,90,.78),rgba(40,55,90,.92)),
+    url("assets/images/ui/button_hover.webp") center/100% 100% no-repeat;
+}
+button:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+  background:
+    linear-gradient(rgba(40,40,48,.72),rgba(25,25,32,.88)),
+    url("assets/images/ui/button_disabled.webp") center/100% 100% no-repeat;
+}
 input,select{background:#101827;color:var(--text);border:1px solid #405073;border-radius:7px;padding:6px}
 .app{max-width:1480px;margin:auto;padding:12px}
-.top{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px;background:linear-gradient(90deg,#101827,#17223a);border:1px solid var(--line);border-radius:14px}
+.top{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  padding:12px;
+  background:
+    linear-gradient(rgba(16,24,39,.78),rgba(16,24,39,.88)),
+    url("assets/images/ui/top_bar.webp") center/cover no-repeat;
+  border:1px solid rgba(255,211,106,.28);
+  border-radius:14px;
+  box-shadow:0 8px 28px rgba(0,0,0,.28), inset 0 0 18px rgba(119,230,255,.05);
+}
 .title{font-size:24px;font-weight:800;color:var(--gold)}
 .notice{font-size:13px;color:var(--cyan);line-height:1.5}
 .badge{display:inline-block;padding:3px 7px;border-radius:99px;background:#24314f;border:1px solid #405073;margin:2px;color:#dce8ff}
 .warn{color:var(--orange)}
 .grid{display:grid;grid-template-columns:210px 1fr;gap:12px;margin-top:12px}
-.nav{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px;position:sticky;top:8px;height:max-content}
+.nav{
+  background:
+    linear-gradient(rgba(18,24,38,.86),rgba(18,24,38,.94)),
+    url("assets/images/ui/nav_background.webp") center/cover no-repeat;
+  border:1px solid rgba(255,211,106,.24);
+  border-radius:14px;
+  padding:8px;
+  position:sticky;
+  top:8px;
+  height:max-content;
+  box-shadow:0 10px 28px rgba(0,0,0,.22);
+}border:1px solid var(--line);border-radius:14px;padding:8px;position:sticky;top:8px;height:max-content}
 .nav button{display:block;width:100%;margin:5px 0;text-align:left}
 .nav button.active{background:#31446f;border-color:#6b85c8;color:#fff}
 .subnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .subnav button.active{background:#40588e;border-color:#7f9fea}
 .main{min-height:720px}
-.panel{background:rgba(18,24,38,.94);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px;box-shadow:0 10px 28px rgba(0,0,0,.22)}
+.panel{
+  background:
+    linear-gradient(rgba(18,24,38,.88),rgba(18,24,38,.94)),
+    url("assets/images/ui/panel_bg.webp") center/cover repeat;
+  border:1px solid rgba(255,211,106,.20);
+  border-radius:14px;
+  padding:12px;
+  margin-bottom:12px;
+  box-shadow:0 10px 28px rgba(0,0,0,.28), inset 0 0 18px rgba(119,230,255,.04);
+}border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px;box-shadow:0 10px 28px rgba(0,0,0,.22)}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
-.card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px}
+.card{
+  background:
+    linear-gradient(rgba(24,32,51,.88),rgba(24,32,51,.94)),
+    url("assets/images/ui/card_bg.webp") center/cover repeat;
+  border:1px solid rgba(119,230,255,.14);
+  border-radius:12px;
+  padding:10px;
+  box-shadow:inset 0 0 14px rgba(119,230,255,.035);
+}border:1px solid var(--line);border-radius:12px;padding:10px}
 h2,h3{margin:0 0 10px;color:#fff}
 hr{border:0;border-top:1px solid var(--line);margin:10px 0}
 .kv{display:grid;grid-template-columns:110px 1fr;gap:4px 8px;font-size:14px}
@@ -396,9 +465,9 @@ hr{border:0;border-top:1px solid var(--line);margin:10px 0}
   display:none;
   position:absolute;
   left:50%;
-top:76px;
-transform:translateX(-50%);
-  z-index:50;
+  top:72px;
+  transform:translateX(-50%);
+  z-index:9999;
   width:300px;
   max-width:80vw;
   padding:10px;
@@ -843,6 +912,837 @@ transform:translateX(-50%);
   color:var(--gold);
 }
 @media(max-width:820px){.grid{grid-template-columns:1fr}.nav{position:static}.nav button{display:inline-block;width:auto}.kv{grid-template-columns:92px 1fr}}
+.alchemy-art{
+  background:
+    linear-gradient(rgba(18,24,38,.84),rgba(18,24,38,.94)),
+    url("assets/images/ui/alchemy_panel.webp") center/cover no-repeat;
+}
+
+.forge-art{
+  background:
+    linear-gradient(rgba(18,24,38,.84),rgba(18,24,38,.94)),
+    url("assets/images/ui/forge_panel.webp") center/cover no-repeat;
+}
+
+.chat-art{
+  background:
+    linear-gradient(rgba(18,24,38,.84),rgba(18,24,38,.94)),
+    url("assets/images/ui/chat_panel.webp") center/cover no-repeat;
+}
+
+.system-art{
+  background:
+    linear-gradient(rgba(18,24,38,.84),rgba(18,24,38,.94)),
+    url("assets/images/ui/system_ai_panel.webp") center/cover no-repeat;
+}
+
+.bag-art{
+  background:
+    linear-gradient(rgba(18,24,38,.84),rgba(18,24,38,.94)),
+    url("assets/images/ui/bag_panel.webp") center/cover no-repeat;
+}
+
+.activity-art{
+  background:
+    linear-gradient(rgba(18,24,38,.84),rgba(18,24,38,.94)),
+    url("assets/images/ui/activity_panel.webp") center/cover no-repeat;
+}
+
+.mail-art{
+  background:
+    linear-gradient(rgba(18,24,38,.84),rgba(18,24,38,.94)),
+    url("assets/images/ui/mail_panel.webp") center/cover no-repeat;
+}
+
+.shop-art{
+  background:
+    linear-gradient(rgba(18,24,38,.84),rgba(18,24,38,.94)),
+    url("assets/images/ui/shop_panel.webp") center/cover no-repeat;
+}
+
+.page-art-title{
+  text-shadow:0 2px 8px rgba(0,0,0,.65);
+}
+
+.page-art-note{
+  display:inline-block;
+  padding:5px 8px;
+  border:1px solid rgba(119,230,255,.18);
+  border-radius:9px;
+  background:rgba(8,12,20,.38);
+}
+/* ===== UI 美术增强覆盖版 ===== */
+
+body{
+  margin:0;
+  background:
+    radial-gradient(circle at top,rgba(24,34,58,.42),rgba(7,9,17,.86) 58%),
+    linear-gradient(rgba(7,9,17,.50),rgba(7,9,17,.82)),
+    url("assets/images/ui/main_background.webp") center top/cover fixed no-repeat;
+  color:var(--text);
+  font-family:"Microsoft YaHei",system-ui,sans-serif;
+}
+
+.top{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  padding:12px;
+  background:
+    linear-gradient(90deg,rgba(11,16,28,.70),rgba(18,30,50,.82)),
+    url("assets/images/ui/top_bar.webp") center/cover no-repeat;
+  border:1px solid rgba(255,211,106,.35);
+  border-radius:14px;
+  box-shadow:
+    0 10px 30px rgba(0,0,0,.35),
+    inset 0 0 22px rgba(119,230,255,.08);
+}
+
+.nav{
+  background:
+    linear-gradient(rgba(10,15,26,.66),rgba(10,15,26,.88)),
+    url("assets/images/ui/nav_background.webp") center/cover no-repeat;
+  border:1px solid rgba(255,211,106,.28);
+  border-radius:14px;
+  padding:8px;
+  position:sticky;
+  top:8px;
+  height:max-content;
+  box-shadow:
+    0 12px 32px rgba(0,0,0,.32),
+    inset 0 0 20px rgba(119,230,255,.05);
+}
+
+.panel{
+  position:relative;
+  overflow:hidden;
+  background:
+    linear-gradient(rgba(18,24,38,.74),rgba(18,24,38,.88)),
+    url("assets/images/ui/panel_bg.webp") center/cover repeat;
+  border:1px solid rgba(255,211,106,.22);
+  border-radius:14px;
+  padding:12px;
+  margin-bottom:12px;
+  box-shadow:
+    0 12px 34px rgba(0,0,0,.34),
+    inset 0 0 24px rgba(119,230,255,.045);
+}
+
+.panel::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  width:78px;
+  height:78px;
+  background:url("assets/images/ui/panel_corner.webp") left top/contain no-repeat;
+  opacity:.48;
+  pointer-events:none;
+  z-index:0;
+}
+
+.panel::after{
+  content:"";
+  position:absolute;
+  right:0;
+  bottom:0;
+  width:78px;
+  height:78px;
+  background:url("assets/images/ui/panel_corner.webp") left top/contain no-repeat;
+  opacity:.35;
+  transform:rotate(180deg);
+  pointer-events:none;
+  z-index:0;
+}
+
+.panel>*{
+  position:relative;
+  z-index:1;
+}
+
+.card{
+  background:
+    linear-gradient(rgba(20,28,46,.62),rgba(20,28,46,.82)),
+    url("assets/images/ui/card_bg.webp") center/cover repeat;
+  border:1px solid rgba(119,230,255,.18);
+  border-radius:12px;
+  padding:10px;
+  box-shadow:
+    inset 0 0 18px rgba(119,230,255,.045),
+    0 6px 18px rgba(0,0,0,.18);
+  backdrop-filter:blur(2px);
+}
+
+.card:hover{
+  border-color:rgba(255,211,106,.34);
+  box-shadow:
+    inset 0 0 18px rgba(119,230,255,.07),
+    0 8px 22px rgba(0,0,0,.24),
+    0 0 14px rgba(255,211,106,.08);
+}
+
+button{
+  cursor:pointer;
+  border:1px solid rgba(255,211,106,.32);
+  background:
+    linear-gradient(rgba(28,39,64,.62),rgba(28,39,64,.86)),
+    url("assets/images/ui/button_normal.webp") center/100% 100% no-repeat;
+  color:var(--text);
+  border-radius:8px;
+  padding:7px 10px;
+  margin:2px;
+  box-shadow:
+    inset 0 0 10px rgba(119,230,255,.06),
+    0 3px 10px rgba(0,0,0,.18);
+}
+
+button:hover{
+  background:
+    linear-gradient(rgba(45,64,102,.64),rgba(45,64,102,.92)),
+    url("assets/images/ui/button_hover.webp") center/100% 100% no-repeat;
+  border-color:rgba(255,211,106,.55);
+  box-shadow:
+    inset 0 0 12px rgba(119,230,255,.12),
+    0 0 14px rgba(255,211,106,.12);
+}
+
+button:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+  background:
+    linear-gradient(rgba(40,40,48,.68),rgba(25,25,32,.88)),
+    url("assets/images/ui/button_disabled.webp") center/100% 100% no-repeat;
+}
+
+hr{
+  border:0;
+  height:20px;
+  margin:10px 0;
+  background:url("assets/images/ui/divider_gold.webp") center/100% 100% no-repeat;
+  opacity:.68;
+}
+
+/* 背包普通格子 */
+.item{
+  padding:8px;
+  border:1px solid rgba(119,230,255,.16);
+  border-radius:10px;
+  background:
+    linear-gradient(rgba(17,25,42,.54),rgba(17,25,42,.82)),
+    url("assets/images/ui/bag_slot.webp") center/cover no-repeat;
+  margin:6px 0;
+  transition:.15s;
+}
+
+.item:hover{
+  border-color:rgba(255,211,106,.45);
+  box-shadow:0 0 14px rgba(255,211,106,.12);
+}
+
+/* 背包选中格子 */
+.item.selected{
+  border-color:rgba(255,211,106,.82);
+  background:
+    linear-gradient(rgba(45,34,16,.38),rgba(17,25,42,.78)),
+    url("assets/images/ui/bag_slot_selected.webp") center/cover no-repeat;
+  box-shadow:
+    0 0 18px rgba(255,211,106,.18),
+    inset 0 0 18px rgba(255,211,106,.06);
+}
+
+/* 装备格子 */
+.equip-grid-cell{
+  position:relative;
+  min-height:88px;
+  border:1px solid rgba(255,211,106,.18);
+  border-radius:12px;
+  background:
+    linear-gradient(rgba(10,15,26,.56),rgba(10,15,26,.84)),
+    url("assets/images/ui/equip_slot.webp") center/cover no-repeat;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px;
+  transition:.15s;
+}
+
+.equip-grid-cell:hover{
+  border-color:rgba(255,211,106,.55);
+  background:
+    linear-gradient(rgba(20,28,46,.62),rgba(10,15,26,.82)),
+    url("assets/images/ui/equip_slot.webp") center/cover no-repeat;
+  transform:translateY(-1px);
+  box-shadow:0 0 16px rgba(255,211,106,.12);
+}
+
+/* 教程弹窗使用 modal_bg 和 tutorial_icon */
+.tutorial-card{
+  position:relative;
+  width:min(560px,96vw);
+  background:
+    linear-gradient(rgba(18,24,38,.78),rgba(18,24,38,.94)),
+    url("assets/images/ui/modal_bg.webp") center/cover no-repeat;
+  border:1px solid rgba(255,211,106,.36);
+  border-radius:16px;
+  padding:18px;
+  box-shadow:0 20px 48px rgba(0,0,0,.58);
+  overflow:hidden;
+}
+
+.tutorial-card::before{
+  content:"";
+  position:absolute;
+  right:18px;
+  top:16px;
+  width:70px;
+  height:70px;
+  background:url("assets/images/ui/tutorial_icon.webp") center/contain no-repeat;
+  opacity:.72;
+  pointer-events:none;
+}
+
+.tutorial-card>*{
+  position:relative;
+  z-index:1;
+}
+
+/* 功能页专属背景增强 */
+.alchemy-art,
+.forge-art,
+.chat-art,
+.system-art,
+.bag-art,
+.activity-art,
+.mail-art,
+.shop-art{
+  min-height:520px;
+  border-color:rgba(255,211,106,.32);
+  background-position:center;
+  background-size:cover;
+  box-shadow:
+    0 14px 38px rgba(0,0,0,.38),
+    inset 0 0 38px rgba(119,230,255,.055);
+}
+
+.alchemy-art{
+  background:
+    linear-gradient(rgba(18,24,38,.46),rgba(18,24,38,.88)),
+    url("assets/images/ui/alchemy_panel.webp") center/cover no-repeat;
+}
+
+.forge-art{
+  background:
+    linear-gradient(rgba(18,24,38,.46),rgba(18,24,38,.88)),
+    url("assets/images/ui/forge_panel.webp") center/cover no-repeat;
+}
+
+.chat-art{
+  background:
+    linear-gradient(rgba(18,24,38,.46),rgba(18,24,38,.88)),
+    url("assets/images/ui/chat_panel.webp") center/cover no-repeat;
+}
+
+.system-art{
+  background:
+    linear-gradient(rgba(18,24,38,.46),rgba(18,24,38,.88)),
+    url("assets/images/ui/system_ai_panel.webp") center/cover no-repeat;
+}
+
+.bag-art{
+  background:
+    linear-gradient(rgba(18,24,38,.46),rgba(18,24,38,.88)),
+    url("assets/images/ui/bag_panel.webp") center/cover no-repeat;
+}
+
+.activity-art{
+  background:
+    linear-gradient(rgba(18,24,38,.46),rgba(18,24,38,.88)),
+    url("assets/images/ui/activity_panel.webp") center/cover no-repeat;
+}
+
+.mail-art{
+  background:
+    linear-gradient(rgba(18,24,38,.46),rgba(18,24,38,.88)),
+    url("assets/images/ui/mail_panel.webp") center/cover no-repeat;
+}
+
+.shop-art{
+  background:
+    linear-gradient(rgba(18,24,38,.46),rgba(18,24,38,.88)),
+    url("assets/images/ui/shop_panel.webp") center/cover no-repeat;
+}
+
+.page-art-title{
+  color:#fff;
+  text-shadow:
+    0 2px 8px rgba(0,0,0,.75),
+    0 0 12px rgba(255,211,106,.18);
+}
+
+.page-art-note{
+  display:inline-block;
+  padding:5px 8px;
+  border:1px solid rgba(119,230,255,.18);
+  border-radius:9px;
+  background:rgba(8,12,20,.38);
+}
+/* ===== 修正卡片透明度与面板角标 ===== */
+
+/* 卡片降低透明感：更不透明，文字更清楚 */
+.card{
+  background:
+    linear-gradient(rgba(20,28,46,.90),rgba(20,28,46,.97)),
+    url("assets/images/ui/card_bg.webp") center/cover repeat;
+  border:1px solid rgba(119,230,255,.16);
+  box-shadow:
+    inset 0 0 12px rgba(119,230,255,.035),
+    0 5px 14px rgba(0,0,0,.18);
+  backdrop-filter:none;
+}
+
+/* 首页地图里的卡片也调得更实一点 */
+.map-hero .card{
+  background:rgba(18,32,51,.84);
+  border:1px solid rgba(119,230,255,.20);
+  backdrop-filter:blur(3px);
+}
+
+.map-hero .card:hover{
+  background:rgba(24,40,65,.90);
+  border-color:rgba(119,230,255,.34);
+}
+
+/* 关闭所有普通 panel 的角标，避免首页和小面板显得拥挤 */
+.panel::before,
+.panel::after{
+  display:none;
+}
+
+/* 只允许专属功能页大背景显示角标 */
+.alchemy-art::before,
+.forge-art::before,
+.chat-art::before,
+.system-art::before,
+.bag-art::before,
+.activity-art::before,
+.mail-art::before,
+.shop-art::before{
+  content:"";
+  display:block;
+  position:absolute;
+  left:0;
+  top:0;
+  width:58px;
+  height:58px;
+  background:url("assets/images/ui/panel_corner.webp") left top/contain no-repeat;
+  opacity:.32;
+  pointer-events:none;
+  z-index:0;
+}
+
+.alchemy-art::after,
+.forge-art::after,
+.chat-art::after,
+.system-art::after,
+.bag-art::after,
+.activity-art::after,
+.mail-art::after,
+.shop-art::after{
+  content:"";
+  display:block;
+  position:absolute;
+  right:0;
+  bottom:0;
+  width:58px;
+  height:58px;
+  background:url("assets/images/ui/panel_corner.webp") left top/contain no-repeat;
+  opacity:.22;
+  transform:rotate(180deg);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* 专属页面内部内容保持在角标上方 */
+.alchemy-art>*,
+.forge-art>*,
+.chat-art>*,
+.system-art>*,
+.bag-art>*,
+.activity-art>*,
+.mail-art>*,
+.shop-art>*{
+  position:relative;
+  z-index:1;
+}
+
+/* 降低专属页内小卡片的视觉厚重感，但仍保持可读 */
+.alchemy-art .card,
+.forge-art .card,
+.chat-art .card,
+.system-art .card,
+.bag-art .card,
+.activity-art .card,
+.mail-art .card,
+.shop-art .card{
+  background:
+    linear-gradient(rgba(16,23,38,.86),rgba(16,23,38,.95)),
+    url("assets/images/ui/card_bg.webp") center/cover repeat;
+}
+
+/* 首页不显示角标，保持干净 */
+.map-hero .panel::before,
+.map-hero .panel::after{
+  display:none!important;
+}
+.map-hero .card{
+  background:rgba(18,32,51,.86)!important;
+  border:1px solid rgba(119,230,255,.22);
+  box-shadow:0 8px 24px rgba(0,0,0,.24);
+}
+/* ===== 修复主页卡片被同一行拉高 ===== */
+
+.cards{
+  align-items:start;
+}
+
+.map-hero .cards{
+  align-items:start;
+}
+
+.card{
+  height:auto;
+  min-height:0;
+}
+
+/* 主页详细属性卡片单独压缩，不再把整行撑得太夸张 */
+.compact-attrs-card{
+  max-height:360px;
+  overflow:auto;
+}
+
+.compact-attrs-card .kv{
+  grid-template-columns:90px 1fr;
+  gap:3px 6px;
+  font-size:13px;
+}
+.map-hero .card{
+  background:rgba(18,32,51,.86)!important;
+  border:1px solid rgba(119,230,255,.22);
+  box-shadow:0 8px 20px rgba(0,0,0,.20);
+}
+
+.map-hero .card:hover{
+  background:rgba(24,40,65,.92)!important;
+}
+/* ===== 彻底关闭 panel_corner 角标 ===== */
+.panel::before,
+.panel::after,
+.alchemy-art::before,
+.alchemy-art::after,
+.forge-art::before,
+.forge-art::after,
+.chat-art::before,
+.chat-art::after,
+.system-art::before,
+.system-art::after,
+.bag-art::before,
+.bag-art::after,
+.activity-art::before,
+.activity-art::after,
+.mail-art::before,
+.mail-art::after,
+.shop-art::before,
+.shop-art::after{
+  content:none!important;
+  display:none!important;
+  background:none!important;
+}
+/* ===== 恢复模块化卡片布局，不再强行拉宽 ===== */
+.cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(240px,300px));
+  gap:10px;
+  justify-content:start;
+  align-items:start;
+}
+
+/* 首页地图区域稍微宽一点，但不再无限拉伸 */
+.map-hero .cards{
+  grid-template-columns:repeat(auto-fill,minmax(260px,320px));
+  justify-content:start;
+  align-items:start;
+}
+
+/* 卡片自身不要被拉成大块 */
+.card{
+  width:auto;
+  max-width:320px;
+  height:auto;
+  min-height:0;
+}
+
+/* 如果某些卡片需要占满，比如日志、主面板里的大区域，可以单独撑满 */
+.panel > .cards{
+  width:100%;
+}
+/* ===== 自定义鼠标 UI ===== */
+
+/* 全站默认鼠标 */
+html,
+body{
+  cursor:url("assets/images/ui/cursor/cursor_default.png") 2 2, auto;
+}
+
+/* 所有可点击元素 */
+button,
+a,
+.nav button,
+.subnav button,
+.item,
+.card[onclick],
+.equip-grid-cell,
+.gender-card,
+.forge-slot-btn,
+.forge-category-title,
+.craft-category-title,
+.craft-item-btn{
+  cursor:url("assets/images/ui/cursor/cursor_pointer.png") 4 2, pointer;
+}
+
+/* 战斗区鼠标 */
+.battle-scene,
+.monster-art{
+  cursor:url("assets/images/ui/cursor/cursor_attack.png") 8 4, crosshair;
+}
+
+/* 输入框保持文本光标，不建议改成花哨鼠标 */
+input,
+textarea,
+select{
+  cursor:url("assets/images/ui/cursor/cursor_text.png") 8 8, text;
+}
+
+/* 禁用按钮使用默认不可点击感 */
+button:disabled{
+  cursor:not-allowed;
+}
+/* ===== Boss 战斗弹窗 ===== */
+.boss-battle-mask{
+  position:fixed;
+  inset:0;
+  z-index:420;
+  background:rgba(0,0,0,.72);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+}
+
+.boss-battle-dialog{
+  width:min(980px,96vw);
+  max-height:92vh;
+  overflow:auto;
+  border:1px solid rgba(255,211,106,.42);
+  border-radius:18px;
+  background:
+    linear-gradient(rgba(12,18,30,.88),rgba(12,18,30,.96)),
+    url("assets/images/ui/panel_bg.webp") center/cover repeat;
+  box-shadow:0 24px 70px rgba(0,0,0,.72);
+  padding:14px;
+}
+
+.boss-battle-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+}
+
+.boss-battle-title{
+  font-size:22px;
+  font-weight:800;
+  color:var(--gold);
+  text-shadow:0 2px 10px rgba(0,0,0,.8);
+}
+
+.boss-battle-scene-wrap{
+  border:1px solid rgba(119,230,255,.22);
+  border-radius:14px;
+  overflow:hidden;
+  background:#070b13;
+  margin-bottom:10px;
+}
+
+.boss-battle-scene-wrap .battle-scene{
+  height:360px;
+  margin-top:0;
+  border:0;
+  border-radius:0;
+}
+
+.boss-result-art{
+  min-height:150px;
+  border:1px solid rgba(255,211,106,.26);
+  border-radius:14px;
+  margin:10px 0;
+  padding:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  background-size:cover;
+  background-position:center;
+  overflow:hidden;
+}
+
+.boss-result-art.win{
+  background:
+    linear-gradient(rgba(20,12,4,.25),rgba(8,12,20,.78)),
+    url("assets/images/ui/boss_result_win.webp") center/cover no-repeat;
+}
+
+.boss-result-art.lose{
+  background:
+    linear-gradient(rgba(20,4,8,.25),rgba(8,12,20,.82)),
+    url("assets/images/ui/boss_result_lose.webp") center/cover no-repeat;
+}
+
+.boss-result-text{
+  font-size:24px;
+  font-weight:900;
+  color:#fff;
+  text-shadow:0 3px 12px rgba(0,0,0,.9);
+}
+
+.boss-battle-log{
+  height:190px;
+  overflow:auto;
+  background:rgba(5,8,14,.82);
+  border:1px solid rgba(64,80,115,.7);
+  border-radius:12px;
+  padding:8px;
+  font-size:13px;
+  line-height:1.65;
+}
+
+.boss-battle-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  margin-top:10px;
+}
+/* ===== 修复储物戒装备详情被卡片和图标遮挡 ===== */
+
+/* 储物戒面板允许详情浮层溢出显示 */
+.store-panel{
+  overflow:visible!important;
+}
+
+/* 储物戒里的装备网格也允许浮层显示 */
+.store-panel .equip-grid{
+  overflow:visible!important;
+  position:relative;
+  z-index:20;
+}
+
+/* 每个装备格子允许 tooltip 溢出 */
+.store-panel .equip-grid-cell{
+  overflow:visible!important;
+  position:relative;
+}
+
+/* 鼠标悬浮的装备格子提升层级，避免被旁边格子盖住 */
+.store-panel .equip-grid-cell:hover{
+  z-index:500!important;
+}
+
+/* 装备详情浮层提高层级 */
+.store-panel .equip-tooltip{
+  z-index:9999!important;
+  position:absolute;
+  pointer-events:none;
+  background:rgba(8,12,20,.98);
+  border:1px solid rgba(255,211,106,.42);
+  box-shadow:0 16px 40px rgba(0,0,0,.62);
+}
+
+/* 手机点击详情弹窗提高层级 */
+.equip-mobile-mask{
+  z-index:9999!important;
+}
+
+.equip-mobile-dialog{
+  position:relative;
+  z-index:10000!important;
+}
+
+/* 防止装备图标层盖住详情 */
+.equip-layer{
+  z-index:auto;
+}
+
+.equip-layer.frame{
+  z-index:3;
+}
+
+.equip-layer.grade{
+  z-index:4;
+}
+
+.equip-layer.fx{
+  z-index:5;
+}
+
+.equip-layer.unidentified{
+  z-index:6;
+}
+/* ===== 锻造 / 炼丹右侧日志 ===== */
+.work-page-layout{
+  display:grid;
+  grid-template-columns:260px minmax(0,1fr) 320px;
+  gap:12px;
+  align-items:start;
+}
+
+.work-side-log{
+  position:sticky;
+  top:10px;
+  max-height:680px;
+}
+
+.work-side-log .small-log{
+  height:560px;
+  background:rgba(5,8,14,.86);
+  border:1px solid rgba(255,211,106,.18);
+  box-shadow:inset 0 0 18px rgba(119,230,255,.04);
+}
+
+.work-log-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+
+@media(max-width:1100px){
+  .work-page-layout{
+    grid-template-columns:1fr;
+  }
+
+  .work-side-log{
+    position:static;
+    max-height:none;
+  }
+
+  .work-side-log .small-log{
+    height:260px;
+  }
+}
 </style>
 </head>
 <body>
@@ -1324,14 +2224,14 @@ CONFIG.itemIconMap={
   "双倍修行丹":CONFIG.iconPaths.pills+"double_cultivation_dan.webp",
   "三倍修行丹":CONFIG.iconPaths.pills+"triple_cultivation_dan.webp",
 
-  "筑基破境丹":CONFIG.iconPaths.pills+"breakthrough_dan.webp",
-  "金丹破境丹":CONFIG.iconPaths.pills+"breakthrough_dan.webp",
-  "元婴破境丹":CONFIG.iconPaths.pills+"breakthrough_dan.webp",
-  "化神破境丹":CONFIG.iconPaths.pills+"breakthrough_dan.webp",
-  "炼虚破境丹":CONFIG.iconPaths.pills+"breakthrough_dan.webp",
-  "合体破境丹":CONFIG.iconPaths.pills+"breakthrough_dan.webp",
-  "大乘破境丹":CONFIG.iconPaths.pills+"breakthrough_dan.webp",
-  "渡劫破境丹":CONFIG.iconPaths.pills+"breakthrough_dan.webp",
+"筑基破境丹":CONFIG.iconPaths.pills+"breakthrough/zhuji_breakthrough_dan.webp",
+"金丹破境丹":CONFIG.iconPaths.pills+"breakthrough/jindan_breakthrough_dan.webp",
+"元婴破境丹":CONFIG.iconPaths.pills+"breakthrough/yuanying_breakthrough_dan.webp",
+"化神破境丹":CONFIG.iconPaths.pills+"breakthrough/huashen_breakthrough_dan.webp",
+"炼虚破境丹":CONFIG.iconPaths.pills+"breakthrough/lianxu_breakthrough_dan.webp",
+"合体破境丹":CONFIG.iconPaths.pills+"breakthrough/heti_breakthrough_dan.webp",
+"大乘破境丹":CONFIG.iconPaths.pills+"breakthrough/dacheng_breakthrough_dan.webp",
+"渡劫破境丹":CONFIG.iconPaths.pills+"breakthrough/dujie_breakthrough_dan.webp",
 
   "壮骨丹":CONFIG.iconPaths.pills+"attribute_dan.webp",
   "醒神丹":CONFIG.iconPaths.pills+"attribute_dan.webp",
@@ -1648,7 +2548,7 @@ CONFIG.equipBoxConfigs={
     qualityWeights:[360,300,180,90,40,12,3]
   },
   "随机装备箱":{
-    description:"开出当前境界全品质随机装备。",
+    description:"开出当前境界全品质随机装备。箱子装备不会出现蓝字。",
     count:[1,1],
     identified:true,
     qualityPool:[0,1,2,3,4,5,6],
@@ -1681,14 +2581,13 @@ CONFIG.equipBoxConfigs={
     qualityIndex:6
   },
   "锻造装备箱":{
-    description:"必定开出当前境界带蓝字的传说装备。",
+    description:"开出当前境界传说装备。箱子装备不会出现蓝字。",
     count:[1,1],
     identified:true,
     qualityIndex:5,
-    forceBlue:true
   },
   "BOSS装备箱":{
-    description:"必定开出当前境界传说及以上装备。",
+    description:"必定开出当前境界传说及以上装备。箱子装备不会出现蓝字。",
     count:[1,1],
     identified:true,
     qualityPool:[5,6],
@@ -1812,6 +2711,13 @@ running:false,
     currentMonsterMaxHp:0,
     battleVisual:{fx:"slash",text:"",nonce:0},
     battleDeath:{image:null,name:"",nonce:0,expireAt:0},
+bossBattle:{
+  active:false,
+  running:false,
+  boss:null,
+  result:null,
+  logs:[]
+},
     buffs:{cultMultiplier2Until:0,cultMultiplier3Until:0,wine:null},
     player:{
       name:"无名道友",
@@ -1844,7 +2750,8 @@ running:false,
     equipped:Object.fromEntries(CONFIG.equipSlots.map(slot=>[slot,null])),
     bag:[],
     store:[],
-    alchemy:{furnace:null,failCompensation:0},
+    alchemy:{furnace:null,failCompensation:0,logs:[]},
+forge:{failCompensation:0,logs:[]},
     skills:{owned:[],equipped:[],proficiency:{},activeMind:null},
     mails:[],
     logs:["<span class='cyan'>欢迎来到《转世之修仙系统》：公益文字修仙，无真实充值入口。</span>"],
@@ -2327,6 +3234,7 @@ if(saved.alchemyCount===undefined)saved.alchemyCount=1;
     if(saved.buffs&&!saved.buffs.hasOwnProperty("wine"))saved.buffs.wine=null;
     if(!saved.battleVisual)saved.battleVisual=base.battleVisual;
 if(!saved.battleDeath)saved.battleDeath=base.battleDeath;
+if(!saved.bossBattle)saved.bossBattle=base.bossBattle;
 
 if(saved.battleVisual&&saved.battleVisual.nonce&&Date.now()-saved.battleVisual.nonce>1000){
   saved.battleVisual=base.battleVisual;
@@ -2336,6 +3244,12 @@ if(saved.battleDeath&&saved.battleDeath.nonce&&Date.now()-saved.battleDeath.nonc
   saved.battleDeath=base.battleDeath;
 }
     if(!saved.alchemy)saved.alchemy=base.alchemy;
+if(!saved.alchemy.logs)saved.alchemy.logs=[];
+if(saved.alchemy.failCompensation===undefined)saved.alchemy.failCompensation=0;
+
+if(!saved.forge)saved.forge=base.forge;
+if(!saved.forge.logs)saved.forge.logs=[];
+if(saved.forge.failCompensation===undefined)saved.forge.failCompensation=0;
     if(!saved.activity)saved.activity=base.activity;
     if(!saved.vip)saved.vip=base.vip;
     if(!saved.month)saved.month=base.month;
@@ -2428,6 +3342,33 @@ function pushUseLog(text){
   saveState();
 }
 
+function pushForgeLog(text){
+  if(!STATE.forge){
+    STATE.forge={failCompensation:0,logs:[]};
+  }
+
+  if(!STATE.forge.logs){
+    STATE.forge.logs=[];
+  }
+
+  STATE.forge.logs.unshift(new Date().toLocaleTimeString()+" ｜ "+text);
+  STATE.forge.logs=STATE.forge.logs.slice(0,120);
+  saveState();
+}
+
+function pushAlchemyLog(text){
+  if(!STATE.alchemy){
+    STATE.alchemy={furnace:null,failCompensation:0,logs:[]};
+  }
+
+  if(!STATE.alchemy.logs){
+    STATE.alchemy.logs=[];
+  }
+
+  STATE.alchemy.logs.unshift(new Date().toLocaleTimeString()+" ｜ "+text);
+  STATE.alchemy.logs=STATE.alchemy.logs.slice(0,120);
+  saveState();
+}
 function pushFlow(type,data){
   STATE.flow.unshift({id:uid("flow"),time:now(),type,data});
   STATE.flow=STATE.flow.slice(0,400);
@@ -2807,18 +3748,34 @@ function createEquipmentIcon(slot,realm,quality,grade,blue,identified,weaponStyl
 }
 function createEquip(realm=STATE.player.realm,slot=pick(CONFIG.equipSlots),identified=true,options={}){
   const qualityIndex=options.qualityIndex!==undefined
-  ? options.qualityIndex
-  : weightedPick(options.qualityPool||[0,1,2,3,4,5,6],options.qualityWeights||[360,300,180,90,40,12,3]);
+    ? options.qualityIndex
+    : weightedPick(
+        options.qualityPool||[0,1,2,3,4,5,6],
+        options.qualityWeights||[360,300,180,90,40,12,3]
+      );
+
   const gradeIndex=weightedPick([0,1,2],[60,30,10]);
   const quality=CONFIG.qualities[qualityIndex];
   const grade=CONFIG.grades[gradeIndex];
+
+  const baseSlot=typeof getEquipBaseSlot==="function"
+    ? getEquipBaseSlot(slot)
+    : (
+        slot==="手镯1"||slot==="手镯2"
+          ? "手镯"
+          : slot==="戒指1"||slot==="戒指2"||slot==="戒指3"
+            ? "戒指"
+            : slot
+      );
+
   const base=10+realm*15;
-  const baseSlot=getEquipBaseSlot(slot);
-const isAttack=["武器","项链","手镯"].includes(baseSlot);
+  const isAttack=["武器","项链","手镯"].includes(baseSlot);
   const isDefense=["头盔","上身","下装","护臂"].includes(baseSlot);
   const isSpeed=baseSlot==="鞋";
+
   const attrs={};
   const multiplier=quality.multiplier*grade.multiplier;
+
   if(isAttack){
     attrs.力量=Math.floor(base*multiplier*rnd(8,13)/10);
     attrs.精神=Math.floor(base*multiplier*rnd(5,10)/10);
@@ -2828,58 +3785,49 @@ const isAttack=["武器","项链","手镯"].includes(baseSlot);
     attrs.生命=Math.floor(base*multiplier*8);
   }else if(isSpeed){
     attrs.速度=Math.max(1,Math.floor((2+realm)*multiplier));
+    attrs.生命=Math.floor(base*multiplier*4);
   }else{
     attrs.灵力=Math.floor(base*multiplier*2);
     attrs.生命=Math.floor(base*multiplier*5);
   }
-  const blue=options.forceBlue
-  ? pick(CONFIG.blueEffects)
-  : (chance(.035+qualityIndex*.008)?pick(CONFIG.blueEffects):null);
-  const weaponStyle=slot==="武器"?pick(CONFIG.weaponIconStyles):null;
-  const icon=createEquipmentIcon(slot,realm,qualityIndex,gradeIndex,blue,identified,weaponStyle);
+
+  let blue=null;
+
+  if(options.allowBlue){
+    blue=options.forceBlue
+      ? pick(CONFIG.blueEffects)
+      : (chance(.035+qualityIndex*.008)?pick(CONFIG.blueEffects):null);
+  }
+
+  const noRealmLimit=!!options.noRealmLimit;
+  const craftedBy=options.craftedBy||null;
+
+  const weaponStyle=baseSlot==="武器"
+    ? (options.weaponStyle||pick(CONFIG.weaponIconStyles))
+    : null;
+
+  const icon=createEquipmentIcon(
+    baseSlot,
+    realm,
+    qualityIndex,
+    gradeIndex,
+    blue,
+    identified,
+    weaponStyle
+  );
+
   return {
     id:uid("equip"),
-    name:`${pick(["碎星","寒碑","青烬","澜影","玄垣","照夜","晦明"])}${slot}`,
-    slot,
+    name:`${pick(["碎星","寒碑","青烬","澜影","玄垣","照夜","晦明"])}${baseSlot}`,
+    slot:baseSlot,
     realm,
     quality:qualityIndex,
     grade:gradeIndex,
     attrs,
     blue,
     identified,
-    weaponStyle,
-    icon
-  };
-}
-function createNoviceEquip(slot){
-  const attrs={};
-  if(["武器","项链","手镯1","手镯2"].includes(slot)){
-    attrs.力量=18;
-    attrs.精神=12;
-  }else if(["头盔","上身","下装","护臂"].includes(slot)){
-    attrs.生命=90;
-    attrs.耐力=12;
-    attrs.抗性=8;
-  }else if(slot==="鞋"){
-    attrs.速度=4;
-    attrs.生命=40;
-  }else{
-    attrs.生命=60;
-    attrs.灵力=20;
-  }
-  const weaponStyle=slot==="武器"?"weapon_sword":null;
-  const icon=createEquipmentIcon(slot,0,2,1,null,true,weaponStyle);
-  return {
-    id:uid("equip"),
-    name:"安尘新手"+slot,
-    slot,
-    realm:0,
-    quality:2,
-    grade:1,
-    attrs,
-    blue:null,
-    identified:true,
-    novice:true,
+    noRealmLimit,
+    craftedBy,
     weaponStyle,
     icon
   };
@@ -2899,6 +3847,19 @@ function openNoviceSuitBox(item){
   pushLog("<span class='good'>新手套装已装备，炼气期生存能力大幅提升。</span>");
 }
 
+function canWearEquip(equip){
+  if(!equip)return false;
+  if(equip.noRealmLimit)return true;
+  return Number(equip.realm||0)<=STATE.player.realm+1;
+}
+
+function getWearEquipBlockReason(equip){
+  if(!equip)return "装备不存在。";
+  if(equip.noRealmLimit)return "";
+  const needRealm=CONFIG.realms[equip.realm]||"未知境界";
+  const maxRealm=CONFIG.realms[Math.min(CONFIG.realms.length-1,STATE.player.realm+1)]||"未知境界";
+  return `境界不足。该装备为【${needRealm}】装备，你当前最多只能穿戴【${maxRealm}】及以下装备。`;
+}
 function getEquipBaseSlot(slot){
   if(slot==="手镯1"||slot==="手镯2")return "手镯";
   if(slot==="戒指1"||slot==="戒指2"||slot==="戒指3")return "戒指";
@@ -2925,6 +3886,9 @@ function getDisplaySlotName(slot){
 
 function equipToBestCompatibleSlot(equip){
   if(!equip)return false;
+if(!canWearEquip(equip)){
+    return false;
+  }
 
   const slots=getCompatibleEquipSlots(equip.slot);
   let bestSlot=slots[0];
@@ -3724,21 +4688,40 @@ function openStoreEquipDetail(equipId){
 }
 
 function closeStoreEquipDetail(){
-const equip=STATE.store.find(item=>item.id===STATE.selectedStoreEquipId);
+  STATE.selectedStoreEquipId=null;
+  saveState();
+  render();
+}
+
+function equipSelectedStoreEquip(){
+  const equip=STATE.store.find(item=>item.id===STATE.selectedStoreEquipId);
   if(!equip)return;
+
   if(!equip.identified){
     alert("未鉴定装备不能穿戴。");
     return;
   }
-  equipToBestCompatibleSlot(equip);
+
+  if(!canWearEquip(equip)){
+    alert(getWearEquipBlockReason(equip));
+    return;
+  }
+
+  const ok=equipToBestCompatibleSlot(equip);
+
+  if(!ok){
+    alert("装备失败。");
+    return;
+  }
+
   STATE.selectedStoreEquipId=null;
   saveState();
   render();
 }
 function bestEquip(){
   const sorted=STATE.store
-    .filter(equip=>equip.identified)
-    .sort((a,b)=>equipScore(b)-equipScore(a));
+  .filter(equip=>equip.identified&&canWearEquip(equip))
+  .sort((a,b)=>equipScore(b)-equipScore(a));
 
   sorted.forEach(equip=>{
     if(!STATE.store.some(item=>item.id===equip.id))return;
@@ -3905,7 +4888,13 @@ function getForgeSuccessRate(targetRealm){
   rate+=CONFIG.vip[STATE.vip.level]?.forge||0;
   rate+=STATE.system.forgeShopBonus||0;
 
-  return Math.max(.08,Math.min(.92,rate));
+  if(!STATE.forge){
+    STATE.forge={failCompensation:0};
+  }
+
+  rate+=Math.min(.30,STATE.forge.failCompensation||0);
+
+  return Math.max(.08,Math.min(.95,rate));
 }
 function getOwnedItemCount(name){
   return STATE.bag.find(item=>item.name===name)?.count||0;
@@ -3980,6 +4969,7 @@ function craftGift(){
 
   pushLog(`<span class="good">制作礼物成功：${recipe.name}</span>`);
   pushUseLog(`制作礼物：${recipe.name}`);
+pushForgeLog(`制作礼物成功：${recipe.name}`);
   saveState();
   safeRender();
 }
@@ -4000,26 +4990,49 @@ function forge(){
 
   consumeForgeCost(cost);
 
-  const probability=getForgeSuccessRate(targetRealm);
+ const probability=getForgeSuccessRate(targetRealm);
+const forgeRoll=Math.random();
 
-  if(chance(probability)){
-    const equip=createEquip(targetRealm,slot,false);
-    STATE.store.push(equip);
+pushUseLog(`锻造判定：成功率 ${Math.round(probability*100)}%，随机数 ${Math.round(forgeRoll*100)}，${forgeRoll<probability?"成功":"失败"}`);
+
+if(forgeRoll<probability){
+  const noRealmLimit=chance(.01);
+
+  const equip=createEquip(targetRealm,slot,false,{
+    allowBlue:true,
+    craftedBy:STATE.player.name||STATE.auth.account||"无名道友",
+    noRealmLimit
+  });
+
+  STATE.store.push(equip);
+STATE.forge.failCompensation=0;
 updateAISystemTaskProgress({
   type:"forgeRealm",
   targetRealm,
   slot
 });
     pushLog(`<span class="good">锻造成功：${CONFIG.realms[targetRealm]}${slot}，装备已进入储物戒待鉴定。</span>`);
-  }else{
-    let returnRate=STATE.month.active ? .6 : 0;
+pushForgeLog(`锻造成功：${CONFIG.realms[targetRealm]}${slot}，装备进入储物戒待鉴定。${equip.blue?"出现蓝字："+equip.blue.name:""}${equip.noRealmLimit?"｜无境界限制":""}`);
+if(noRealmLimit){
+  pushLog(`<span class="crit">天工异象！${equip.name} 获得无境界限制，任何境界均可穿戴。</span>`);
+  pushForgeLog(`天工异象：${equip.name} 获得无境界限制。`);
+}
+ }else{
+  if(!STATE.forge){
+    STATE.forge={failCompensation:0};
+  }
+
+  STATE.forge.failCompensation=Math.min(.30,(STATE.forge.failCompensation||0)+.08);
+
+  let returnRate=STATE.month.active ? .6 : 0;
     if(returnRate){
       STATE.resources.coin+=Math.floor(cost.coin*returnRate);
       cost.materials.forEach(costItem=>{
         addItem(costItem.name,Math.floor(costItem.count*returnRate),guessItemType(costItem.name));
       });
     }
-    pushLog(`<span class="bad">锻造失败。${returnRate?"月卡返还 60% 资源。":""}</span>`);
+    pushLog(`<span class="bad">锻造失败。${returnRate?"月卡返还 60% 资源。":""} 下次锻造成功率补偿 +${Math.round((STATE.forge.failCompensation||0)*100)}%。</span>`);
+pushForgeLog(`锻造失败：${CONFIG.realms[targetRealm]}${slot}。${returnRate?"返还部分资源。":""} 当前失败补偿 +${Math.round((STATE.forge.failCompensation||0)*100)}%。`);
   }
 
   cleanBag();
@@ -4049,6 +5062,7 @@ updateAISystemTaskProgress({
 });
   pushLog(`<span class="good">酿酒成功：${recipe.name}</span>`);
   pushUseLog(`酿酒：${recipe.name}`);
+pushAlchemyLog(`酿酒成功：${recipe.name}`);
   saveState();
   safeRender();
 }
@@ -4108,6 +5122,7 @@ for(let i=0;i<craftCount;i++){
 
     pushLog(`<span class="good">炼丹成功：${pillName} ×${craftCount}</span>`);
 pushUseLog(`炼丹成功：${created.join("、")}`);
+pushAlchemyLog(`炼丹成功：${pillName} ×${craftCount}，成丹：${created.join("、")}`);
   }else{
     STATE.alchemy.failCompensation+=.03;
 
@@ -4122,6 +5137,7 @@ pushUseLog(`炼丹成功：${created.join("、")}`);
 
     pushLog(`<span class="bad">炼丹失败。${returnRate?`返还 ${Math.round(returnRate*100)}% 材料。`:""}</span>`);
     pushUseLog(`炼丹失败：${pillName}`);
+pushAlchemyLog(`炼丹失败：${pillName} ×${craftCount}。${returnRate?`返还 ${Math.round(returnRate*100)}% 材料。`:""}`);
   }
 
   cleanBag();
@@ -5012,10 +6028,13 @@ function equipDetailHtml(equip){
     <div class="equip-tooltip-line">品质：${CONFIG.qualities[equip.quality].name}</div>
     <div class="equip-tooltip-line">品级：${CONFIG.grades[equip.grade].name}</div>
     <div class="equip-tooltip-line">状态：${equip.identified?"已鉴定":"未鉴定"}</div>
-    <hr>
-    <div class="equip-tooltip-line">属性：${attrText||"无"}</div>
-    ${equip.blue?`<div class="equip-tooltip-line cyan">蓝字：${equip.blue.name}，${equip.blue.description}</div>`:""}
-    <div class="equip-tooltip-line gold">评分：${fmt(scoreValue)}</div>
+${equip.craftedBy?`<div class="equip-tooltip-line gold">由 ${equip.craftedBy} 打造</div>`:""}
+${equip.noRealmLimit?`<div class="equip-tooltip-line crit">特殊：无境界限制，任何境界均可穿戴</div>`:""}
+${!equip.noRealmLimit&&!canWearEquip(equip)?`<div class="equip-tooltip-line red">${getWearEquipBlockReason(equip)}</div>`:""}
+<hr>
+<div class="equip-tooltip-line">属性：${attrText||"无"}</div>
+${equip.blue?`<div class="equip-tooltip-line cyan">蓝字：${equip.blue.name}，${equip.blue.description}</div>`:""}
+<div class="equip-tooltip-line gold">评分：${fmt(scoreValue)}</div>
   </div>`;
 }
 function equipIconHtml(equip,size=""){
@@ -5049,9 +6068,11 @@ function equipHtml(equip){
     <div class="equip-info">
     <b class="${CONFIG.qualities[equip.quality].className}">${equip.name}</b>
     <span>${CONFIG.qualities[equip.quality].name}·${CONFIG.grades[equip.grade].name}</span><br>
-    <span class="muted">${CONFIG.realms[equip.realm]} · ${equip.identified?"已鉴定":"未鉴定"}</span><br>
-    ${Object.entries(equip.attrs).map(([key,value])=>`${key}+${fmt(value)}`).join("，")}<br>
-    ${equip.blue?`<span class="blue">蓝字：${equip.blue.name}，${equip.blue.description}</span>`:""}
+    <span class="muted">${CONFIG.realms[equip.realm]} · ${equip.identified?"已鉴定":"未鉴定"}${equip.noRealmLimit?" · 无境界限制":""}</span><br>
+${equip.craftedBy?`<span class="gold">由 ${equip.craftedBy} 打造</span><br>`:""}
+${!equip.noRealmLimit&&!canWearEquip(equip)?`<span class="red">${getWearEquipBlockReason(equip)}</span><br>`:""}
+${Object.entries(equip.attrs).map(([key,value])=>`${key}+${fmt(value)}`).join("，")}<br>
+${equip.blue?`<span class="blue">蓝字：${equip.blue.name}，${equip.blue.description}</span>`:""}
       </div>
   </div>`;
 }
@@ -5068,9 +6089,16 @@ function safeRender(){
   const scrollX=window.scrollX;
   const scrollY=window.scrollY;
   const bagList=document.getElementById("bagItemList");
-  const bagLog=document.getElementById("bagUseLog");
-  const bagListScroll=bagList?bagList.scrollTop:0;
-  const bagLogScroll=bagLog?bagLog.scrollTop:0;
+const bagLog=document.getElementById("bagUseLog");
+const homeLog=document.getElementById("homeBattleLog");
+const forgeLog=document.getElementById("forgeWorkLog");
+const alchemyLog=document.getElementById("alchemyWorkLog");
+
+const bagListScroll=bagList?bagList.scrollTop:0;
+const bagLogScroll=bagLog?bagLog.scrollTop:0;
+const homeLogScroll=homeLog?homeLog.scrollTop:0;
+const forgeLogScroll=forgeLog?forgeLog.scrollTop:0;
+const alchemyLogScroll=alchemyLog?alchemyLog.scrollTop:0;
 
   render();
 
@@ -5086,10 +6114,18 @@ function safeRender(){
   }
 
   const nextBagList=document.getElementById("bagItemList");
-  const nextBagLog=document.getElementById("bagUseLog");
-  if(nextBagList)nextBagList.scrollTop=bagListScroll;
-  if(nextBagLog)nextBagLog.scrollTop=bagLogScroll;
-  window.scrollTo(scrollX,scrollY);
+const nextBagLog=document.getElementById("bagUseLog");
+const nextHomeLog=document.getElementById("homeBattleLog");
+const nextForgeLog=document.getElementById("forgeWorkLog");
+const nextAlchemyLog=document.getElementById("alchemyWorkLog");
+
+if(nextBagList)nextBagList.scrollTop=bagListScroll;
+if(nextBagLog)nextBagLog.scrollTop=bagLogScroll;
+if(nextHomeLog)nextHomeLog.scrollTop=homeLogScroll;
+if(nextForgeLog)nextForgeLog.scrollTop=forgeLogScroll;
+if(nextAlchemyLog)nextAlchemyLog.scrollTop=alchemyLogScroll;
+
+window.scrollTo(scrollX,scrollY);
 }
 function renderStableAround(anchorId){
   const anchor=document.getElementById(anchorId);
@@ -5486,6 +6522,144 @@ STATE.battleVisual={fx:"slash",text:"",nonce:0};
   saveState();
   render();
 }
+function openBossBattleModal(){
+  const boss=currentMonster(true);
+
+  STATE.bossBattle={
+    active:true,
+    running:false,
+    boss:{
+      name:boss.name,
+      image:boss.image,
+      hp:boss.hp,
+      atk:boss.atk,
+      def:boss.def,
+      res:boss.res,
+      speed:boss.speed,
+      boss:true,
+      mapIndex:STATE.progress.map,
+      mapName:CONFIG.maps[STATE.progress.map]?.name||"未知地图"
+    },
+    result:null,
+    logs:[]
+  };
+
+  saveState();
+  safeRender();
+}
+
+function closeBossBattleModal(){
+  STATE.bossBattle={
+    active:false,
+    running:false,
+    boss:null,
+    result:null,
+    logs:[]
+  };
+
+  saveState();
+  safeRender();
+}
+
+function runBossBattleModal(){
+  if(!STATE.bossBattle||STATE.bossBattle.running)return;
+
+  const boss=STATE.bossBattle.boss||currentMonster(true);
+  const beforeMap=STATE.progress.map;
+  const beforeLogCount=STATE.logs.length;
+
+  STATE.bossBattle.running=true;
+  STATE.bossBattle.result=null;
+  STATE.bossBattle.logs=[
+    `你踏入 Boss 战场，${boss.name} 的威压铺天盖地。`
+  ];
+
+  saveState();
+  safeRender();
+
+  setTimeout(()=>{
+    battle(true);
+
+    const newLogs=STATE.logs
+      .slice(0,Math.max(0,STATE.logs.length-beforeLogCount))
+      .reverse();
+
+    const bossCleared=!!STATE.progress.clearedZones[`${beforeMap}_boss`];
+    const mapChanged=STATE.progress.map!==beforeMap;
+    const win=bossCleared||mapChanged;
+    const lose=STATE.player.life<=0||STATE.player.dying;
+
+    STATE.bossBattle={
+      active:true,
+      running:false,
+      boss,
+      result:win?"win":lose?"lose":"end",
+      logs:newLogs.length?newLogs:[win?"Boss 战斗胜利。":lose?"Boss 战斗失败。":"Boss 战斗结束。"]
+    };
+
+    saveState();
+    render();
+  },1200);
+}
+
+function renderBossBattleModal(){
+  if(!STATE.bossBattle||!STATE.bossBattle.active)return "";
+
+  const boss=STATE.bossBattle.boss||currentMonster(true);
+  const result=STATE.bossBattle.result;
+  const running=STATE.bossBattle.running;
+
+  const bossHp=result==="win"?0:boss.hp;
+  const bossMax=boss.hp;
+
+  const resultHtml=result?`
+    <div class="boss-result-art ${result==="win"?"win":"lose"}">
+      <div class="boss-result-text">
+        ${result==="win"
+          ? `Boss 战胜利：${boss.name} 已伏诛`
+          : result==="lose"
+            ? `Boss 战失败：${boss.name} 仍然盘踞此地`
+            : `Boss 战结束`
+        }
+      </div>
+    </div>
+  `:"";
+
+  return `<div class="boss-battle-mask">
+    <div class="boss-battle-dialog">
+      <div class="boss-battle-header">
+        <div>
+          <div class="boss-battle-title">Boss 战 · ${boss.name}</div>
+          <div class="muted">地点：${boss.mapName||CONFIG.maps[STATE.progress.map]?.name||"未知地图"}</div>
+        </div>
+        <button onclick="closeBossBattleModal()">关闭</button>
+      </div>
+
+      <div class="boss-battle-scene-wrap">
+        ${renderBattleScene(boss,bossHp,bossMax)}
+      </div>
+
+      ${resultHtml}
+
+      <div class="boss-battle-log">
+        ${
+          STATE.bossBattle.logs&&STATE.bossBattle.logs.length
+            ? STATE.bossBattle.logs.join("<br>")
+            : "<span class='muted'>Boss 正在战场深处等待你。</span>"
+        }
+      </div>
+
+      <div class="boss-battle-actions">
+        ${!result?`
+          <button ${running?"disabled":""} onclick="runBossBattleModal()">
+            ${running?"Boss 战斗推演中...":"开始 Boss 战"}
+          </button>
+        `:""}
+        ${result?`<button onclick="closeBossBattleModal()">收起结果</button>`:""}
+      </div>
+    </div>
+  </div>`;
+}
 function renderHome(){
   const map=CONFIG.maps[STATE.progress.map];
   const monster=currentMonster(false);
@@ -5565,8 +6739,8 @@ return `<div class="map-hero">
           <b>速度</b><span>${fmt(bossMonster.speed)}</span>
         </div>
       </div>
-            <div class="card">
-        <h3>详细属性</h3>
+            <div class="card compact-attrs-card">
+  <h3>详细属性</h3>
         <div class="kv">
           <b>境界</b><span>${currentRealmTitle()}</span>
           <b>修为</b><span>${fmt(STATE.player.cultivation)} / ${fmt(need)}</span>
@@ -5595,7 +6769,7 @@ return `<div class="map-hero">
         <button onclick="STATE.running=!STATE.running;saveState();render()">${STATE.running?"停止挂机":"开始挂机"}</button>
         <button onclick="battle(false);safeRender()">手动打一只</button>
         <button ${nextReady?"":"disabled"} onclick="STATE.progress.zone++;STATE.currentMonsterHp=null;saveState();render()">进入下一层</button>
-        <button ${bossReady?"":"disabled"} onclick="battle(true);safeRender()">Boss 战</button>
+        <button ${bossReady?"":"disabled"} onclick="openBossBattleModal()">Boss 战</button>
         <label class="row"><input type="checkbox" ${STATE.hideLog?"checked":""} onchange="STATE.hideLog=this.checked;saveState()">隐藏战斗日志</label>
         <label class="row"><input type="checkbox" ${STATE.autoHeal?"checked":""} onchange="STATE.autoHeal=this.checked;saveState()">低血量自动用生命晶石</label>
         <div>阈值 <input id="autoHealPctInput" type="number" value="${STATE.autoHealPct}" min="5" max="90" style="width:80px" onchange="STATE.autoHealPct=+this.value;saveState()">%</div>
@@ -5625,7 +6799,8 @@ return `<div class="map-hero">
     </div>
     </div>
   </div>
-  <div class="panel"><h3>挂机战斗日志</h3><div class="log">${STATE.logs.join("<br>")}</div></div>`;
+  <div class="panel"><h3>挂机战斗日志</h3><div id="homeBattleLog" class="log">${STATE.logs.join("<br>")}</div></div>
+${renderBossBattleModal()}`;
 }
 
 function renderEquipPage(){
@@ -5713,8 +6888,8 @@ function renderBag(){
     STATE.selectedBagItemId=selected.id;
   }
 
-  return `<div class="panel">
-    <h2>背包</h2>
+  return `<div class="panel bag-art">
+    <h2 class="page-art-title">背包</h2>
     <div class="tabs-note">点击物品后，会在右侧显示详情和使用按钮。丹药支持批量使用。</div>
 
     <div class="subnav">
@@ -5727,7 +6902,7 @@ function renderBag(){
         <button onclick="cleanBag();STATE.selectedBagItemId=null;safeRender()">一键整理</button>
 
         <div id="bagItemList" class="list">
-          ${shownItems.length?shownItems.map(item=>`<div class="item" onclick="STATE.selectedBagItemId='${item.id}';saveState();safeRender()" style="cursor:pointer;border-color:${STATE.selectedBagItemId===item.id?'var(--gold)':'#2b3858'}">
+          ${shownItems.length?shownItems.map(item=>`<div class="item ${STATE.selectedBagItemId===item.id?'selected':''}" onclick="STATE.selectedBagItemId='${item.id}';saveState();safeRender()" style="cursor:pointer">
             <div class="item-line">
               ${itemIconHtml(item.name,item.type)}
               <div class="item-line-text">
@@ -5796,8 +6971,8 @@ function renderSkills(){
 
 function renderActivities(){
   const tabs=["礼包","兑换码","首充礼包","仙缘累充","成长基金","冲级活动","Boss 首杀"];
-  return `<div class="panel">
-    <h2>活动</h2>
+  return `<div class="panel activity-art">
+    <h2 class="page-art-title">活动</h2>
     <p class="cyan">所有活动奖励、兑换码、首充、累充、成长基金、VIP、月卡奖励全部通过邮件发放。</p>
     <div class="subnav">${tabs.map(tab=>`<button class="${STATE.activityTab===tab?'active':''}" onclick="STATE.activityTab='${tab}';saveState();render()">${tab}</button>`).join("")}</div>
   </div>
@@ -5806,7 +6981,7 @@ function renderActivities(){
 
 function renderActivitySubPage(tab){
   if(tab==="礼包"){
-  return `<div class="panel"><h3>礼包</h3><div class="cards">
+  return `<div class="panel activity-art"><h3 class="page-art-title">礼包</h3><div class="cards">
     <div class="card">
       <h3>新手礼包</h3>
       ${itemIconHtml("新手礼包","礼包","large")}
@@ -5819,7 +6994,7 @@ function renderActivitySubPage(tab){
 }
 
   if(tab==="兑换码"){
-    return `<div class="panel"><h3>兑换码</h3>
+    return `<div class="panel activity-art"><h3 class="page-art-title">兑换码</h3>
       <input id="codeInput" placeholder="TEST666">
       <button onclick="redeemCode()">兑换并发送邮件</button>
       <p class="muted">TEST666 为测试礼包，会给大量铜币、元宝、仙缘、修为、系统点、仙缘箱、丹药、炼丹炉等所有核心资源。</p>
@@ -5827,14 +7002,14 @@ function renderActivitySubPage(tab){
   }
 
   if(tab==="首充礼包"){
-    return `<div class="panel"><h3>首充礼包</h3><div class="cards">
+    return `<div class="panel activity-art"><h3 class="page-art-title">首充礼包</h3><div class="cards">
       <div class="card"><h3>首充礼包 6 仙缘</h3><p>消耗 6 仙缘激活，奖励通过邮件发放。</p><button ${STATE.activity.claimed.first6?"disabled":""} onclick="claimActivity('first6')">${STATE.activity.claimed.first6?"已激活":"激活并发邮件"}</button></div>
       <div class="card"><h3>30 仙缘礼包</h3><p>消耗 30 仙缘激活，奖励通过邮件发放。</p><button ${STATE.activity.claimed.first30?"disabled":""} onclick="claimActivity('first30')">${STATE.activity.claimed.first30?"已激活":"激活并发邮件"}</button></div>
     </div><p class="cyan">本游戏无真实充值入口，仙缘均由游戏内玩法掉落获得。</p></div>`;
   }
 
   if(tab==="仙缘累充"){
-    return `<div class="panel"><h3>仙缘累充</h3><div class="cards">
+    return `<div class="panel activity-art"><h3 class="page-art-title">仙缘累充</h3><div class="cards">
       ${CONFIG.cumulativeTiers.map(amount=>`<div class="card">
         <b>${amount} 档</b>
         <p>当前 ${STATE.vip.cumulative}/${amount}</p>
@@ -5844,7 +7019,7 @@ function renderActivitySubPage(tab){
   }
 
   if(tab==="成长基金"){
-    return `<div class="panel"><h3>成长基金</h3>
+    return `<div class="panel activity-art"><h3 class="page-art-title">成长基金</h3>
       <p>基础档免费；进阶档消耗 98 仙缘激活。每次升大境界都可以领取对应档位奖励，全部通过邮件发放。</p>
       <button ${STATE.activity.growthFundAdvancedActive?"disabled":""} onclick="activateGrowthFundAdvanced()">${STATE.activity.growthFundAdvancedActive?"进阶档已激活":"98 仙缘激活进阶档"}</button>
       <div class="cards">
@@ -5861,7 +7036,7 @@ function renderActivitySubPage(tab){
   if(tab==="冲级活动"){
     const currentTotal=STATE.player.realm*12+STATE.player.subRealm+1;
     const tiers=Array.from({length:36},(_,index)=>(index+1)*3);
-    return `<div class="panel"><h3>冲级活动</h3>
+    return `<div class="panel activity-art"><h3 class="page-art-title">冲级活动</h3>
       <p>每三个小境界可领取一次。当前总小境界进度：${currentTotal}</p>
       <div class="cards">
         ${tiers.map(tier=>`<div class="card">
@@ -5873,7 +7048,7 @@ function renderActivitySubPage(tab){
     </div>`;
   }
 
-  return `<div class="panel"><h3>Boss 首杀</h3><p>第一阶段保留入口。后续联网后由服务端记录全服首杀，并通过邮件发放奖励。</p></div>`;
+  return `<div class="panel activity-art"><h3 class="page-art-title">Boss 首杀</h3><p>第一阶段保留入口。后续联网后由服务端记录全服首杀，并通过邮件发放奖励。</p></div>`;
 }
 
 function renderDungeons(){
@@ -5890,12 +7065,12 @@ function renderDungeons(){
 
 function renderSystem(){
   if(STATE.player.realm<1||STATE.player.subRealm<4){
-    return `<div class="panel"><h2>系统</h2><p>筑基五层解锁系统页。</p></div>`;
+    return `<div class="panel system-art"><h2 class="page-art-title">系统</h2><p>筑基五层解锁系统页。</p></div>`;
   }
 
   if(!STATE.system.path){
-    return `<div class="panel">
-      <h2>天道外挂系统</h2>
+    return `<div class="panel system-art">
+      <h2 class="page-art-title">天道外挂系统</h2>
       <p>第一次进入必须选择道路，第一阶段不可更改。</p>
       <div class="cards">
         <div class="card"><h3>炼丹道路</h3><p>炼丹成功率提高，任务围绕药材、丹药、丹方。</p><button onclick="chooseSystemPath('炼丹')">选择炼丹</button></div>
@@ -5930,8 +7105,8 @@ const chat=ai.chat||{
   options:[]
 };
 
-return `<div class="panel">
-    <h2>天道外挂系统</h2>
+return `<div class="panel system-art">
+    <h2 class="page-art-title">天道外挂系统</h2>
     <div class="cards">
       <div class="card">
         <h3>系统信息</h3>
@@ -5949,7 +7124,7 @@ return `<div class="panel">
       </div>
         </div>
 
-        <div id="systemAiPanel" class="panel">
+        <div id="systemAiPanel" class="panel system-art">
       <h3>AI 系统</h3>
       <p class="muted">点击“让系统派任务”会出现三个任务选项。点击“召唤系统聊聊天”会进入对话，每次系统都会给你三个回复选项，最多聊十句。</p>
 
@@ -6038,7 +7213,7 @@ const bought=false;
 function renderStore(){
   const selectedEquip=STATE.store.find(equip=>equip.id===STATE.selectedStoreEquipId);
 
-  return `<div class="panel">
+  return `<div class="panel store-panel">
     <h2>储物戒</h2>
     <div class="row">
       <button onclick="identifyAll()">一键鉴定</button>
@@ -6073,6 +7248,19 @@ function renderStore(){
   </div>`;
 }
 
+function renderForgeSideLog(){
+  const logs=STATE.forge?.logs||[];
+
+  return `<div class="card work-side-log">
+    <div class="work-log-title">
+      <h3>锻造日志</h3>
+      <button onclick="STATE.forge.logs=[];saveState();safeRender()">清空</button>
+    </div>
+    <div id="forgeWorkLog" class="small-log">
+      ${logs.length?logs.join("<br>"):"<span class='muted'>暂无锻造记录。</span>"}
+    </div>
+  </div>`;
+}
 function renderForge(){
   const currentCategory=STATE.forgeCategory||"装备";
 
@@ -6080,11 +7268,11 @@ function renderForge(){
     const selected=CONFIG.giftRecipes.find(item=>item.name===STATE.craftGift)||CONFIG.giftRecipes[0];
     const cost=recipeToCost(selected);
 
-    return `<div class="panel">
-      <h2>锻造</h2>
+   return `<div class="panel forge-art">
+      <h2 class="page-art-title">锻造</h2>
       <p class="muted">锻造分为装备与礼物。礼物后续可赠送好友或 NPC 增加好感。</p>
 
-      <div class="craft-layout">
+      <div class="work-page-layout">
         <div class="craft-sidebar">
           ${CONFIG.forgeCategoryConfigs.map(cat=>`<button class="craft-category-title ${currentCategory===cat.id?"active":""}" onclick="STATE.forgeCategory='${cat.id}';saveState();safeRender()">
             <span>${cat.name}</span><span>${currentCategory===cat.id?"▾":"▸"}</span>
@@ -6115,7 +7303,9 @@ function renderForge(){
             ${genericCostHtml(cost)}
             <button onclick="craftGift()">制作礼物：${selected.name}</button>
           </div>
-        </div>
+                </div>
+
+        ${renderForgeSideLog()}
       </div>
     </div>`;
   }
@@ -6147,11 +7337,11 @@ function renderForge(){
     icon:createEquipmentIcon(selectedSlot,targetRealm,3,1,null,true,selectedSlot==="武器"?"weapon_sword":null)
   };
 
-  return `<div class="panel">
-    <h2>锻造</h2>
-    <p class="muted">可打造自身境界 +1 及以下装备。手镯、戒指为通用装备：手镯可装入任意手镯栏，戒指可装入任意戒指栏。</p>
+  return `<div class="panel forge-art">
+    <h2 class="page-art-title">锻造</h2>
+    <p class="muted">可打造自身境界 +1 及以下装备。手镯、戒指为通用装备。只有玩家亲手锻造的装备有概率出现蓝字；锻造时有 1% 概率出现无境界限制装备。</p>
 
-    <div class="forge-layout">
+    <div class="work-page-layout">
       <div class="forge-sidebar">
         ${CONFIG.forgeCategoryConfigs.map(cat=>`<div class="forge-category">
           <button class="forge-category-title ${currentCategory===cat.id?"active":""}" onclick="STATE.forgeCategory='${cat.id}';saveState();safeRender()">
@@ -6184,8 +7374,10 @@ function renderForge(){
             <div>
               <p><b class="gold">${CONFIG.realms[targetRealm]}${selectedSlot}</b></p>
               <p>预览品质：精良 · 中品</p>
-              <p>实际结果：品质、品级随机，低概率出现蓝字。</p>
+              <p>实际结果：品质、品级随机，锻造装备低概率出现蓝字。</p>
+<p class="crit">稀有异象：1% 概率出现无境界限制装备。</p>
               <p>成功率：<span class="gold">${Math.round(successRate*100)}%</span></p>
+<p class="muted">失败补偿：+${Math.round((STATE.forge?.failCompensation||0)*100)}%，成功后清空，最高 +30%。</p>
             </div>
           </div>
         </div>
@@ -6209,11 +7401,26 @@ function renderForge(){
 
           <button onclick="forge()">开始锻造 ${CONFIG.realms[targetRealm]}${selectedSlot}</button>
         </div>
-      </div>
+            </div>
+
+      ${renderForgeSideLog()}
     </div>
   </div>`;
 }
 
+function renderAlchemySideLog(){
+  const logs=STATE.alchemy?.logs||[];
+
+  return `<div class="card work-side-log">
+    <div class="work-log-title">
+      <h3>炼丹日志</h3>
+      <button onclick="STATE.alchemy.logs=[];saveState();safeRender()">清空</button>
+    </div>
+    <div id="alchemyWorkLog" class="small-log">
+      ${logs.length?logs.join("<br>"):"<span class='muted'>暂无炼丹记录。</span>"}
+    </div>
+  </div>`;
+}
 function renderAlchemy(){
   const currentCategory=STATE.alchemyCategory||"丹药";
   const categories=["丹药","酒"];
@@ -6222,11 +7429,11 @@ function renderAlchemy(){
     const selected=CONFIG.wineRecipes.find(item=>item.name===STATE.wineItem)||CONFIG.wineRecipes[0];
     const cost=recipeToCost(selected);
 
-    return `<div class="panel">
-      <h2>丹炉</h2>
+    return `<div class="panel alchemy-art">
+      <h2 class="page-art-title">丹炉</h2>
       <p class="muted">丹炉可炼制丹药，也可酿制灵酒。酒后续可用于 NPC 任务，或直接使用获得半小时临时属性。</p>
 
-      <div class="craft-layout">
+      <div class="work-page-layout">
         <div class="craft-sidebar">
           ${categories.map(cat=>`<button class="craft-category-title ${currentCategory===cat?"active":""}" onclick="STATE.alchemyCategory='${cat}';saveState();safeRender()">
             <span>${cat}</span><span>${currentCategory===cat?"▾":"▸"}</span>
@@ -6260,6 +7467,7 @@ function renderAlchemy(){
             <button onclick="craftWine()">开始酿制：${selected.name}</button>
           </div>
         </div>
+        ${renderAlchemySideLog()}
       </div>
     </div>`;
   }
@@ -6272,11 +7480,11 @@ const craftCount=Math.max(1,Math.min(99,Number(STATE.alchemyCount||1)));
 const totalCost=multiplyPillMaterialCost(cost,craftCount);
   const furnace=CONFIG.alchemyFurnaces.find(item=>item.name===STATE.alchemy.furnace);
 
-  return `<div class="panel">
-    <h2>丹炉</h2>
+  return `<div class="panel alchemy-art">
+    <h2 class="page-art-title">丹炉</h2>
     <p class="muted">丹炉页包含丹药与酒。丹药用于恢复、永久属性、修行倍率和突破。</p>
 
-    <div class="craft-layout">
+    <div class="work-page-layout">
       <div class="craft-sidebar">
         ${categories.map(cat=>`<button class="craft-category-title ${currentCategory===cat?"active":""}" onclick="STATE.alchemyCategory='${cat}';saveState();safeRender()">
           <span>${cat}</span><span>${currentCategory===cat?"▾":"▸"}</span>
@@ -6323,16 +7531,18 @@ const totalCost=multiplyPillMaterialCost(cost,craftCount);
 ${pillMaterialCostHtml(totalCost)}
 <button onclick="craftPillFromFurnace()">开始炼制：${selected.name} ×${craftCount}</button>
         </div>
+              </div>
+
+        ${renderAlchemySideLog()}
       </div>
-    </div>
-  </div>`;
+    </div>`;
 }
 
 function renderShop(){
   const realmName=CONFIG.realms[STATE.player.realm];
   const availablePills=CONFIG.pills.filter(pill=>pill.realm<=STATE.player.realm+1);
-  return `<div class="panel">
-    <h2>商城</h2>
+  return `<div class="panel shop-art">
+    <h2 class="page-art-title">商城</h2>
     <p class="cyan">商城无真实充值入口。删除仙缘箱直售；元宝道具仅作为兜底渠道，官方价格高于炼制/产出成本。</p>
 
     <div class="cards">
@@ -6384,8 +7594,8 @@ function renderShop(){
 }
 
 function renderRecharge(){
-  return `<div class="panel">
-    <h2>充值 · 仙缘激活</h2>
+  return `<div class="panel shop-art">
+    <h2 class="page-art-title">充值 · 仙缘激活</h2>
     <p class="cyan">本页没有真实充值入口。所有档位均消耗游戏内掉落的仙缘，用于模拟额度、累计仙缘累充、增加 VIP 经验并获得元宝。</p>
     <div class="cards">
       ${CONFIG.xianyuanTiers.map(amount=>`<div class="card">
@@ -6415,8 +7625,8 @@ function claimVipLevelReward(level){
 }
 function renderVip(){
   const next=CONFIG.vip[STATE.vip.level+1];
-  return `<div class="panel">
-    <h2>VIP · 仙缘等级</h2>
+  return `<div class="panel shop-art">
+    <h2 class="page-art-title">VIP · 仙缘等级</h2>
     <p class="cyan">VIP 经验只来自仙缘模拟激活；仙缘只能由游戏内掉落获得。</p>
     <div class="cards">
       <div class="card">
@@ -6453,8 +7663,8 @@ function renderVip(){
 }
 
 function renderMails(){
-  return `<div class="panel">
-    <h2>邮件</h2>
+  return `<div class="panel mail-art">
+    <h2 class="page-art-title">邮件</h2>
     <button onclick="claimAllMail()">一键领取全部附件</button>
     <button onclick="STATE.mails=STATE.mails.filter(mail=>!mail.claimed);saveState();render()">删除已领取邮件</button>
     <div class="list">
@@ -6480,8 +7690,8 @@ function renderChat(){
     GAME_WS?.readyState===WebSocket.CONNECTING ? "连接中" :
     "未连接";
 
-  return `<div class="panel">
-    <h2>聊天</h2>
+  return `<div class="panel chat-art">
+    <h2 class="page-art-title">聊天</h2>
     <p class="muted">世界聊天会通过服务器广播，所有在线玩家都能看到。不会整页刷新，也不会闪烁跳顶。</p>
 
     <div class="cards">
@@ -6516,7 +7726,7 @@ function renderChat(){
   </div>`;
 }
 function renderSect(){
-  return `<div class="panel">
+  return `<div class="panel chat-art">
     <h2>宗门</h2>
     <p>第一阶段占位。后续实现宗门创建、加入、贡献、宗门商店、宗门 Boss。</p>
   </div>`;
