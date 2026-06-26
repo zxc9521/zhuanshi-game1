@@ -1743,6 +1743,43 @@ button:disabled{
     height:260px;
   }
 }
+/* ===== 交易行装备悬停详情 ===== */
+.trade-equip-hover{
+  position:relative;
+  display:inline-block;
+  width:100%;
+}
+
+.trade-equip-tooltip{
+  display:none;
+  position:absolute;
+  left:20px;
+  top:74px;
+  z-index:99999;
+  width:330px;
+  max-width:80vw;
+  padding:10px;
+  border:1px solid rgba(255,211,106,.42);
+  border-radius:12px;
+  background:rgba(8,12,20,.98);
+  box-shadow:0 16px 42px rgba(0,0,0,.68);
+  pointer-events:none;
+}
+
+.trade-equip-hover:hover .trade-equip-tooltip{
+  display:block;
+}
+.trade-panel,
+.trade-panel .card,
+.trade-panel .list,
+.trade-panel .item{
+  overflow:visible!important;
+}
+
+.trade-panel .item:hover{
+  z-index:5000;
+  position:relative;
+}
 </style>
 </head>
 <body>
@@ -2205,6 +2242,10 @@ CONFIG.itemIconMap={
   "随机材料包":CONFIG.iconPaths.packages+"random_material_pack.webp",
   "低级材料包":CONFIG.iconPaths.packages+"random_material_pack.webp",
   "随机灵石":CONFIG.iconPaths.packages+"random_spirit_stone_pack.webp",
+"黄阶灵石":CONFIG.iconPaths.spiritStones+"huang_spirit_stone.webp",
+"玄阶灵石":CONFIG.iconPaths.spiritStones+"xuan_spirit_stone.webp",
+"地阶灵石":CONFIG.iconPaths.spiritStones+"di_spirit_stone.webp",
+"天阶灵石":CONFIG.iconPaths.spiritStones+"tian_spirit_stone.webp",
 
   "低级装备箱":CONFIG.iconPaths.packages+"low_equip_box.webp",
   "未鉴定装备箱":CONFIG.iconPaths.items+"equip_boxes/unidentified_equip_box.webp",
@@ -2282,6 +2323,40 @@ CONFIG.materialQualityIcons=[
   CONFIG.iconPaths.materialQuality+"material_quality_4_epic.webp",
   CONFIG.iconPaths.materialQuality+"material_quality_5_legend.webp",
   CONFIG.iconPaths.materialQuality+"material_quality_6_myth.webp"
+];
+CONFIG.spiritStoneConfigs=[
+  {
+    name:"黄阶灵石",
+    quality:1,
+    icon:"huang_spirit_stone.webp",
+    cultivation:120,
+    weight:55,
+    description:"最基础的修行灵石，使用后获得少量修为。"
+  },
+  {
+    name:"玄阶灵石",
+    quality:2,
+    icon:"xuan_spirit_stone.webp",
+    cultivation:420,
+    weight:30,
+    description:"灵气更凝实的灵石，使用后获得一定修为。"
+  },
+  {
+    name:"地阶灵石",
+    quality:4,
+    icon:"di_spirit_stone.webp",
+    cultivation:1600,
+    weight:12,
+    description:"蕴含厚重地脉灵气的灵石，使用后获得大量修为。"
+  },
+  {
+    name:"天阶灵石",
+    quality:5,
+    icon:"tian_spirit_stone.webp",
+    cultivation:6000,
+    weight:3,
+    description:"罕见高阶灵石，灵气如天河倒灌，使用后获得巨量修为。"
+  }
 ];
 CONFIG.xianyuanTiers=[6,12,30,68,128,256,328,512,648,1280,2000,3000,5000,10000];
 CONFIG.xianyuanWeights=[2400,1800,1200,800,420,260,160,90,55,20,10,5,2,1];
@@ -3641,6 +3716,7 @@ function materialCostHtml(name,owned,need){
 }
 function guessItemType(name){
 
+  if(CONFIG.spiritStoneConfigs?.some(stone=>stone.name===name))return "灵石";
   if(getPillConfigByName(name))return "丹药";
   if(getSpecialMaterialConfigByName(name))return "特殊材料";
   if(CONFIG.giftRecipes?.some(item=>item.name===name))return "礼物";
@@ -4464,6 +4540,53 @@ function useSkillItem(item){
   safeRender();
   return true;
 }
+function openSpiritStoneBag(item){
+  if(!item||item.count<=0)return;
+
+  item.count--;
+
+  const stones=CONFIG.spiritStoneConfigs||[];
+  const names=stones.map(stone=>stone.name);
+  const weights=stones.map(stone=>stone.weight);
+
+  const resultName=weightedPick(names,weights);
+  const resultConfig=stones.find(stone=>stone.name===resultName);
+
+  addItem(resultName,1,"灵石");
+
+  pushUseLog(`开启 ${item.name}，获得 ${resultName}`);
+  pushLog(`<span class="cyan">开启 ${item.name}，获得 ${resultName}。</span>`);
+
+  cleanBag();
+  saveState();
+  safeRender();
+}
+
+function useSpiritStone(item){
+  if(!item||item.count<=0)return;
+
+  const config=CONFIG.spiritStoneConfigs.find(stone=>stone.name===item.name);
+
+  if(!config){
+    alert("灵石配置不存在："+item.name);
+    return;
+  }
+
+  item.count--;
+
+  const realmRate=STATE.player.realm+1;
+  const cultivation=Math.floor(config.cultivation*realmRate);
+
+  STATE.player.cultivation+=cultivation;
+
+  pushUseLog(`使用 ${item.name}，获得修为 ${cultivation}`);
+  pushLog(`<span class="good">使用 ${item.name}，获得修为 ${fmt(cultivation)}。</span>`);
+
+  cleanBag();
+  tryBreakthrough(false);
+  saveState();
+  safeRender();
+}
 function openXianyuanBox(item){
   const box=CONFIG.xianyuanBoxes.find(box=>item.name===box.name);
   if(!box)return;
@@ -4478,6 +4601,39 @@ function openXianyuanBox(item){
   safeRender();
 }
 
+function useSpiritStoneBatch(item,amount){
+  if(!item||item.count<=0)return;
+
+  const config=CONFIG.spiritStoneConfigs.find(stone=>stone.name===item.name);
+  if(!config){
+    alert("灵石配置不存在："+item.name);
+    return;
+  }
+
+  if(amount==="all"){
+    amount=item.count;
+  }
+
+  const count=Math.max(1,Math.min(item.count,Number(amount)||1));
+  const realmRate=STATE.player.realm+1;
+  const cultivation=Math.floor(config.cultivation*realmRate*count);
+
+  item.count-=count;
+  STATE.player.cultivation+=cultivation;
+
+  pushUseLog(`批量使用 ${item.name} ×${count}，获得修为 ${cultivation}`);
+  pushLog(`<span class="good">批量使用 ${item.name} ×${count}，获得修为 ${fmt(cultivation)}。</span>`);
+
+  cleanBag();
+
+  if(!STATE.bag.some(bagItem=>bagItem.id===STATE.selectedBagItemId)){
+    STATE.selectedBagItemId=null;
+  }
+
+  tryBreakthrough(false);
+  saveState();
+  safeRender();
+}
 function useSelectedBagItem(amount){
   const item=STATE.bag.find(bagItem=>bagItem.id===STATE.selectedBagItemId);
   if(!item)return;
@@ -4489,13 +4645,19 @@ function useSelectedBagItem(amount){
   amount=Math.max(1,Math.min(item.count,Number(amount)||1));
 
   const isPill=item.type==="丹药"||!!getPillConfigByName(item.name);
+const isSpiritStone=CONFIG.spiritStoneConfigs?.some(stone=>stone.name===item.name);
 
-  if(isPill&&!getPillBaseName(item.name).includes("破境丹")){
-    usePillBatch(item,amount);
-    return;
-  }
+if(isPill&&!getPillBaseName(item.name).includes("破境丹")){
+  usePillBatch(item,amount);
+  return;
+}
 
-  useItem(item);
+if(isSpiritStone){
+  useSpiritStoneBatch(item,amount);
+  return;
+}
+
+useItem(item);
 }
 
 function usePillBatch(item,amount){
@@ -4615,11 +4777,13 @@ safeRender();
 }else if(item.name.includes("装备箱")||item.name.includes("装备宝箱")){
   alert("该装备箱尚未配置："+item.name);
   return;
-}else if(item.name.includes("灵石")){
-    item.count--;
-    const cultivation=120*(STATE.player.realm+1);
-    STATE.player.cultivation+=cultivation;
-    pushUseLog(`使用灵石，获得修为 ${cultivation}`);
+}else if(item.name==="随机灵石"||item.name==="灵石袋"){
+  openSpiritStoneBag(item);
+  return;
+
+}else if(CONFIG.spiritStoneConfigs?.some(stone=>stone.name===item.name)){
+  useSpiritStone(item);
+  return;
   }else if(pillBaseName==="双倍修行丹"){
     item.count--;
     STATE.buffs.cultMultiplier2Until=now()+30*60*1000;
@@ -6884,8 +7048,9 @@ function bagItemDetailHtml(item){
   if(!item)return "<span class='muted'>请选择一个物品。</span>";
 
   const sourceInfo=getMaterialSourceAndUse(item.name);
-  const isPill=item.type==="丹药"||!!getPillConfigByName(item.name);
-  const canBatchUse=isPill&&!getPillBaseName(item.name).includes("破境丹");
+const isPill=item.type==="丹药"||!!getPillConfigByName(item.name);
+const isSpiritStone=CONFIG.spiritStoneConfigs?.some(stone=>stone.name===item.name);
+const canBatchUse=(isPill&&!getPillBaseName(item.name).includes("破境丹"))||isSpiritStone;
 
   return `<div>
     <div class="item-line">
@@ -7782,24 +7947,34 @@ async function tradeBid(listingId,minBid){
   }
 }
 
-function tradeItemHtml(item){
-  if(item.itemKind==="equip"){
-    return `<div class="equip-line">
-      ${equipIconHtml(item.item)}
-      <div>
-        <b class="${CONFIG.qualities[item.item.quality]?.className||""}">${item.item.name}</b><br>
-        <span class="muted">${CONFIG.realms[item.item.realm]} · ${CONFIG.grades[item.item.grade]?.name||""} · 未鉴定</span><br>
-        ${item.item.craftedBy?`<span class="gold">由 ${item.item.craftedBy} 打造</span>`:""}
+function tradeItemHtml(listing){
+  const item=listing.item||{};
+
+  if(listing.itemKind==="equip"){
+    return `<div class="trade-equip-hover">
+      <div class="equip-line">
+        ${equipIconHtml(item)}
+        <div>
+          <b class="${CONFIG.qualities[item.quality]?.className||""}">${item.name||"未知装备"}</b><br>
+          <span class="muted">${CONFIG.realms[item.realm]||"未知境界"} · ${CONFIG.grades[item.grade]?.name||""} · ${item.identified?"已鉴定":"未鉴定"}</span><br>
+          ${item.craftedBy?`<span class="gold">由 ${item.craftedBy} 打造</span>`:""}
+          ${item.noRealmLimit?`<br><span class="crit">无境界限制</span>`:""}
+        </div>
+      </div>
+
+      <div class="trade-equip-tooltip">
+        ${equipDetailHtml(item)}
       </div>
     </div>`;
   }
 
   return `<div class="item-line">
-    ${itemIconHtml(item.item.name,item.item.type)}
+    ${itemIconHtml(item.name||"未知物品",item.type||"道具")}
     <div>
-      <b>${item.item.name}</b><br>
-      <span class="muted">${item.item.type}</span><br>
-      ${item.item.craftedBy?`<span class="gold">由 ${item.item.craftedBy} 炼制</span>`:""}
+      <b>${item.name||"未知物品"}</b><br>
+      <span class="muted">${item.type||"道具"}</span><br>
+      ${item.craftedBy?`<span class="gold">由 ${item.craftedBy} 炼制</span>`:""}
+      ${item.count?`<br><span class="muted">数量：${item.count}</span>`:""}
     </div>
   </div>`;
 }
@@ -7824,7 +7999,7 @@ function renderTrade(){
   const mine=STATE.tradeMine||[];
   const tradables=getMyTradableItems();
 
-  return `<div class="panel">
+  return `<div class="panel trade-panel">
     <h2>交易行</h2>
     <p class="cyan">交易行只支持游戏内元宝交易。成交后卖家支付 5% 手续费。只有玩家打造且未鉴定的装备、玩家炼制的丹药可以交易。</p>
 
