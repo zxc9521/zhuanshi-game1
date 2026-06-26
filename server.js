@@ -23,6 +23,8 @@ const AI_MODEL = process.env.AI_MODEL || "gpt-5.5";
 const onlineClients = new Map();
 const worldChatMessages = [];
 const WORLD_CHAT_LIMIT = 80;
+const TRADE_FEE_RATE = 0.05;
+const TRADE_PAGE_SIZE = 10;
 
 const app = express();
 const server = http.createServer(app);
@@ -246,6 +248,37 @@ function addTradeItemToPlayer(playerData, listing) {
   playerData.bag.push(item);
 }
 
+function ensurePlayerMails(playerData) {
+  if (!Array.isArray(playerData.mails)) {
+    playerData.mails = [];
+  }
+  return playerData.mails;
+}
+
+function sendServerMailToPlayer(account, title, body, attachment = null, source = "trade") {
+  const playerData = ensurePlayerData(account);
+  const mails = ensurePlayerMails(playerData);
+
+  mails.unshift({
+    id: uid("mail"),
+    title,
+    body,
+    from: "交易行",
+    created: Date.now(),
+    expire: Date.now() + 1000 * 86400 * 30,
+    read: false,
+    claimed: !attachment,
+    type: source,
+    source,
+    attachment: attachment || null
+  });
+
+  mails.splice(100);
+
+  if (players[account]) {
+    players[account].updatedAt = Date.now();
+  }
+}
 function compactListing(listing) {
   return {
     id: listing.id,
@@ -279,8 +312,27 @@ async function settleExpiredTrades() {
       const sellerData = ensurePlayerData(listing.seller);
       const buyerData = ensurePlayerData(listing.highestBidder);
 
-      sellerData.resources.yuanbao = (sellerData.resources.yuanbao || 0) + listing.highestBid;
+      const fee = Math.floor(listing.highestBid * TRADE_FEE_RATE);
+      const sellerGain = Math.max(0, listing.highestBid - fee);
+
+      sellerData.resources.yuanbao = (sellerData.resources.yuanbao || 0) + sellerGain;
       addTradeItemToPlayer(buyerData, listing);
+
+      sendServerMailToPlayer(
+        listing.seller,
+        "竞拍成交通知",
+        `你上架的【${listing.item?.name || "物品"}】竞拍成交，成交价 ${listing.highestBid} 元宝，手续费 ${fee} 元宝，实际到账 ${sellerGain} 元宝。`,
+        null,
+        "trade_auction_sold"
+      );
+
+      sendServerMailToPlayer(
+        listing.highestBidder,
+        "竞拍成功通知",
+        `你成功拍下【${listing.item?.name || "物品"}】，成交价 ${listing.highestBid} 元宝。物品已直接进入你的背包或储物戒。`,
+        null,
+        "trade_auction_win"
+      );
 
       players[listing.seller].updatedAt = Date.now();
       players[listing.highestBidder].updatedAt = Date.now();
@@ -289,9 +341,19 @@ async function settleExpiredTrades() {
       listing.soldAt = Date.now();
       listing.buyer = listing.highestBidder;
       listing.buyerName = listing.highestBidderName;
+      listing.fee = fee;
+      listing.sellerGain = sellerGain;
     } else {
       const sellerData = ensurePlayerData(listing.seller);
       addTradeItemToPlayer(sellerData, listing);
+
+      sendServerMailToPlayer(
+        listing.seller,
+        "竞拍流拍通知",
+        `你上架的【${listing.item?.name || "物品"}】竞拍结束，但无人出价。物品已退回你的背包或储物戒。`,
+        null,
+        "trade_auction_expired"
+      );
 
       players[listing.seller].updatedAt = Date.now();
 
@@ -305,6 +367,7 @@ async function settleExpiredTrades() {
   if (changed) {
     await savePlayers(players);
     await saveTrades();
+    broadcastTradeUpdate("竞拍结算完成，交易行有更新。");
   }
 }
 
@@ -362,6 +425,13 @@ function broadcast(data) {
   }
 }
 
+function broadcastTradeUpdate(message = "交易行有新的变化") {
+  broadcast({
+    type: "trade_update",
+    message,
+    time: Date.now()
+  });
+}
 function sendWs(ws, data) {
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
   try {
@@ -963,10 +1033,37 @@ app.get("/api/trade/listings", authMiddleware, async (req, res) => {
   try {
     await settleExpiredTrades();
 
-    const active = trades
-      .filter(item => item.status === "active")
-      .sort((a, b) => b.startAt - a.startAt)
-      .map(compactListing);
+    const keyword = sanitizeText(req.query.keyword || "", 40).toLowerCase();
+    const itemKind = sanitizeText(req.query.itemKind || "all", 20);
+    const tradeType = sanitizeText(req.query.tradeType || "all", 20);
+    const page = Math.max(1, Math.floor(Number(req.query.page || 1)));
+    const pageSize = TRADE_PAGE_SIZE;
+
+    let active = trades.filter(item => item.status === "active");
+
+    if (keyword) {
+      active = active.filter(item => {
+        const name = String(item.item?.name || "").toLowerCase();
+        const seller = String(item.sellerName || item.seller || "").toLowerCase();
+        return name.includes(keyword) || seller.includes(keyword);
+      });
+    }
+
+    if (itemKind !== "all") {
+      active = active.filter(item => item.itemKind === itemKind);
+    }
+
+    if (tradeType !== "all") {
+      active = active.filter(item => item.type === tradeType);
+    }
+
+    active = active.sort((a, b) => b.startAt - a.startAt);
+
+    const total = active.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const safePage = Math.max(1, Math.min(page, totalPages));
+    const start = (safePage - 1) * pageSize;
+    const pageItems = active.slice(start, start + pageSize).map(compactListing);
 
     const mine = trades
       .filter(item => item.seller === req.account || item.highestBidder === req.account || item.buyer === req.account)
@@ -976,8 +1073,12 @@ app.get("/api/trade/listings", authMiddleware, async (req, res) => {
 
     res.json({
       ok: true,
-      active,
+      active: pageItems,
       mine,
+      page: safePage,
+      pageSize,
+      total,
+      totalPages,
       time: Date.now()
     });
   } catch (error) {
@@ -1079,6 +1180,7 @@ app.post("/api/trade/list", authMiddleware, async (req, res) => {
 
     await savePlayers(players);
     await saveTrades();
+broadcastTradeUpdate("有新物品上架交易行。");
 
     res.json({
       ok: true,
@@ -1119,20 +1221,43 @@ app.post("/api/trade/buy", authMiddleware, async (req, res) => {
     }
 
     buyerData.resources.yuanbao -= listing.price;
-    sellerData.resources.yuanbao = (sellerData.resources.yuanbao || 0) + listing.price;
 
-    addTradeItemToPlayer(buyerData, listing);
+const fee = Math.floor(listing.price * TRADE_FEE_RATE);
+const sellerGain = Math.max(0, listing.price - fee);
+
+sellerData.resources.yuanbao = (sellerData.resources.yuanbao || 0) + sellerGain;
+
+addTradeItemToPlayer(buyerData, listing);
+
+sendServerMailToPlayer(
+  listing.seller,
+  "一口价售出通知",
+  `你上架的【${listing.item?.name || "物品"}】已被一口价购买，成交价 ${listing.price} 元宝，手续费 ${fee} 元宝，实际到账 ${sellerGain} 元宝。`,
+  null,
+  "trade_fixed_sold"
+);
+
+sendServerMailToPlayer(
+  req.account,
+  "一口价购买成功",
+  `你成功购买【${listing.item?.name || "物品"}】，花费 ${listing.price} 元宝。物品已直接进入你的背包或储物戒。`,
+  null,
+  "trade_fixed_buy"
+);
 
     listing.status = "sold";
     listing.buyer = req.account;
     listing.buyerName = sanitizeText(buyerData?.player?.name || req.account, 20);
     listing.soldAt = Date.now();
+listing.fee = fee;
+listing.sellerGain = sellerGain;
 
     players[req.account].updatedAt = Date.now();
     players[listing.seller].updatedAt = Date.now();
 
     await savePlayers(players);
     await saveTrades();
+broadcastTradeUpdate("有商品被一口价购买，交易行有更新。");
 
     res.json({
       ok: true,
@@ -1187,10 +1312,19 @@ app.post("/api/trade/bid", authMiddleware, async (req, res) => {
     bidderData.resources.yuanbao -= bidAmount;
 
     if (listing.highestBidder) {
-      const oldBidderData = ensurePlayerData(listing.highestBidder);
-      oldBidderData.resources.yuanbao = (oldBidderData.resources.yuanbao || 0) + listing.highestBid;
-      players[listing.highestBidder].updatedAt = Date.now();
-    }
+  const oldBidderData = ensurePlayerData(listing.highestBidder);
+  oldBidderData.resources.yuanbao = (oldBidderData.resources.yuanbao || 0) + listing.highestBid;
+
+  sendServerMailToPlayer(
+    listing.highestBidder,
+    "竞拍被超价通知",
+    `你对【${listing.item?.name || "物品"}】的出价已被其他玩家超过，原出价 ${listing.highestBid} 元宝已退回。`,
+    null,
+    "trade_bid_refund"
+  );
+
+  players[listing.highestBidder].updatedAt = Date.now();
+}
 
     listing.highestBid = bidAmount;
     listing.highestBidder = req.account;
@@ -1536,6 +1670,11 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, "index.html"));
 });
 
+setInterval(() => {
+  settleExpiredTrades().catch(error => {
+    console.warn("自动结算交易行失败：", error);
+  });
+}, 30000);
 server.listen(PORT, () => {
   console.log(`《转世之修仙系统》服务器已启动：http://0.0.0.0:${PORT}`);
   console.log(`AI：${AI_API_KEY ? "已配置" : "未配置"}`);

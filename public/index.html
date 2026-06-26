@@ -2791,6 +2791,7 @@ forge:{failCompensation:0,logs:[]},
     worldChat:{input:"",messages:[]},
 tradeListings:[],
 tradeMine:[],
+tradeFilter:{keyword:"",itemKind:"all",tradeType:"all",page:1,totalPages:1,total:0,hasUpdate:false,loading:false},
 tutorial:{
   newbieStep:0,
   pageGuideSeen:{},
@@ -2920,6 +2921,21 @@ function handleGameWsMessage(data){
     return;
   }
 
+if(data.type==="trade_update"){
+  if(!STATE.tradeFilter){
+    STATE.tradeFilter={keyword:"",itemKind:"all",tradeType:"all",page:1,totalPages:1,total:0,hasUpdate:false,loading:false};
+  }
+
+  STATE.tradeFilter.hasUpdate=true;
+  pushUseLog(`交易行提示：${data.message||"交易行有更新"}`);
+  saveState();
+
+  if(STATE.tab==="交易行"){
+    updateTradeUpdateHintDom();
+  }
+
+  return;
+}
   if(data.type==="system_notice"){
     pushLog(`<span class="cyan">[系统频道]</span>${escapeHtml(data.message||"有新消息")}`);
     saveState();
@@ -3280,6 +3296,7 @@ if(!saved.worldChat)saved.worldChat=base.worldChat;
 if(!saved.worldChat)saved.worldChat=base.worldChat;
 if(!saved.tradeListings)saved.tradeListings=[];
 if(!saved.tradeMine)saved.tradeMine=[];
+if(!saved.tradeFilter)saved.tradeFilter={keyword:"",itemKind:"all",tradeType:"all",page:1,totalPages:1,total:0,hasUpdate:false,loading:false};
 if(!saved.tutorial)saved.tutorial=base.tutorial;
 if(!saved.tutorial.pageGuideSeen)saved.tutorial.pageGuideSeen={};
     if(!saved.flow)saved.flow=[];
@@ -6100,12 +6117,16 @@ const bagLog=document.getElementById("bagUseLog");
 const homeLog=document.getElementById("homeBattleLog");
 const forgeLog=document.getElementById("forgeWorkLog");
 const alchemyLog=document.getElementById("alchemyWorkLog");
+const tradeList=document.getElementById("tradeListingList");
+const tradeMineList=document.getElementById("tradeMineList");
 
 const bagListScroll=bagList?bagList.scrollTop:0;
 const bagLogScroll=bagLog?bagLog.scrollTop:0;
 const homeLogScroll=homeLog?homeLog.scrollTop:0;
 const forgeLogScroll=forgeLog?forgeLog.scrollTop:0;
 const alchemyLogScroll=alchemyLog?alchemyLog.scrollTop:0;
+const tradeListScroll=tradeList?tradeList.scrollTop:0;
+const tradeMineListScroll=tradeMineList?tradeMineList.scrollTop:0;
 
   render();
 
@@ -6125,12 +6146,16 @@ const nextBagLog=document.getElementById("bagUseLog");
 const nextHomeLog=document.getElementById("homeBattleLog");
 const nextForgeLog=document.getElementById("forgeWorkLog");
 const nextAlchemyLog=document.getElementById("alchemyWorkLog");
+const nextTradeList=document.getElementById("tradeListingList");
+const nextTradeMineList=document.getElementById("tradeMineList");
 
 if(nextBagList)nextBagList.scrollTop=bagListScroll;
 if(nextBagLog)nextBagLog.scrollTop=bagLogScroll;
 if(nextHomeLog)nextHomeLog.scrollTop=homeLogScroll;
 if(nextForgeLog)nextForgeLog.scrollTop=forgeLogScroll;
 if(nextAlchemyLog)nextAlchemyLog.scrollTop=alchemyLogScroll;
+if(nextTradeList)nextTradeList.scrollTop=tradeListScroll;
+if(nextTradeMineList)nextTradeMineList.scrollTop=tradeMineListScroll;
 
 window.scrollTo(scrollX,scrollY);
 }
@@ -7546,14 +7571,42 @@ ${pillMaterialCostHtml(totalCost)}
     </div>`;
 }
 
-async function loadTradeListings(){
+async function loadTradeListings(keepPage=true){
+  if(!STATE.tradeFilter){
+    STATE.tradeFilter={keyword:"",itemKind:"all",tradeType:"all",page:1,totalPages:1,total:0,hasUpdate:false,loading:false};
+  }
+
   try{
-    const result=await apiRequest("/api/trade/listings",{method:"GET"});
+    STATE.tradeFilter.loading=true;
+    saveState();
+    safeRender();
+
+    const filter=STATE.tradeFilter;
+    const page=keepPage ? (filter.page||1) : 1;
+
+    const query=new URLSearchParams({
+      keyword:filter.keyword||"",
+      itemKind:filter.itemKind||"all",
+      tradeType:filter.tradeType||"all",
+      page:String(page)
+    });
+
+    const result=await apiRequest("/api/trade/listings?"+query.toString(),{method:"GET"});
+
     STATE.tradeListings=result.active||[];
     STATE.tradeMine=result.mine||[];
+    STATE.tradeFilter.page=result.page||1;
+    STATE.tradeFilter.totalPages=result.totalPages||1;
+    STATE.tradeFilter.total=result.total||0;
+    STATE.tradeFilter.hasUpdate=false;
+    STATE.tradeFilter.loading=false;
+
     saveState();
-    render();
+    safeRender();
   }catch(error){
+    STATE.tradeFilter.loading=false;
+    saveState();
+    safeRender();
     alert(error.message||"读取交易行失败");
   }
 }
@@ -7751,16 +7804,70 @@ function tradeItemHtml(item){
   </div>`;
 }
 
+function updateTradeUpdateHintDom(){
+  const el=document.getElementById("tradeUpdateHint");
+  if(!el)return;
+
+  if(STATE.tradeFilter?.hasUpdate){
+    el.innerHTML=`<span class="gold">交易行有新变化，建议刷新。</span>`;
+  }else{
+    el.innerHTML=`<span class="muted">交易行暂无新提示。</span>`;
+  }
+}
 function renderTrade(){
+  if(!STATE.tradeFilter){
+    STATE.tradeFilter={keyword:"",itemKind:"all",tradeType:"all",page:1,totalPages:1,total:0,hasUpdate:false,loading:false};
+  }
+
+  const filter=STATE.tradeFilter;
   const listings=STATE.tradeListings||[];
   const mine=STATE.tradeMine||[];
   const tradables=getMyTradableItems();
 
   return `<div class="panel">
     <h2>交易行</h2>
-    <p class="cyan">交易行只支持游戏内元宝交易，不涉及现实货币。只有玩家打造且未鉴定的装备、玩家炼制的丹药可以交易。</p>
+    <p class="cyan">交易行只支持游戏内元宝交易。成交后卖家支付 5% 手续费。只有玩家打造且未鉴定的装备、玩家炼制的丹药可以交易。</p>
 
-    <button onclick="loadTradeListings()">刷新交易行</button>
+    <div class="card" style="max-width:none">
+      <h3>搜索筛选</h3>
+      <div class="row">
+        <input
+          id="tradeKeywordInput"
+          placeholder="搜索物品名或卖家"
+          value="${escapeHtml(filter.keyword||"")}"
+          oninput="STATE.tradeFilter.keyword=this.value;STATE.tradeFilter.page=1;saveState()"
+          style="min-width:220px">
+
+        <select onchange="STATE.tradeFilter.itemKind=this.value;STATE.tradeFilter.page=1;saveState();safeRender()">
+          <option value="all" ${filter.itemKind==="all"?"selected":""}>全部类型</option>
+          <option value="equip" ${filter.itemKind==="equip"?"selected":""}>装备</option>
+          <option value="pill" ${filter.itemKind==="pill"?"selected":""}>丹药</option>
+        </select>
+
+        <select onchange="STATE.tradeFilter.tradeType=this.value;STATE.tradeFilter.page=1;saveState();safeRender()">
+          <option value="all" ${filter.tradeType==="all"?"selected":""}>全部交易</option>
+          <option value="fixed" ${filter.tradeType==="fixed"?"selected":""}>一口价</option>
+          <option value="auction" ${filter.tradeType==="auction"?"selected":""}>竞拍</option>
+        </select>
+
+        <button onclick="STATE.tradeFilter.keyword=document.getElementById('tradeKeywordInput').value;STATE.tradeFilter.page=1;saveState();loadTradeListings(false)">
+          搜索/刷新
+        </button>
+
+        <button onclick="STATE.tradeFilter={keyword:'',itemKind:'all',tradeType:'all',page:1,totalPages:1,total:0,hasUpdate:false,loading:false};saveState();loadTradeListings(false)">
+          重置
+        </button>
+
+        <span id="tradeUpdateHint">
+          ${filter.hasUpdate?`<span class="gold">交易行有新变化，建议刷新。</span>`:`<span class="muted">交易行暂无新提示。</span>`}
+        </span>
+      </div>
+
+      <p class="muted">
+        当前第 ${filter.page||1}/${filter.totalPages||1} 页，共 ${filter.total||0} 条。
+        ${filter.loading?`<span class="gold"> 正在加载...</span>`:""}
+      </p>
+    </div>
 
     <div class="cards">
       <div class="card" style="max-width:520px">
@@ -7785,9 +7892,15 @@ function renderTrade(){
         </div>
       </div>
 
-      <div class="card" style="max-width:760px">
+      <div class="card" style="max-width:780px">
         <h3>正在交易</h3>
-        <div class="list">
+
+        <div class="row">
+          <button ${filter.page<=1?"disabled":""} onclick="STATE.tradeFilter.page=Math.max(1,STATE.tradeFilter.page-1);saveState();loadTradeListings(true)">上一页</button>
+          <button ${filter.page>=filter.totalPages?"disabled":""} onclick="STATE.tradeFilter.page=Math.min(STATE.tradeFilter.totalPages,STATE.tradeFilter.page+1);saveState();loadTradeListings(true)">下一页</button>
+        </div>
+
+        <div id="tradeListingList" class="list">
           ${listings.length?listings.map(listing=>{
             const isMine=listing.seller===STATE.auth.account;
             const minBid=listing.type==="auction"
@@ -7802,6 +7915,7 @@ function renderTrade(){
               ${listing.type==="fixed"?`
                 <p>类型：一口价</p>
                 <p>价格：<span class="gold">${fmt(listing.price)} 元宝</span></p>
+                <p class="muted">成交后卖家支付 5% 手续费。</p>
                 <button ${isMine?"disabled":""} onclick="tradeBuyNow('${listing.id}')">${isMine?"自己的商品":"一口价购买"}</button>
               `:`
                 <p>类型：竞拍</p>
@@ -7809,20 +7923,22 @@ function renderTrade(){
                 <p>当前最高价：<span class="gold">${fmt(listing.highestBid||0)} 元宝</span></p>
                 <p>最高出价者：${listing.highestBidderName||"暂无"}</p>
                 <p>结束时间：${new Date(listing.endAt).toLocaleString()}</p>
+                <p class="muted">成交后卖家支付 5% 手续费。被超价者会自动退回元宝。</p>
                 <button ${isMine?"disabled":""} onclick="tradeBid('${listing.id}',${minBid})">${isMine?"自己的竞拍":"出价，最低 "+fmt(minBid)}</button>
               `}
             </div>`;
-          }).join(""):"<span class='muted'>暂无交易物品，点击刷新试试。</span>"}
+          }).join(""):"<span class='muted'>暂无交易物品，点击搜索/刷新试试。</span>"}
         </div>
       </div>
 
       <div class="card" style="max-width:520px">
         <h3>我的交易记录</h3>
-        <div class="list">
+        <div id="tradeMineList" class="list">
           ${mine.length?mine.map(listing=>`<div class="item">
             <b>${listing.item?.name||"未知物品"}</b><br>
             <span class="muted">类型：${listing.type==="fixed"?"一口价":"竞拍"} ｜ 状态：${listing.status}</span><br>
             ${listing.type==="fixed"?`价格：${fmt(listing.price)} 元宝`:`最高价：${fmt(listing.highestBid||0)} 元宝`}
+            ${listing.fee?`<br><span class="muted">手续费：${fmt(listing.fee)} 元宝</span>`:""}
           </div>`).join(""):"<span class='muted'>暂无交易记录。</span>"}
         </div>
       </div>
