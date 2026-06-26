@@ -1163,8 +1163,10 @@ CONFIG.equipmentIconBase={
   "鞋":"shoes",
   "护臂":"bracer",
   "项链":"necklace",
+"手镯":"bracelet",
   "手镯1":"bracelet",
   "手镯2":"bracelet",
+"戒指":"ring",
   "戒指1":"ring",
   "戒指2":"ring",
   "戒指3":"ring"
@@ -1479,7 +1481,7 @@ CONFIG.forgeCategoryConfigs=[
     id:"装备",
     name:"装备",
     description:"打造武器、防具、饰品等基础装备。",
-    slots:CONFIG.equipSlots
+    slots:["武器","头盔","上身","下装","鞋","护臂","项链","手镯","戒指"]
   },
   {
     id:"礼物",
@@ -1800,7 +1802,9 @@ alchemyCategory:"丹药",
 alchemyItem:"回春丹",
 wineItem:"破碎灵酒",
     selectedStoreEquipId:null,
-    running:false,
+selectedBagItemId:null,
+alchemyCount:1,
+running:false,
     hideLog:false,
     autoHeal:true,
     autoHealPct:35,
@@ -2312,7 +2316,10 @@ function loadState(){
     }
     if(!saved.equipped&&saved.eq)saved.equipped=saved.eq;
     if(!saved.bag)saved.bag=[];
+if(saved.selectedBagItemId===undefined)saved.selectedBagItemId=null;
+if(saved.alchemyCount===undefined)saved.alchemyCount=1;
     if(!saved.store)saved.store=[];
+
     if(!saved.mails)saved.mails=[];
     if(!saved.logs)saved.logs=base.logs;
     if(!saved.useLogs)saved.useLogs=[];
@@ -2485,6 +2492,81 @@ function getSpecialMaterialConfigByName(name){
   return Object.values(CONFIG.monsterSpecialDrops||{}).find(material=>material.name===name);
 }
 
+function getPillBaseName(name){
+  return String(name||"")
+    .replace(/^下品/,"")
+    .replace(/^中品/,"")
+    .replace(/^上品/,"");
+}
+
+function getPillGradeIndexFromName(name){
+  if(String(name||"").startsWith("上品"))return 2;
+  if(String(name||"").startsWith("中品"))return 1;
+  return 0;
+}
+
+function getPillConfigByName(name){
+  const baseName=getPillBaseName(name);
+  return CONFIG.pills.find(pill=>pill.name===baseName);
+}
+
+function createPillItemName(pillName,gradeIndex){
+  const gradeName=CONFIG.grades[gradeIndex]?.name||"下品";
+  return gradeName+pillName;
+}
+
+function getPillQualityFrameIndex(pillName){
+  const pill=getPillConfigByName(pillName);
+  if(!pill)return 1;
+  return Math.max(0,Math.min(6,pill.realm+1));
+}
+
+function pillIconHtml(name,type=null,size=""){
+  const pill=getPillConfigByName(name);
+  if(!pill)return null;
+
+  const baseName=getPillBaseName(name);
+  const icon=getItemIconPath(baseName,type);
+  const gradeIndex=getPillGradeIndexFromName(name);
+  const qualityIndex=getPillQualityFrameIndex(name);
+
+  const framePath=CONFIG.equipmentIconPaths.frame+"quality_"+qualityIndex+"_"+[
+    "broken","normal","fine","rare","epic","legend","myth"
+  ][qualityIndex]+".webp";
+
+  const gradePath=CONFIG.equipmentIconPaths.grade+"grade_"+gradeIndex+"_"+[
+    "low","mid","high"
+  ][gradeIndex]+".webp";
+
+  return `<span class="item-icon-stack ${size}">
+    <img src="${icon}" onerror="this.style.display='none'">
+    <img class="item-quality-overlay" src="${framePath}" onerror="this.style.display='none'">
+    <img class="item-quality-overlay" src="${gradePath}" onerror="this.style.display='none'">
+  </span>`;
+}
+
+function getPillGradeWeights(){
+  return [60,30,10];
+}
+
+function rollPillGrade(){
+  return weightedPick([0,1,2],getPillGradeWeights());
+}
+
+function getPillGradeSuccessBonus(gradeIndex){
+  return [0,.08,.16][gradeIndex]||0;
+}
+
+function findBestBreakthroughPill(pillName){
+  const candidates=STATE.bag.filter(item=>{
+    return item.type==="丹药"&&item.count>0&&getPillBaseName(item.name)===pillName;
+  });
+
+  if(!candidates.length)return null;
+
+  candidates.sort((a,b)=>getPillGradeIndexFromName(b.name)-getPillGradeIndexFromName(a.name));
+  return candidates[0];
+}
 function getItemIconPath(name,type=null){
   if(CONFIG.itemIconMap[name])return CONFIG.itemIconMap[name];
 
@@ -2511,6 +2593,8 @@ function getItemIconPath(name,type=null){
 }
 
 function itemIconHtml(name,type=null,size=""){
+  const pillHtml=pillIconHtml(name,type,size);
+  if(pillHtml)return pillHtml;
   const material=getMaterialConfigByName(name);
   const specialMaterial=getSpecialMaterialConfigByName(name);
   const icon=getItemIconPath(name,type);
@@ -2595,6 +2679,7 @@ function materialCostHtml(name,owned,need){
 }
 function guessItemType(name){
 
+  if(getPillConfigByName(name))return "丹药";
   if(getSpecialMaterialConfigByName(name))return "特殊材料";
   if(CONFIG.giftRecipes?.some(item=>item.name===name))return "礼物";
   if(CONFIG.wineRecipes?.some(item=>item.name===name))return "酒";
@@ -2728,9 +2813,10 @@ function createEquip(realm=STATE.player.realm,slot=pick(CONFIG.equipSlots),ident
   const quality=CONFIG.qualities[qualityIndex];
   const grade=CONFIG.grades[gradeIndex];
   const base=10+realm*15;
-  const isAttack=["武器","项链","手镯1","手镯2"].includes(slot);
-  const isDefense=["头盔","上身","下装","护臂"].includes(slot);
-  const isSpeed=slot==="鞋";
+  const baseSlot=getEquipBaseSlot(slot);
+const isAttack=["武器","项链","手镯"].includes(baseSlot);
+  const isDefense=["头盔","上身","下装","护臂"].includes(baseSlot);
+  const isSpeed=baseSlot==="鞋";
   const attrs={};
   const multiplier=quality.multiplier*grade.multiplier;
   if(isAttack){
@@ -2813,6 +2899,56 @@ function openNoviceSuitBox(item){
   pushLog("<span class='good'>新手套装已装备，炼气期生存能力大幅提升。</span>");
 }
 
+function getEquipBaseSlot(slot){
+  if(slot==="手镯1"||slot==="手镯2")return "手镯";
+  if(slot==="戒指1"||slot==="戒指2"||slot==="戒指3")return "戒指";
+  return slot;
+}
+
+function getCompatibleEquipSlots(slot){
+  const baseSlot=getEquipBaseSlot(slot);
+
+  if(baseSlot==="手镯"){
+    return ["手镯1","手镯2"];
+  }
+
+  if(baseSlot==="戒指"){
+    return ["戒指1","戒指2","戒指3"];
+  }
+
+  return [slot];
+}
+
+function getDisplaySlotName(slot){
+  return getEquipBaseSlot(slot);
+}
+
+function equipToBestCompatibleSlot(equip){
+  if(!equip)return false;
+
+  const slots=getCompatibleEquipSlots(equip.slot);
+  let bestSlot=slots[0];
+
+  for(const slot of slots){
+    if(!STATE.equipped[slot]){
+      bestSlot=slot;
+      break;
+    }
+
+    if(equipScore(equip)>equipScore(STATE.equipped[slot])){
+      bestSlot=slot;
+    }
+  }
+
+  if(STATE.equipped[bestSlot]){
+    STATE.store.push(STATE.equipped[bestSlot]);
+  }
+
+  STATE.equipped[bestSlot]=equip;
+  STATE.store=STATE.store.filter(item=>item.id!==equip.id);
+
+  return true;
+}
 function equipScore(equip){
   return (equip.quality+1)*1000+(equip.grade+1)*180+Object.values(equip.attrs).reduce((a,b)=>a+b,0)+equip.realm*120+(equip.blue?500:0);
 }
@@ -3128,10 +3264,11 @@ const killedMapIndex=mapIndex;
   pushLog(`<span class="crit">Boss 必定掉落：BOSS装备箱，并掉落大量功法残卷。</span>`);
 }
 
-  if(chance(isBoss ? .95 : .45)){
-    const material=pick(CONFIG.materials.filter(item=>item.realm<=mapIndex+1));
-    addItem(material.name,isBoss?rnd(2,5):1,"材料");
-  }
+ if(chance(isBoss ? 1 : .78)){
+  const materialPool=CONFIG.materials.filter(item=>item.realm<=mapIndex+1);
+  const material=pick(materialPool.length?materialPool:CONFIG.materials);
+  addItem(material.name,isBoss?rnd(3,6):rnd(1,2),"材料");
+}
 
  if(chance(isBoss ? .12 : .012)){
     const amount=weightedPick(CONFIG.xianyuanTiers,CONFIG.xianyuanWeights.map((weight,index)=>isBoss&&index>3?weight*1.15:weight));
@@ -3216,11 +3353,19 @@ function tryBreakthrough(manual=true){
     const nextRealm=CONFIG.realms[STATE.player.realm+1];
     if(!nextRealm)return alert("已至当前版本最高境界。");
     const pillName=nextRealm+"破境丹";
-    const pill=STATE.bag.find(item=>item.name===pillName&&item.count>0);
-    if(!pill)return alert("大圆满突破需要："+pillName);
-    pill.count--;
+const pill=findBestBreakthroughPill(pillName);
 
-   let probability=.48+STATE.player.attrs.精神/1000+(STATE.player.root?.length===1 ? .08 : 0);
+if(!pill){
+  return alert("大圆满突破需要："+pillName+"，可使用下品/中品/上品。");
+}
+
+const pillGradeIndex=getPillGradeIndexFromName(pill.name);
+pill.count--;
+
+let probability=.48
+  +STATE.player.attrs.精神/1000
+  +(STATE.player.root?.length===1 ? .08 : 0)
+  +getPillGradeSuccessBonus(pillGradeIndex);
     const furnace=CONFIG.alchemyFurnaces.find(item=>item.name===STATE.alchemy.furnace);
     if(furnace) probability+=furnace.successBonus*.2;
 
@@ -3232,10 +3377,10 @@ function tryBreakthrough(manual=true){
       STATE.player.lifespan=STATE.player.lifespanMax;
       STATE.player.lifeMax+=80+STATE.player.realm*30;
       STATE.player.life=STATE.player.lifeMax;
-      pushLog(`<span class="crit">大境界突破成功：${currentRealmTitle()}！</span>`);
+      pushLog(`<span class="crit">大境界突破成功：${currentRealmTitle()}！消耗${pill.name}。</span>`);
     }else{
       STATE.player.subRealm=Math.max(0,STATE.player.subRealm-2);
-      pushLog(`<span class="bad">突破失败，跌落两个小境界。</span>`);
+      pushLog(`<span class="bad">突破失败，消耗${pill.name}，跌落两个小境界。</span>`);
     }
   }
     cleanBag();
@@ -3348,8 +3493,108 @@ function openXianyuanBox(item){
   safeRender();
 }
 
+function useSelectedBagItem(amount){
+  const item=STATE.bag.find(bagItem=>bagItem.id===STATE.selectedBagItemId);
+  if(!item)return;
+
+  if(amount==="all"){
+    amount=item.count;
+  }
+
+  amount=Math.max(1,Math.min(item.count,Number(amount)||1));
+
+  const isPill=item.type==="丹药"||!!getPillConfigByName(item.name);
+
+  if(isPill&&!getPillBaseName(item.name).includes("破境丹")){
+    usePillBatch(item,amount);
+    return;
+  }
+
+  useItem(item);
+}
+
+function usePillBatch(item,amount){
+  const pillBaseName=getPillBaseName(item.name);
+  const pillGradeIndex=getPillGradeIndexFromName(item.name);
+  const count=Math.max(1,Math.min(item.count,Number(amount)||1));
+
+  if(pillBaseName==="回春丹"||pillBaseName==="凝血丹"){
+    const healRates=[.35,.45,.60];
+    const healOne=Math.floor(STATE.player.lifeMax*(healRates[pillGradeIndex]||.35));
+    const totalHeal=healOne*count;
+    item.count-=count;
+    STATE.player.life=Math.min(STATE.player.lifeMax,STATE.player.life+totalHeal);
+    pushUseLog(`批量服用 ${item.name} ×${count}，恢复生命 ${totalHeal}`);
+    pushLog(`<span class="good">批量服用 ${item.name} ×${count}：恢复生命 ${totalHeal}。</span>`);
+  }else if(pillBaseName==="续命丹"){
+    const value=(10+pillGradeIndex*5)*count;
+    item.count-=count;
+    STATE.player.lifespan+=value;
+    STATE.player.lifespanMax+=value;
+    pushUseLog(`批量服用 ${item.name} ×${count}，寿命 +${value}`);
+    pushLog(`<span class="good">批量服用 ${item.name} ×${count}：寿命 +${value}。</span>`);
+  }else if(pillBaseName==="壮骨丹"){
+    const value=(1+pillGradeIndex)*count;
+    item.count-=count;
+    STATE.player.attrs.力量+=value;
+    pushUseLog(`批量服用 ${item.name} ×${count}，力量 +${value}`);
+  }else if(pillBaseName==="醒神丹"){
+    const value=(1+pillGradeIndex)*count;
+    item.count-=count;
+    STATE.player.attrs.精神+=value;
+    pushUseLog(`批量服用 ${item.name} ×${count}，精神 +${value}`);
+  }else if(pillBaseName==="纳灵丹"){
+    const value=(1+pillGradeIndex)*count;
+    item.count-=count;
+    STATE.player.attrs.灵力+=value;
+    pushUseLog(`批量服用 ${item.name} ×${count}，灵力 +${value}`);
+  }else if(pillBaseName==="固甲丹"){
+    const value=(1+pillGradeIndex)*count;
+    item.count-=count;
+    STATE.player.attrs.耐力+=value;
+    STATE.player.lifeMax+=value*2;
+    STATE.player.life+=value*2;
+    pushUseLog(`批量服用 ${item.name} ×${count}，耐力 +${value}`);
+  }else if(pillBaseName==="清抗丹"){
+    const value=(1+pillGradeIndex)*count;
+    item.count-=count;
+    STATE.player.attrs.抗性+=value;
+    STATE.player.lifeMax+=value*2;
+    STATE.player.life+=value*2;
+    pushUseLog(`批量服用 ${item.name} ×${count}，抗性 +${value}`);
+  }else if(pillBaseName==="轻身丹"){
+    const value=(1+pillGradeIndex)*count;
+    item.count-=count;
+    STATE.player.attrs.速度+=value;
+    pushUseLog(`批量服用 ${item.name} ×${count}，速度 +${value}`);
+  }else if(pillBaseName==="双倍修行丹"){
+    item.count-=count;
+    STATE.buffs.cultMultiplier2Until=Math.max(STATE.buffs.cultMultiplier2Until,now())+count*30*60*1000;
+    pushUseLog(`批量服用 ${item.name} ×${count}，双倍修行时间延长`);
+  }else if(pillBaseName==="三倍修行丹"){
+    item.count-=count;
+    STATE.buffs.cultMultiplier3Until=Math.max(STATE.buffs.cultMultiplier3Until,now())+count*30*60*1000;
+    pushUseLog(`批量服用 ${item.name} ×${count}，三倍修行时间延长`);
+  }else{
+    alert("该丹药暂不支持批量使用。");
+    return;
+  }
+
+  cleanBag();
+
+  if(!STATE.bag.some(bagItem=>bagItem.id===STATE.selectedBagItemId)){
+    STATE.selectedBagItemId=null;
+  }
+
+  saveState();
+  safeRender();
+}
 function useItem(item){
   if(!item)return;
+
+  const pillBaseName=getPillBaseName(item.name);
+  const pillGradeIndex=getPillGradeIndexFromName(item.name);
+
   if(item.type==="仙缘箱") return openXianyuanBox(item);
   if(CONFIG.skillItemConfigs[item.name]){
     return useSkillItem(item);
@@ -3390,28 +3635,79 @@ safeRender();
     const cultivation=120*(STATE.player.realm+1);
     STATE.player.cultivation+=cultivation;
     pushUseLog(`使用灵石，获得修为 ${cultivation}`);
-  }else if(item.name==="双倍修行丹"){
+  }else if(pillBaseName==="双倍修行丹"){
     item.count--;
     STATE.buffs.cultMultiplier2Until=now()+30*60*1000;
     pushUseLog("使用双倍修行丹，修为获取效率 ×2，持续半小时");
-  }else if(item.name==="三倍修行丹"){
+  }else if(pillBaseName==="三倍修行丹"){
     item.count--;
     STATE.buffs.cultMultiplier3Until=now()+30*60*1000;
     pushUseLog("使用三倍修行丹，修为获取效率 ×3，持续半小时");
-  }else if(item.name.includes("回春")||item.name.includes("凝血")){
-    item.count--;
-    const heal=Math.floor(STATE.player.lifeMax*.35);
-    STATE.player.life=Math.min(STATE.player.lifeMax,STATE.player.life+heal);
-    pushUseLog(`服用 ${item.name}，恢复生命 ${heal}`);
-  }else if(item.name.includes("续命")){
-    item.count--;
-    STATE.player.lifespan+=10;
-    STATE.player.lifespanMax+=10;
-    pushUseLog("服用续命丹，寿命 +10");
-  }else if(item.type==="炼丹炉"){
+  }else if(pillBaseName==="回春丹"||pillBaseName==="凝血丹"){
+  item.count--;
+  const healRates=[.35,.45,.60];
+  const heal=Math.floor(STATE.player.lifeMax*(healRates[pillGradeIndex]||.35));
+  STATE.player.life=Math.min(STATE.player.lifeMax,STATE.player.life+heal);
+  pushUseLog(`服用 ${item.name}，恢复生命 ${heal}`);
+  pushLog(`<span class="good">服用 ${item.name}：恢复生命 ${heal}。</span>`);
+}else if(pillBaseName==="续命丹"){
+  item.count--;
+  const value=10+pillGradeIndex*5;
+  STATE.player.lifespan+=value;
+  STATE.player.lifespanMax+=value;
+  pushUseLog(`服用 ${item.name}，寿命 +${value}`);
+  pushLog(`<span class="good">服用 ${item.name}：寿命 +${value}。</span>`);
+
+}else if(pillBaseName==="壮骨丹"){
+  item.count--;
+  const value=1+pillGradeIndex;
+  STATE.player.attrs.力量+=value;
+  pushUseLog(`服用 ${item.name}，永久力量 +${value}`);
+  pushLog(`<span class="good">服用 ${item.name}：永久力量 +${value}。</span>`);
+
+}else if(pillBaseName==="醒神丹"){
+  item.count--;
+  const value=1+pillGradeIndex;
+  STATE.player.attrs.精神+=value;
+  pushUseLog(`服用 ${item.name}，永久精神 +${value}`);
+  pushLog(`<span class="good">服用 ${item.name}：永久精神 +${value}。</span>`);
+
+}else if(pillBaseName==="纳灵丹"){
+  item.count--;
+  const value=1+pillGradeIndex;
+  STATE.player.attrs.灵力+=value;
+  pushUseLog(`服用 ${item.name}，永久灵力 +${value}`);
+  pushLog(`<span class="good">服用 ${item.name}：永久灵力 +${value}。</span>`);
+
+}else if(pillBaseName==="固甲丹"){
+  item.count--;
+  const value=1+pillGradeIndex;
+  STATE.player.attrs.耐力+=value;
+  STATE.player.lifeMax+=value*2;
+  STATE.player.life+=value*2;
+  pushUseLog(`服用 ${item.name}，永久耐力 +${value}`);
+  pushLog(`<span class="good">服用 ${item.name}：永久耐力 +${value}。</span>`);
+
+}else if(pillBaseName==="清抗丹"){
+  item.count--;
+  const value=1+pillGradeIndex;
+  STATE.player.attrs.抗性+=value;
+  STATE.player.lifeMax+=value*2;
+  STATE.player.life+=value*2;
+  pushUseLog(`服用 ${item.name}，永久抗性 +${value}`);
+  pushLog(`<span class="good">服用 ${item.name}：永久抗性 +${value}。</span>`);
+
+}else if(pillBaseName==="轻身丹"){
+  item.count--;
+  const value=1+pillGradeIndex;
+  STATE.player.attrs.速度+=value;
+  pushUseLog(`服用 ${item.name}，永久速度 +${value}`);
+  pushLog(`<span class="good">服用 ${item.name}：永久速度 +${value}。</span>`);
+
+}else if(item.type==="炼丹炉"){
     STATE.alchemy.furnace=item.name;
     pushUseLog(`装备炼丹炉：${item.name}`);
-  }else if(item.name.includes("破境丹")){
+  }else if(pillBaseName.includes("破境丹")){
     alert("破境丹在人物页大圆满突破时自动消耗。");
   }else{
     alert("该道具暂未开放使用。");
@@ -3428,18 +3724,41 @@ function openStoreEquipDetail(equipId){
 }
 
 function closeStoreEquipDetail(){
+const equip=STATE.store.find(item=>item.id===STATE.selectedStoreEquipId);
+  if(!equip)return;
+  if(!equip.identified){
+    alert("未鉴定装备不能穿戴。");
+    return;
+  }
+  equipToBestCompatibleSlot(equip);
   STATE.selectedStoreEquipId=null;
   saveState();
   render();
 }
 function bestEquip(){
-  STATE.store.filter(equip=>equip.identified).forEach(equip=>{
-    if(!STATE.equipped[equip.slot]||equipScore(equip)>equipScore(STATE.equipped[equip.slot])){
-      if(STATE.equipped[equip.slot]) STATE.store.push(STATE.equipped[equip.slot]);
-      STATE.equipped[equip.slot]=equip;
-      STATE.store=STATE.store.filter(item=>item.id!==equip.id);
+  const sorted=STATE.store
+    .filter(equip=>equip.identified)
+    .sort((a,b)=>equipScore(b)-equipScore(a));
+
+  sorted.forEach(equip=>{
+    if(!STATE.store.some(item=>item.id===equip.id))return;
+
+    const slots=getCompatibleEquipSlots(equip.slot);
+    const hasEmpty=slots.some(slot=>!STATE.equipped[slot]);
+    const weakestSlot=slots
+      .filter(slot=>STATE.equipped[slot])
+      .sort((a,b)=>equipScore(STATE.equipped[a])-equipScore(STATE.equipped[b]))[0];
+
+    if(hasEmpty){
+      equipToBestCompatibleSlot(equip);
+      return;
+    }
+
+    if(weakestSlot&&equipScore(equip)>equipScore(STATE.equipped[weakestSlot])){
+      equipToBestCompatibleSlot(equip);
     }
   });
+
   saveState();
   render();
 }
@@ -3493,8 +3812,10 @@ const secondMaterial=pool[secondIndex];
     "鞋":1,
     "护臂":1,
     "项链":1.25,
+"手镯":1.18,
     "手镯1":1.18,
     "手镯2":1.18,
+"戒指":1.2,
     "戒指1":1.2,
     "戒指2":1.2,
     "戒指3":1.2
@@ -3544,6 +3865,7 @@ function getForgeRealmOptions(){
 }
 
 function getForgeStatPreview(slot,targetRealm){
+  const baseSlot=getEquipBaseSlot(slot);
   const base=10+targetRealm*15;
   const qualityMin=CONFIG.qualities[0].multiplier;
   const qualityMax=CONFIG.qualities[6].multiplier;
@@ -3554,14 +3876,14 @@ function getForgeStatPreview(slot,targetRealm){
 
   const ranges=[];
 
-  if(["武器","项链","手镯1","手镯2"].includes(slot)){
+ if(["武器","项链","手镯"].includes(baseSlot)){
     ranges.push({name:"力量",min:Math.floor(base*minRate*.8),max:Math.floor(base*maxRate*1.3)});
     ranges.push({name:"精神",min:Math.floor(base*minRate*.5),max:Math.floor(base*maxRate*1.0)});
-  }else if(["头盔","上身","下装","护臂"].includes(slot)){
+ }else if(["头盔","上身","下装","护臂"].includes(baseSlot)){
     ranges.push({name:"耐力",min:Math.floor(base*minRate*.8),max:Math.floor(base*maxRate*1.3)});
     ranges.push({name:"抗性",min:Math.floor(base*minRate*.5),max:Math.floor(base*maxRate*1.0)});
     ranges.push({name:"生命",min:Math.floor(base*minRate*8),max:Math.floor(base*maxRate*8)});
-  }else if(slot==="鞋"){
+ }else if(baseSlot==="鞋"){
     ranges.push({name:"速度",min:Math.max(1,Math.floor((2+targetRealm)*minRate)),max:Math.max(1,Math.floor((2+targetRealm)*maxRate))});
     ranges.push({name:"生命",min:Math.floor(base*minRate*2),max:Math.floor(base*maxRate*4)});
   }else{
@@ -3734,55 +4056,157 @@ updateAISystemTaskProgress({
 function craftPillFromFurnace(){
   const pillName=STATE.alchemyItem||"回春丹";
   const pillConfig=CONFIG.pills.find(item=>item.name===pillName);
-  const cost=Math.floor((pillConfig?.baseCost||200)*(1+STATE.player.realm*.25));
 
-  if(STATE.resources.coin<cost)return alert("铜币不足。");
+  if(!pillConfig){
+    alert("丹药配置不存在："+pillName);
+    return;
+  }
 
-  STATE.resources.coin-=cost;
+  const cost=getPillMaterialCost(pillName);
+const craftCount=Math.max(1,Math.min(99,Number(STATE.alchemyCount||1)));
+const totalCost=multiplyPillMaterialCost(cost,craftCount);
+
+ if(!hasPillMaterialCost(totalCost)){
+  alert("炼丹材料不足。请查看右侧材料需求。");
+  return;
+}
+
+consumePillMaterialCost(totalCost);
 
   const furnace=CONFIG.alchemyFurnaces.find(item=>item.name===STATE.alchemy.furnace);
   const vipBonus=CONFIG.vip[STATE.vip.level]?.alchemy||0;
-  let probability=pillName.includes("破境") ? .45 : .68;
+
+  let probability=pillName.includes("破境") ? .42 : .66;
 
   probability += STATE.system.path === "炼丹" ? .15 : 0;
-  probability+=furnace?furnace.successBonus:0;
-  probability+=vipBonus+(STATE.system.alchemyShopBonus||0);
-  probability+=Math.min(.15,STATE.alchemy.failCompensation);
+  probability += furnace?furnace.successBonus:0;
+  probability += vipBonus+(STATE.system.alchemyShopBonus||0);
+  probability += Math.min(.15,STATE.alchemy.failCompensation);
 
   if(chance(probability)){
-    addItem(pillName,1,"丹药");
-updateAISystemTaskProgress({
-  type:"alchemy",
-  name:pillName
-});
+    const created=[];
+
+for(let i=0;i<craftCount;i++){
+  const gradeIndex=rollPillGrade();
+  const itemName=createPillItemName(pillName,gradeIndex);
+
+  addItem(itemName,1,"丹药",{
+    pillBaseName:pillName,
+    pillGrade:gradeIndex,
+    pillRealm:pillConfig.realm
+  });
+
+  created.push(itemName);
+}
+
+    updateAISystemTaskProgress({
+      type:"alchemy",
+      name:pillName
+    });
+
     STATE.alchemy.failCompensation=Math.max(0,STATE.alchemy.failCompensation-.04);
-    pushLog(`<span class="good">炼丹成功：${pillName}</span>`);
+
+    pushLog(`<span class="good">炼丹成功：${pillName} ×${craftCount}</span>`);
+pushUseLog(`炼丹成功：${created.join("、")}`);
   }else{
     STATE.alchemy.failCompensation+=.03;
+
     let returnRate = STATE.month.active ? .6 : 0;
     if(furnace) returnRate=Math.max(returnRate,furnace.materialReturn);
-    if(returnRate) STATE.resources.coin+=Math.floor(cost*returnRate);
-    pushLog(`<span class="bad">炼丹失败。${returnRate?`返还 ${Math.round(returnRate*100)}% 铜币。`:""}</span>`);
+
+    if(returnRate){
+      totalCost.items.forEach(costItem=>{
+        addItem(costItem.name,Math.floor(costItem.count*returnRate),guessItemType(costItem.name));
+      });
+    }
+
+    pushLog(`<span class="bad">炼丹失败。${returnRate?`返还 ${Math.round(returnRate*100)}% 材料。`:""}</span>`);
+    pushUseLog(`炼丹失败：${pillName}`);
   }
 
+  cleanBag();
   saveState();
   safeRender();
 }
 
+function getPillMaterialCost(pillName){
+  const pill=getPillConfigByName(pillName)||CONFIG.pills[0];
+  const realm=pill.realm||0;
+
+  const pool=CONFIG.materials.filter(material=>{
+    return material.realm>=Math.max(0,realm-1)&&material.realm<=Math.min(8,realm+1);
+  });
+
+  const usablePool=pool.length?pool:CONFIG.materials;
+
+  const firstIndex=(realm*3+pill.name.length)%usablePool.length;
+  let secondIndex=(realm*5+pill.name.length+7)%usablePool.length;
+
+  if(secondIndex===firstIndex&&usablePool.length>1){
+    secondIndex=(secondIndex+1)%usablePool.length;
+  }
+
+  const first=usablePool[firstIndex];
+  const second=usablePool[secondIndex];
+
+  return {
+    items:[
+      {
+        name:first.name,
+        count:2+realm
+      },
+      {
+        name:second.name,
+        count:1+Math.floor(realm/2)
+      }
+    ]
+  };
+}
+
+function multiplyPillMaterialCost(cost,count){
+  return {
+    items:cost.items.map(item=>({
+      name:item.name,
+      count:item.count*count
+    }))
+  };
+}
+function hasPillMaterialCost(cost){
+  return cost.items.every(costItem=>{
+    return getOwnedItemCount(costItem.name)>=costItem.count;
+  });
+}
+
+function consumePillMaterialCost(cost){
+  cost.items.forEach(costItem=>{
+    const item=STATE.bag.find(bagItem=>bagItem.name===costItem.name);
+    if(item)item.count-=costItem.count;
+  });
+  cleanBag();
+}
+
+function pillMaterialCostHtml(cost){
+  return `<div class="forge-cost-card">
+    ${cost.items.map(item=>{
+      const owned=getOwnedItemCount(item.name);
+      return `<div class="forge-cost-line">${materialCostHtml(item.name,owned,item.count)}</div>`;
+    }).join("")}
+  </div>`;
+}
 function getPillPreview(pillName){
-  const pill=CONFIG.pills.find(item=>item.name===pillName);
+  const pill=getPillConfigByName(pillName);
   if(!pill)return {effect:"未知效果",attr:"无",value:"-"};
 
-  if(pill.type==="恢复生命")return {effect:"使用后恢复生命。",attr:"生命恢复",value:"约 35% 最大生命"};
-  if(pill.type==="增加寿命")return {effect:"使用后增加寿命。",attr:"寿命",value:"+10"};
-  if(pill.type==="永久力量")return {effect:"永久增加力量。",attr:"力量",value:"+1"};
-  if(pill.type==="永久精神")return {effect:"永久增加精神。",attr:"精神",value:"+1"};
-  if(pill.type==="永久灵力")return {effect:"永久增加灵力。",attr:"灵力",value:"+1"};
-  if(pill.type==="永久耐力")return {effect:"永久增加耐力。",attr:"耐力",value:"+1"};
-  if(pill.type==="永久抗性")return {effect:"永久增加抗性。",attr:"抗性",value:"+1"};
-  if(pill.type==="永久速度")return {effect:"永久增加速度。",attr:"速度",value:"+1"};
+  if(pill.type==="恢复生命")return {effect:"使用后恢复生命。",attr:"生命恢复",value:"下品35%，中品45%，上品60%"};
+  if(pill.type==="增加寿命")return {effect:"使用后增加寿命。",attr:"寿命",value:"下品+10，中品+15，上品+20"};
+  if(pill.type==="永久力量")return {effect:"永久增加力量。",attr:"力量",value:"下品+1，中品+2，上品+3"};
+  if(pill.type==="永久精神")return {effect:"永久增加精神。",attr:"精神",value:"下品+1，中品+2，上品+3"};
+  if(pill.type==="永久灵力")return {effect:"永久增加灵力。",attr:"灵力",value:"下品+1，中品+2，上品+3"};
+  if(pill.type==="永久耐力")return {effect:"永久增加耐力。",attr:"耐力",value:"下品+1，中品+2，上品+3"};
+  if(pill.type==="永久抗性")return {effect:"永久增加抗性。",attr:"抗性",value:"下品+1，中品+2，上品+3"};
+  if(pill.type==="永久速度")return {effect:"永久增加速度。",attr:"速度",value:"下品+1，中品+2，上品+3"};
   if(pill.type==="修行倍率")return {effect:`使用后 ${pill.duration/60000} 分钟修行倍率 ×${pill.multiplier}。`,attr:"修为获取",value:`×${pill.multiplier}`};
-  if(pill.type==="突破丹")return {effect:"大圆满突破大境界时自动消耗。",attr:"突破辅助",value:"必需材料"};
+  if(pill.type==="突破丹")return {effect:"大圆满突破大境界时自动消耗。",attr:"突破辅助",value:"下品+0%，中品+8%，上品+16%"};
 
   return {effect:pill.type,attr:"效果",value:pill.type};
 }
@@ -5248,36 +5672,78 @@ function renderPerson(){
   </div>`;
 }
 
+function bagItemDetailHtml(item){
+  if(!item)return "<span class='muted'>请选择一个物品。</span>";
+
+  const sourceInfo=getMaterialSourceAndUse(item.name);
+  const isPill=item.type==="丹药"||!!getPillConfigByName(item.name);
+  const canBatchUse=isPill&&!getPillBaseName(item.name).includes("破境丹");
+
+  return `<div>
+    <div class="item-line">
+      ${itemIconHtml(item.name,item.type,"large")}
+      <div>
+        <h3>${item.name}</h3>
+        <p class="muted">类型：${item.type} ｜ 数量：${item.count}</p>
+      </div>
+    </div>
+
+    <hr>
+
+    <p><span class="cyan">获取：</span>${sourceInfo.source}</p>
+    <p><span class="gold">用途：</span>${sourceInfo.use}</p>
+
+    ${isPill?`<p class="muted">丹药说明：品级越高，效果越强。突破丹会在大圆满突破时自动消耗。</p>`:""}
+
+    <div class="row">
+      <button onclick="useSelectedBagItem(1)">使用 1 个</button>
+      ${canBatchUse?`<button onclick="useSelectedBagItem(5)">使用 5 个</button>`:""}
+      ${canBatchUse?`<button onclick="useSelectedBagItem(10)">使用 10 个</button>`:""}
+      ${canBatchUse?`<button onclick="useSelectedBagItem('all')">全部使用</button>`:""}
+    </div>
+  </div>`;
+}
 function renderBag(){
   const bagTabs=["全部","丹药","酒","礼物","仙缘箱","灵石","材料","特殊材料","礼包","炼丹炉","道具","功法残卷","神技残卷","心法玉简","功法残页"];
   const currentTab=STATE.bagTab||"全部";
   const shownItems=currentTab==="全部"?STATE.bag:STATE.bag.filter(item=>item.type===currentTab);
+  const selected=STATE.bag.find(item=>item.id===STATE.selectedBagItemId)||shownItems[0]||null;
+
+  if(selected&&STATE.selectedBagItemId!==selected.id){
+    STATE.selectedBagItemId=selected.id;
+  }
 
   return `<div class="panel">
     <h2>背包</h2>
-    <div class="tabs-note">活动类奖励不会直接进入背包，必须先生成邮件；邮件领取后才入账。</div>
+    <div class="tabs-note">点击物品后，会在右侧显示详情和使用按钮。丹药支持批量使用。</div>
 
     <div class="subnav">
-      ${bagTabs.map(tab=>`<button class="${currentTab===tab?'active':''}" onclick="STATE.bagTab='${tab}';saveState();safeRender()">${tab}</button>`).join("")}
+      ${bagTabs.map(tab=>`<button class="${currentTab===tab?'active':''}" onclick="STATE.bagTab='${tab}';STATE.selectedBagItemId=null;saveState();safeRender()">${tab}</button>`).join("")}
     </div>
 
     <div class="cards">
       <div class="card">
         <h3>物品 · ${currentTab}</h3>
-        <button onclick="cleanBag();safeRender()">一键整理</button>
+        <button onclick="cleanBag();STATE.selectedBagItemId=null;safeRender()">一键整理</button>
+
         <div id="bagItemList" class="list">
-          ${shownItems.length?shownItems.map(item=>`<div class="item">
-  <div class="item-line">
-    ${itemIconHtml(item.name,item.type)}
-    <div class="item-line-text">
-      <b>${item.name}</b> × ${item.count}<br>
-      <span class="muted">${item.type}</span>
-    </div>
-    <button class="right" onclick="useItem(STATE.bag.find(x=>x.id==='${item.id}'))">使用</button>
-  </div>
-</div>`).join(""):"该分类暂无物品。"}
+          ${shownItems.length?shownItems.map(item=>`<div class="item" onclick="STATE.selectedBagItemId='${item.id}';saveState();safeRender()" style="cursor:pointer;border-color:${STATE.selectedBagItemId===item.id?'var(--gold)':'#2b3858'}">
+            <div class="item-line">
+              ${itemIconHtml(item.name,item.type)}
+              <div class="item-line-text">
+                <b>${item.name}</b> × ${item.count}<br>
+                <span class="muted">${item.type}</span>
+              </div>
+            </div>
+          </div>`).join(""):"该分类暂无物品。"}
         </div>
       </div>
+
+      <div class="card">
+        <h3>物品详情</h3>
+        ${selected?bagItemDetailHtml(selected):"<span class='muted'>请选择一个物品。</span>"}
+      </div>
+
       <div class="card">
         <h3>使用日志</h3>
         <div id="bagUseLog" class="small-log">${STATE.useLogs.length?STATE.useLogs.join("<br>"):"<span class='muted'>暂无使用记录</span>"}</div>
@@ -5599,8 +6065,9 @@ function renderStore(){
           <div class="equip-info">${equipDetailHtml(selectedEquip)}</div>
         </div>
         <div class="equip-mobile-actions">
-          <button onclick="closeStoreEquipDetail()">关闭</button>
-        </div>
+  <button onclick="equipSelectedStoreEquip()">装备</button>
+  <button onclick="closeStoreEquipDetail()">关闭</button>
+</div>
       </div>
     </div>`:""}
   </div>`;
@@ -5682,7 +6149,7 @@ function renderForge(){
 
   return `<div class="panel">
     <h2>锻造</h2>
-    <p class="muted">可打造自身境界 +1 及以下装备。目标境界越高，材料消耗越高，成功率越低。</p>
+    <p class="muted">可打造自身境界 +1 及以下装备。手镯、戒指为通用装备：手镯可装入任意手镯栏，戒指可装入任意戒指栏。</p>
 
     <div class="forge-layout">
       <div class="forge-sidebar">
@@ -5800,7 +6267,9 @@ function renderAlchemy(){
   const selectedName=STATE.alchemyItem||"回春丹";
   const selected=CONFIG.pills.find(item=>item.name===selectedName)||CONFIG.pills[0];
   const preview=getPillPreview(selected.name);
-  const cost=Math.floor((selected.baseCost||200)*(1+STATE.player.realm*.25));
+  const cost=getPillMaterialCost(selected.name);
+const craftCount=Math.max(1,Math.min(99,Number(STATE.alchemyCount||1)));
+const totalCost=multiplyPillMaterialCost(cost,craftCount);
   const furnace=CONFIG.alchemyFurnaces.find(item=>item.name===STATE.alchemy.furnace);
 
   return `<div class="panel">
@@ -5828,8 +6297,16 @@ function renderAlchemy(){
             <div>
               <p><b class="gold">${selected.name}</b></p>
               <p>类型：${selected.type}</p>
-              <p class="cyan">${preview.effect}</p>
-              <p>增加属性预览：${preview.attr} ${preview.value}</p>
+<p>适用境界：${CONFIG.realms[selected.realm]||"炼气"}</p>
+<p class="cyan">${preview.effect}</p>
+<p>基础效果：${preview.attr} ${preview.value}</p>
+<p class="gold">成丹品级：下品 / 中品 / 上品</p>
+<p class="muted">品级概率：下品60%，中品30%，上品10%。品级越高，属性丹效果越强；突破丹成功率越高。</p>
+<div class="row">
+  ${itemIconHtml(createPillItemName(selected.name,0),"丹药","large")}
+  ${itemIconHtml(createPillItemName(selected.name,1),"丹药","large")}
+  ${itemIconHtml(createPillItemName(selected.name,2),"丹药","large")}
+</div>
               <p>当前丹炉：<b class="gold">${STATE.alchemy.furnace||"未装备"}</b></p>
               ${furnace?`<p>丹炉加成：成功率 +${Math.round(furnace.successBonus*100)}%，失败返还 +${Math.round(furnace.materialReturn*100)}%</p>`:""}
             </div>
@@ -5838,12 +6315,13 @@ function renderAlchemy(){
 
         <div class="card">
           <h3>材料消耗</h3>
-          <div class="forge-cost-card">
-            <div class="forge-cost-line">
-              ${resourceIconHtml("coin")}<span class="${STATE.resources.coin>=cost?"green":"red"}">铜币：${fmt(STATE.resources.coin)} / ${fmt(cost)}</span>
-            </div>
-          </div>
-          <button onclick="craftPillFromFurnace()">开始炼制：${selected.name}</button>
+          <div class="row">
+  <span>炼丹数量：</span>
+  <input type="number" min="1" max="99" value="${craftCount}" style="width:90px" onchange="STATE.alchemyCount=Math.max(1,Math.min(99,+this.value||1));saveState();safeRender()">
+</div>
+
+${pillMaterialCostHtml(totalCost)}
+<button onclick="craftPillFromFurnace()">开始炼制：${selected.name} ×${craftCount}</button>
         </div>
       </div>
     </div>
