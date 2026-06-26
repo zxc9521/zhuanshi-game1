@@ -1780,6 +1780,112 @@ button:disabled{
   z-index:5000;
   position:relative;
 }
+/* ===== 宗门 NPC 立绘 ===== */
+
+.sect-npc-layout{
+  display:grid;
+  grid-template-columns:260px minmax(0,1fr) 360px;
+  gap:12px;
+  align-items:start;
+}
+
+.sect-npc-portrait-card{
+  position:sticky;
+  top:10px;
+  overflow:hidden;
+  max-width:360px;
+  min-height:520px;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  background:
+    linear-gradient(rgba(8,12,20,.18),rgba(8,12,20,.92)),
+    url("assets/images/ui/card_bg.webp") center/cover repeat;
+  border:1px solid rgba(255,211,106,.24);
+}
+
+.sect-npc-portrait-wrap{
+  position:relative;
+  height:460px;
+  overflow:hidden;
+  border-radius:12px;
+  background:
+    radial-gradient(circle at center top,rgba(119,230,255,.16),rgba(8,12,20,.78) 65%);
+}
+
+.sect-npc-portrait{
+  position:absolute;
+  left:50%;
+  bottom:0;
+  transform:translateX(-50%);
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  object-position:center bottom;
+  filter:drop-shadow(0 18px 24px rgba(0,0,0,.55));
+}
+
+.sect-npc-portrait-name{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  padding:14px 12px;
+  background:linear-gradient(rgba(8,12,20,0),rgba(8,12,20,.92));
+  text-align:center;
+}
+
+.sect-npc-portrait-name h3{
+  margin:0;
+  color:var(--gold);
+  text-shadow:0 2px 8px rgba(0,0,0,.8);
+}
+
+.sect-npc-portrait-name p{
+  margin:4px 0 0;
+}
+
+.sect-npc-dialogue-box{
+  margin-top:10px;
+  padding:10px;
+  border:1px solid rgba(119,230,255,.18);
+  border-radius:10px;
+  background:rgba(5,8,14,.72);
+  line-height:1.65;
+}
+
+.sect-npc-list-avatar{
+  width:46px;
+  height:60px;
+  object-fit:cover;
+  object-position:center top;
+  border-radius:8px;
+  border:1px solid rgba(255,211,106,.22);
+  background:rgba(0,0,0,.25);
+  flex:0 0 auto;
+}
+
+.sect-npc-list-item{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+
+@media(max-width:1100px){
+  .sect-npc-layout{
+    grid-template-columns:1fr;
+  }
+
+  .sect-npc-portrait-card{
+    position:static;
+    max-width:none;
+    min-height:0;
+  }
+
+  .sect-npc-portrait-wrap{
+    height:360px;
+  }
+}
 </style>
 </head>
 <body>
@@ -2867,6 +2973,13 @@ forge:{failCompensation:0,logs:[]},
 tradeListings:[],
 tradeMine:[],
 tradeFilter:{keyword:"",itemKind:"all",tradeType:"all",page:1,totalPages:1,total:0,hasUpdate:false,loading:false},
+sect:{
+  joined:null,
+  favor:{},
+  dailyTalk:{},
+  tasks:[],
+  selectedNpc:null
+},
 tutorial:{
   newbieStep:0,
   pageGuideSeen:{},
@@ -3372,6 +3485,11 @@ if(!saved.worldChat)saved.worldChat=base.worldChat;
 if(!saved.tradeListings)saved.tradeListings=[];
 if(!saved.tradeMine)saved.tradeMine=[];
 if(!saved.tradeFilter)saved.tradeFilter={keyword:"",itemKind:"all",tradeType:"all",page:1,totalPages:1,total:0,hasUpdate:false,loading:false};
+if(!saved.sect)saved.sect=base.sect;
+if(!saved.sect.favor)saved.sect.favor={};
+if(!saved.sect.dailyTalk)saved.sect.dailyTalk={};
+if(!saved.sect.tasks)saved.sect.tasks=[];
+if(saved.sect.selectedNpc===undefined)saved.sect.selectedNpc=null;
 if(!saved.tutorial)saved.tutorial=base.tutorial;
 if(!saved.tutorial.pageGuideSeen)saved.tutorial.pageGuideSeen={};
     if(!saved.flow)saved.flow=[];
@@ -4278,6 +4396,9 @@ const killedMapIndex=mapIndex;
     type:"kill",
     mapIndex:killedMapIndex
   });
+updateSectTaskProgress({
+  type:"kill"
+});
   tryDropMonsterSpecialMaterial(defeatedMonster.name,isBoss);
   if(STATE.progress.kills[zoneIndex]>=30) STATE.progress.clearedZones[`${mapIndex}_${zoneIndex}`]=true;
 
@@ -5196,6 +5317,9 @@ updateAISystemTaskProgress({
   targetRealm,
   slot
 });
+updateSectTaskProgress({
+  type:"forge"
+});
     pushLog(`<span class="good">锻造成功：${CONFIG.realms[targetRealm]}${slot}，装备已进入储物戒待鉴定。</span>`);
 pushForgeLog(`锻造成功：${CONFIG.realms[targetRealm]}${slot}，装备进入储物戒待鉴定。${equip.blue?"出现蓝字："+equip.blue.name:""}${equip.noRealmLimit?"｜无境界限制":""}`);
 if(noRealmLimit){
@@ -5244,6 +5368,9 @@ function craftWine(){
 updateAISystemTaskProgress({
   type:"wine",
   name:recipe.name
+});
+updateSectTaskProgress({
+  type:"alchemy"
 });
   pushLog(`<span class="good">酿酒成功：${recipe.name}</span>`);
   pushUseLog(`酿酒：${recipe.name}`);
@@ -5305,6 +5432,9 @@ for(let i=0;i<craftCount;i++){
       type:"alchemy",
       name:pillName
     });
+updateSectTaskProgress({
+  type:"alchemy"
+});
 
     STATE.alchemy.failCompensation=Math.max(0,STATE.alchemy.failCompensation-.04);
 
@@ -6265,6 +6395,287 @@ ${equip.blue?`<span class="blue">蓝字：${equip.blue.name}，${equip.blue.desc
   </div>`;
 }
 
+CONFIG.sects=[
+  {
+    id:"qinglan",
+    name:"青岚剑宗",
+    type:"剑修宗门",
+    description:"立于云海绝峰之上的剑修宗门，重剑心、重规矩，也极其护短。",
+    bonus:"偏向力量、速度、Boss 战与剑修任务。",
+    npcs:[
+      {
+        id:"qinglan_master_gu_hanzhou",
+        name:"顾寒舟",
+portrait:"assets/images/sects/npc/qinglan_master_gu_hanzhou.webp",
+        role:"宗主",
+        gender:"男",
+        personality:"冷峻、沉稳、极其护短，不轻易认可玩家。",
+        speechStyle:"短句多，语气冷，评价尖锐但不恶毒。",
+        background:"昔年一剑斩断魔修七十二峰，被称为寒舟剑君，闭关十年后接任青岚剑宗宗主。",
+        relation:"初始态度为观察与考验。",
+        greeting:"剑拿不稳，话倒不少。若想留在青岚剑宗，先证明你的剑心没有歪。",
+        taskTheme:"剑心试炼",
+        rewardStyle:"剑修资源、功法残卷、锻造石、元宝"
+      },
+      {
+        id:"qinglan_elder_shen_qiwu",
+        name:"沈栖梧",
+portrait:"assets/images/sects/npc/qinglan_elder_shen_qiwu.webp",
+        role:"长老",
+        gender:"男",
+        personality:"温润、耐心、腹黑，喜欢用温柔语气说狠话。",
+        speechStyle:"慢条斯理，常用比喻，表面温和实则压迫感很强。",
+        background:"青岚剑宗传功长老，剑法细腻，负责教导新弟子。",
+        relation:"初始态度温和，会暗中观察玩家根基。",
+        greeting:"错了，再来。放心，我今日只让你重练三百遍。",
+        taskTheme:"传功试炼",
+        rewardStyle:"修为、功法残卷、低阶丹药"
+      },
+      {
+        id:"qinglan_bro_lu_chengxiao",
+        name:"陆承霄",
+portrait:"assets/images/sects/npc/qinglan_bro_lu_chengxiao.webp",
+        role:"师哥",
+        gender:"男",
+        personality:"热血、可靠、喜欢照顾新人，有点莽。",
+        speechStyle:"直白爽朗，偶尔中二，喜欢拍玩家肩膀。",
+        background:"青岚剑宗年轻一代最能打的弟子之一，经常带队下山除妖。",
+        relation:"主动照顾玩家。",
+        greeting:"新来的？别怕，青岚剑宗规矩多，但人不坏。走，师哥带你砍两只妖物练练手。",
+        taskTheme:"除妖历练",
+        rewardStyle:"铜币、锻造石、生命晶石"
+      },
+      {
+        id:"qinglan_sis_xie_mingyuan",
+        name:"谢明鸢",
+portrait:"assets/images/sects/npc/qinglan_sis_xie_mingyuan.webp",
+        role:"师姐",
+        gender:"女",
+        personality:"自律、严厉、嘴硬心软，很重视规矩。",
+        speechStyle:"正式克制，常纠正玩家言行。",
+        background:"戒律堂弟子，负责监督弟子修行与宗规执行。",
+        relation:"严格监督玩家。",
+        greeting:"站直。剑修站姿都散，剑意还能凝到哪里去？",
+        taskTheme:"戒律修行",
+        rewardStyle:"修为、铜币、续命丹"
+      },
+      {
+        id:"qinglan_junior_qin_xiaoman",
+        name:"秦小满",
+portrait:"assets/images/sects/npc/qinglan_junior_qin_xiaoman.webp",
+        role:"师弟",
+        gender:"男",
+        personality:"活泼、话多、胆小但嘴硬，崇拜强者。",
+        speechStyle:"少年感强，容易激动，常自我脑补。",
+        background:"小镇出身，因偶然拔出试剑石旁的旧木剑被收入宗门。",
+        relation:"好奇亲近。",
+        greeting:"师兄师姐都说你很能打，真的假的？要不你表演一下？",
+        taskTheme:"跑腿历练",
+        rewardStyle:"铜币、随机材料、普通生命晶石"
+      },
+      {
+        id:"qinglan_junior_lin_ruoying",
+        name:"林若萤",
+portrait:"assets/images/sects/npc/qinglan_junior_lin_ruoying.webp",
+        role:"师妹",
+        gender:"女",
+        personality:"细心、善良、好奇，偶尔天然黑。",
+        speechStyle:"温软轻快，常认真说出扎心实话。",
+        background:"药庐长大的弟子，剑术普通，但对疗伤、药理和灵草很有天赋。",
+        relation:"友善关心玩家状态。",
+        greeting:"你又受伤了？嗯……这次比上次少断一根骨头，有进步。",
+        taskTheme:"药庐委托",
+        rewardStyle:"回春丹、生命晶石、药草材料"
+      }
+    ]
+  },
+  {
+    id:"xuandan",
+    name:"玄丹谷",
+    type:"炼丹宗门",
+    description:"藏于四季不谢药谷中的炼丹宗门，温和富有，也极现实。",
+    bonus:"偏向炼丹、药材、寿命、恢复与资源经营。",
+    npcs:[
+      {
+        id:"xuandan_master_luo_wenxi",
+        name:"洛闻溪",
+portrait:"assets/images/sects/npc/xuandan_master_luo_wenxi.webp",
+        role:"宗主",
+        gender:"女",
+        personality:"温柔、理智、精明，极擅长权衡利弊。",
+        speechStyle:"语气柔和，但每句话都像算过三遍。",
+        background:"曾以九转续命丹救回三城修士，也曾以毒丹逼退魔道围谷。",
+        relation:"温和接纳，但会评估玩家价值。",
+        greeting:"别紧张，玄丹谷不吃人。至少大多数时候不吃。",
+        taskTheme:"谷主药令",
+        rewardStyle:"元宝、丹药、稀有材料"
+      },
+      {
+        id:"xuandan_elder_hua_qinggui",
+        name:"华青圭",
+portrait:"assets/images/sects/npc/xuandan_elder_hua_qinggui.webp",
+        role:"长老",
+        gender:"男",
+        personality:"严谨、挑剔、毒舌，对丹道极其虔诚。",
+        speechStyle:"专业术语多，骂人像讲课。",
+        background:"玄丹谷最老派的丹师，一生炸炉无数，也成丹无数。",
+        relation:"嫌弃玩家基础差。",
+        greeting:"火候错了三息，药性毁了七成。你还好意思说差不多？",
+        taskTheme:"丹法考校",
+        rewardStyle:"炼丹材料、丹炉资源、丹药"
+      },
+      {
+        id:"xuandan_bro_wen_zhaoye",
+        name:"温照夜",
+portrait:"assets/images/sects/npc/xuandan_bro_wen_zhaoye.webp",
+        role:"师哥",
+        gender:"男",
+        personality:"体贴、成熟、擅长照顾人，但有轻微控制欲。",
+        speechStyle:"温和细致，像医师叮嘱病人。",
+        background:"游历凡俗医馆十年，救治经验丰富，是谷中最受欢迎的师兄。",
+        relation:"关心玩家身体状态。",
+        greeting:"你脸色很差。先别说修炼，坐下，把脉。",
+        taskTheme:"医者委托",
+        rewardStyle:"生命晶石、回春丹、续命丹"
+      },
+      {
+        id:"xuandan_sis_su_jiangxue",
+        name:"苏绛雪",
+portrait:"assets/images/sects/npc/xuandan_sis_su_jiangxue.webp",
+        role:"师姐",
+        gender:"女",
+        personality:"自信、张扬、胜负欲强，喜欢逗人。",
+        speechStyle:"轻佻明快，爱调侃，偶尔锋利。",
+        background:"年轻一代炼丹天才，常与其他丹师斗丹，从未服输。",
+        relation:"觉得玩家有趣，喜欢试探。",
+        greeting:"新来的？看着不像会炼丹，倒像会炸炉。",
+        taskTheme:"斗丹试炼",
+        rewardStyle:"高品质丹药、功法残卷、元宝"
+      },
+      {
+        id:"xuandan_junior_bai_ziche",
+        name:"白子澈",
+portrait:"assets/images/sects/npc/xuandan_junior_bai_ziche.webp",
+        role:"师弟",
+        gender:"男",
+        personality:"内向、认真、容易紧张，记忆力极好。",
+        speechStyle:"小声、略结巴，但讲药材时会突然流畅。",
+        background:"药农世家出身，对药草辨识极强。",
+        relation:"紧张但友善。",
+        greeting:"那、那个……这株不是雾纹草，是毒雾藤，不能碰。",
+        taskTheme:"采药委托",
+        rewardStyle:"药草、灵液、随机材料"
+      },
+      {
+        id:"xuandan_junior_tang_mi",
+        name:"唐蜜",
+portrait:"assets/images/sects/npc/xuandan_junior_tang_mi.webp",
+        role:"师妹",
+        gender:"女",
+        personality:"甜美、机灵、爱吃丹药糖，偶尔坑人。",
+        speechStyle:"俏皮、甜，语速快，喜欢撒娇。",
+        background:"擅长炼制各种奇怪但不致命的小丹药。",
+        relation:"自来熟，喜欢找玩家试丹。",
+        greeting:"师兄师姐别怕，这丹我试过半颗，应该不会出大事！",
+        taskTheme:"试丹小事",
+        rewardStyle:"随机丹药、灵石、趣味材料"
+      }
+    ]
+  },
+  {
+    id:"xinghe",
+    name:"星河阁",
+    type:"星术宗门",
+    description:"湖心岛上的星象与阵法宗门，神秘优雅，也常说谜语。",
+    bonus:"偏向精神、灵力、阵法、神技、系统任务与剧情探索。",
+    npcs:[
+      {
+        id:"xinghe_master_yan_wuchen",
+        name:"晏无尘",
+portrait:"assets/images/sects/npc/xinghe_master_yan_wuchen.webp",
+        role:"宗主",
+        gender:"男",
+        personality:"神秘、淡漠、通透，偶尔说话像预言。",
+        speechStyle:"优雅，常带星象隐喻，不直接回答问题。",
+        background:"据说曾推演出一次大劫，却因此失去部分记忆。",
+        relation:"似乎早已知道玩家会来。",
+        greeting:"你来了。星盘上这颗迟到的星，终于归位。",
+        taskTheme:"星命试炼",
+        rewardStyle:"系统点、神技残卷、灵力资源"
+      },
+      {
+        id:"xinghe_elder_mei_zhaowei",
+        name:"梅照微",
+portrait:"assets/images/sects/npc/xinghe_elder_mei_zhaowei.webp",
+        role:"长老",
+        gender:"女",
+        personality:"理性、严苛、完美主义，讨厌蠢问题。",
+        speechStyle:"冷静，逻辑强，喜欢反问。",
+        background:"精通星阵与封禁术，曾用一座阵困住妖王三日。",
+        relation:"认为玩家基础薄弱。",
+        greeting:"你踩错了阵眼。若这是实战，你已经死了。",
+        taskTheme:"阵法推演",
+        rewardStyle:"系统点、材料、心法玉简概率"
+      },
+      {
+        id:"xinghe_bro_chu_guanlan",
+        name:"楚观澜",
+portrait:"assets/images/sects/npc/xinghe_bro_chu_guanlan.webp",
+        role:"师哥",
+        gender:"男",
+        personality:"懒散、聪明、嘴毒，关键时刻可靠。",
+        speechStyle:"漫不经心，喜欢吐槽。",
+        background:"星河阁年轻一代推演第一，却因为懒常被长老训。",
+        relation:"觉得玩家麻烦，但会随手帮一把。",
+        greeting:"别看我，我只是路过。顺便提醒你，再往前三步会摔。",
+        taskTheme:"星盘解读",
+        rewardStyle:"系统点、随机灵石、功法残卷"
+      },
+      {
+        id:"xinghe_sis_ning_zheyue",
+        name:"宁折月",
+portrait:"assets/images/sects/npc/xinghe_sis_ning_zheyue.webp",
+        role:"师姐",
+        gender:"女",
+        personality:"安静、敏锐、共情强，内心坚定。",
+        speechStyle:"轻声细语，善于倾听，偶尔一针见血。",
+        background:"天生能感知灵力波动，因此常被星象噪音困扰。",
+        relation:"温和疏离，会观察玩家情绪。",
+        greeting:"你的灵息有些乱。是刚战斗过，还是心里有事？",
+        taskTheme:"心魔安抚",
+        rewardStyle:"灵力丹药、修为、心法资源"
+      },
+      {
+        id:"xinghe_junior_qi_xingmian",
+        name:"齐星眠",
+portrait:"assets/images/sects/npc/xinghe_junior_qi_xingmian.webp",
+        role:"师弟",
+        gender:"男",
+        personality:"迷糊、天才、经常睡着，梦里会推演。",
+        speechStyle:"慢半拍，常说梦话式结论。",
+        background:"梦占天赋极高，经常在睡梦中看到未来碎片。",
+        relation:"迷迷糊糊认得玩家。",
+        greeting:"我刚梦到你了……你踩进坑里，还挺响。",
+        taskTheme:"梦占碎片",
+        rewardStyle:"随机灵石、系统点、铜币"
+      },
+      {
+        id:"xinghe_junior_ye_liuying",
+        name:"叶流萤",
+portrait:"assets/images/sects/npc/xinghe_junior_ye_liuying.webp",
+        role:"师妹",
+        gender:"女",
+        personality:"好奇、浪漫、行动力强，容易闯祸。",
+        speechStyle:"轻快，想象力丰富，喜欢把事情说得梦幻。",
+        background:"出身凡间灯会世家，入阁后迷上星术和阵灯。",
+        relation:"热情亲近，喜欢拉玩家一起探索。",
+        greeting:"你看！这盏星灯会自己转，是不是很漂亮？",
+        taskTheme:"星灯探索",
+        rewardStyle:"材料、元宝、功法残卷"
+      }
+    ]
+  }
+];
 const mainTabs=["主页","装备","人物","背包","功法","活动","副本","系统","储物戒","锻造","丹炉","交易行","商城","聊天","充值","VIP","宗门","日常","邮件"];
 
 function safeRender(){
@@ -8307,10 +8718,600 @@ function renderChat(){
     </div>
   </div>`;
 }
+function getSectById(sectId){
+  return CONFIG.sects.find(sect=>sect.id===sectId);
+}
+
+function getNpcById(npcId){
+  for(const sect of CONFIG.sects){
+    const npc=sect.npcs.find(item=>item.id===npcId);
+    if(npc)return {...npc,sectId:sect.id,sectName:sect.name};
+  }
+  return null;
+}
+
+function getNpcFavor(npcId){
+  if(!STATE.sect)STATE.sect={joined:null,favor:{},dailyTalk:{},tasks:[],selectedNpc:null};
+  return STATE.sect.favor[npcId]||0;
+}
+
+function addNpcFavor(npcId,amount){
+  if(!STATE.sect)STATE.sect={joined:null,favor:{},dailyTalk:{},tasks:[],selectedNpc:null};
+  STATE.sect.favor[npcId]=Math.max(0,Math.min(100,(STATE.sect.favor[npcId]||0)+amount));
+}
+
+function joinSect(sectId){
+  if(STATE.sect?.joined){
+    alert("你已经加入宗门，当前版本暂不支持更换宗门。");
+    return;
+  }
+
+  const sect=getSectById(sectId);
+  if(!sect)return;
+
+  STATE.sect.joined=sectId;
+  STATE.sect.selectedNpc=sect.npcs[0].id;
+
+  pushLog(`<span class="gold">你加入了${sect.name}。</span>`);
+  saveState();
+  render();
+}
+
+function selectSectNpc(npcId){
+  STATE.sect.selectedNpc=npcId;
+  saveState();
+  render();
+}
+
+async function talkSectNpc(npcId,action="闲聊",playerText=""){
+  const npc=getNpcById(npcId);
+  if(!npc)return;
+
+  const sect=getSectById(npc.sectId);
+  const today=new Date().toDateString();
+  const key=today+"_"+npcId;
+
+  if(action==="闲聊"&&STATE.sect.dailyTalk[key]){
+    alert("今日已经与该 NPC 闲聊过。");
+    return;
+  }
+
+  try{
+    if(!STATE.sect.aiLoading){
+      STATE.sect.aiLoading={};
+    }
+
+    STATE.sect.aiLoading[npcId]=true;
+    saveState();
+    safeRender();
+
+    const result=await apiRequest("/api/ai/sect-chat",{
+      method:"POST",
+      body:JSON.stringify({
+        npc,
+        sect,
+        action,
+        playerText,
+        favor:getNpcFavor(npcId)
+      })
+    });
+
+    const data=result.result;
+    const delta=Number(data.favorDelta||0);
+
+    addNpcFavor(npcId,delta);
+
+    if(action==="闲聊"){
+      STATE.sect.dailyTalk[key]=true;
+    }
+
+    STATE.sect.lastDialogues=STATE.sect.lastDialogues||{};
+    STATE.sect.lastDialogues[npcId]={
+      text:data.dialogue,
+      mood:data.mood,
+      favorDelta:delta,
+      reason:data.reason,
+      time:now()
+    };
+
+    pushLog(`<span class="cyan">${npc.name}：</span>${escapeHtml(data.dialogue)} ${
+      delta>0?`<span class="good">好感 +${delta}</span>`:
+      delta<0?`<span class="bad">好感 ${delta}</span>`:
+      `<span class="muted">好感不变</span>`
+    }`);
+
+    pushUseLog(`宗门互动：${npc.name}｜${action}｜好感变化 ${delta}`);
+
+    STATE.sect.aiLoading[npcId]=false;
+    saveState();
+    safeRender();
+  }catch(error){
+    if(STATE.sect.aiLoading){
+      STATE.sect.aiLoading[npcId]=false;
+    }
+
+    saveState();
+    safeRender();
+    alert(error.message||"宗门 NPC 对话失败");
+  }
+}
+
+function getSectTaskChance(npcId){
+  const favor=getNpcFavor(npcId);
+  return Math.min(.90,.30+favor*.006);
+}
+
+function createSectTask(npc){
+  const favor=getNpcFavor(npc.id);
+  const difficulty=favor>=60?"hard":favor>=25?"normal":"easy";
+
+  let type="killAny";
+  let count=8;
+  let title=npc.taskTheme;
+  let description=`完成 ${npc.name} 交付的宗门委托。`;
+
+  if(npc.role==="宗主"){
+    type="killAny";
+    count=difficulty==="hard"?36:difficulty==="normal"?24:12;
+    description=`击败 ${count} 只怪物，证明你没有辱没宗门之名。`;
+  }else if(npc.role==="长老"){
+    if(npc.sectId==="xuandan"){
+      type="alchemyAny";
+      count=difficulty==="hard"?5:difficulty==="normal"?3:1;
+      description=`炼制丹药 ${count} 次，接受丹道考校。`;
+    }else if(npc.sectId==="xinghe"){
+      type="killAny";
+      count=difficulty==="hard"?30:difficulty==="normal"?18:10;
+      description=`完成 ${count} 次实战推演，验证星阵推算。`;
+    }else{
+      type="killAny";
+      count=difficulty==="hard"?30:difficulty==="normal"?18:10;
+      description=`击败 ${count} 只怪物，完成传功试炼。`;
+    }
+  }else if(npc.role==="师哥"){
+    type="killAny";
+    count=difficulty==="hard"?28:difficulty==="normal"?16:8;
+    description=`随 ${npc.name} 的委托击败 ${count} 只怪物。`;
+  }else if(npc.role==="师姐"){
+    if(npc.sectId==="xuandan"){
+      type="alchemyAny";
+      count=difficulty==="hard"?6:difficulty==="normal"?3:1;
+      description=`完成 ${count} 次炼丹，参加${npc.name}的斗丹试炼。`;
+    }else{
+      type="killAny";
+      count=difficulty==="hard"?24:difficulty==="normal"?14:8;
+      description=`完成 ${count} 次修行战斗，接受${npc.name}的检验。`;
+    }
+  }else if(npc.role==="师弟"){
+    type=npc.sectId==="xuandan"?"collectMaterial":"killAny";
+    count=difficulty==="hard"?12:difficulty==="normal"?8:4;
+    description=type==="collectMaterial"
+      ? `提交任意普通材料 ${count} 份，帮助${npc.name}整理采药记录。`
+      : `击败 ${count} 只怪物，陪${npc.name}完成历练。`;
+  }else if(npc.role==="师妹"){
+    if(npc.sectId==="xuandan"){
+      type="alchemyAny";
+      count=difficulty==="hard"?4:difficulty==="normal"?2:1;
+      description=`帮${npc.name}完成 ${count} 次试丹炼制。`;
+    }else if(npc.sectId==="xinghe"){
+      type="killAny";
+      count=difficulty==="hard"?20:difficulty==="normal"?12:6;
+      description=`陪${npc.name}完成星灯探索，击败 ${count} 只怪物。`;
+    }else{
+      type="killAny";
+      count=difficulty==="hard"?18:difficulty==="normal"?10:5;
+      description=`帮${npc.name}采集药庐线索，击败 ${count} 只怪物。`;
+    }
+  }
+
+  return {
+    id:uid("sect_task"),
+    npcId:npc.id,
+    npcName:npc.name,
+    sectId:npc.sectId,
+    sectName:npc.sectName,
+    title,
+    description,
+    type,
+    count,
+    progress:0,
+    state:"进行中",
+    difficulty,
+    created:now()
+  };
+}
+
+async function requestSectNpcTask(npcId){
+  const npc=getNpcById(npcId);
+  if(!npc)return;
+
+  const sect=getSectById(npc.sectId);
+
+  if(STATE.sect.tasks.some(task=>task.npcId===npcId&&task.state==="进行中")){
+    alert("该 NPC 已有一个进行中的任务。");
+    return;
+  }
+
+  try{
+    if(!STATE.sect.aiLoading){
+      STATE.sect.aiLoading={};
+    }
+
+    STATE.sect.aiLoading[npcId]=true;
+    saveState();
+    safeRender();
+
+    const result=await apiRequest("/api/ai/sect-chat",{
+      method:"POST",
+      body:JSON.stringify({
+        npc,
+        sect,
+        action:"请求宗门任务",
+        playerText:"弟子想向你请一件合适的宗门委托。",
+        favor:getNpcFavor(npcId)
+      })
+    });
+
+    const data=result.result;
+    const delta=Number(data.favorDelta||0);
+    addNpcFavor(npcId,delta);
+
+    STATE.sect.lastDialogues=STATE.sect.lastDialogues||{};
+    STATE.sect.lastDialogues[npcId]={
+      text:data.dialogue,
+      mood:data.mood,
+      favorDelta:delta,
+      reason:data.reason,
+      time:now()
+    };
+
+    pushLog(`<span class="cyan">${npc.name}：</span>${escapeHtml(data.dialogue)} ${
+      delta>0?`<span class="good">好感 +${delta}</span>`:
+      delta<0?`<span class="bad">好感 ${delta}</span>`:
+      `<span class="muted">好感不变</span>`
+    }`);
+
+    if(data.allowTask){
+      const task=createSectTask(npc);
+      STATE.sect.tasks.unshift(task);
+      STATE.sect.tasks=STATE.sect.tasks.slice(0,30);
+      pushLog(`<span class="gold">${npc.name} 发布宗门任务：</span>${task.description}`);
+    }else{
+      pushLog(`<span class="muted">${npc.name} 暂时没有把委托交给你。</span>`);
+    }
+
+    STATE.sect.aiLoading[npcId]=false;
+    saveState();
+    safeRender();
+  }catch(error){
+    if(STATE.sect.aiLoading){
+      STATE.sect.aiLoading[npcId]=false;
+    }
+
+    saveState();
+    safeRender();
+    alert(error.message||"请求宗门任务失败");
+  }
+}
+
+function getSectTaskReward(task){
+  const npc=getNpcById(task.npcId);
+  const favor=getNpcFavor(task.npcId);
+  const difficultyRate={easy:1,normal:1.8,hard:3}[task.difficulty]||1;
+  const realmRate=STATE.player.realm+1;
+
+  const reward={
+    coin:Math.floor(800*realmRate*difficultyRate),
+    yuanbao:Math.floor(60*difficultyRate),
+    items:[]
+  };
+
+  if(!npc)return reward;
+
+  if(npc.sectId==="qinglan"){
+    if(npc.role==="宗主"){
+      reward.yuanbao+=120;
+      reward.items.push(["功法残卷",Math.ceil(3*difficultyRate)]);
+      reward.items.push(["锻造石",Math.ceil(8*difficultyRate)]);
+    }else if(npc.role==="长老"){
+      reward.cult=Math.floor(600*realmRate*difficultyRate);
+      reward.items.push(["功法残卷",Math.ceil(2*difficultyRate)]);
+    }else if(npc.role==="师哥"){
+      reward.items.push(["锻造石",Math.ceil(10*difficultyRate)]);
+      reward.items.push(["普通生命晶石",Math.ceil(2*difficultyRate)]);
+    }else if(npc.role==="师姐"){
+      reward.cult=Math.floor(500*realmRate*difficultyRate);
+      reward.items.push(["续命丹",1]);
+    }else if(npc.role==="师弟"){
+      reward.items.push(["随机材料包",Math.ceil(1*difficultyRate)]);
+    }else{
+      reward.items.push(["回春丹",Math.ceil(2*difficultyRate)]);
+      reward.items.push(["普通生命晶石",Math.ceil(2*difficultyRate)]);
+    }
+  }
+
+  if(npc.sectId==="xuandan"){
+    if(npc.role==="宗主"){
+      reward.yuanbao+=180;
+      reward.items.push(["随机材料包",Math.ceil(3*difficultyRate)]);
+      reward.items.push(["续命丹",1]);
+    }else if(npc.role==="长老"){
+      reward.items.push(["随机材料包",Math.ceil(4*difficultyRate)]);
+      reward.items.push(["回春丹",Math.ceil(2*difficultyRate)]);
+    }else if(npc.role==="师哥"){
+      reward.items.push(["普通生命晶石",Math.ceil(5*difficultyRate)]);
+      reward.items.push(["续命丹",1]);
+    }else if(npc.role==="师姐"){
+      reward.items.push(["功法残卷",Math.ceil(2*difficultyRate)]);
+      reward.items.push(["双倍修行丹",1]);
+    }else if(npc.role==="师弟"){
+      reward.items.push(["随机材料包",Math.ceil(4*difficultyRate)]);
+    }else{
+      reward.items.push(["随机灵石",Math.ceil(2*difficultyRate)]);
+      reward.items.push(["回春丹",Math.ceil(2*difficultyRate)]);
+    }
+  }
+
+  if(npc.sectId==="xinghe"){
+    reward.systemPoint=Math.floor(8*difficultyRate+favor/20);
+
+    if(npc.role==="宗主"){
+      reward.systemPoint+=12;
+      reward.items.push(["神技残卷",Math.ceil(1*difficultyRate)]);
+    }else if(npc.role==="长老"){
+      reward.systemPoint+=8;
+      if(chance(.08+difficultyRate*.03)){
+        reward.items.push(["心法玉简",1]);
+      }else{
+        reward.items.push(["功法残卷",Math.ceil(2*difficultyRate)]);
+      }
+    }else if(npc.role==="师哥"){
+      reward.items.push(["随机灵石",Math.ceil(2*difficultyRate)]);
+      reward.items.push(["功法残卷",Math.ceil(1*difficultyRate)]);
+    }else if(npc.role==="师姐"){
+      reward.cult=Math.floor(700*realmRate*difficultyRate);
+      reward.items.push(["心法玉简",chance(.06*difficultyRate)?1:0]);
+      reward.items=reward.items.filter(item=>item[1]>0);
+    }else if(npc.role==="师弟"){
+      reward.items.push(["随机灵石",Math.ceil(3*difficultyRate)]);
+    }else{
+      reward.yuanbao+=80;
+      reward.items.push(["功法残卷",Math.ceil(2*difficultyRate)]);
+    }
+  }
+
+  return reward;
+}
+
+function updateSectTaskProgress(event){
+  if(!STATE.sect?.tasks?.length)return;
+
+  STATE.sect.tasks.forEach(task=>{
+    if(task.state!=="进行中")return;
+
+    if(task.type==="killAny"&&event.type==="kill"){
+      task.progress++;
+    }
+
+    if(task.type==="forgeAny"&&event.type==="forge"){
+      task.progress++;
+    }
+
+    if(task.type==="alchemyAny"&&event.type==="alchemy"){
+      task.progress++;
+    }
+
+    if(task.progress>=task.count){
+      task.progress=task.count;
+      task.state="可领取";
+      pushLog(`<span class="gold">宗门任务完成：</span>${task.title}（${task.npcName}）`);
+    }
+  });
+}
+
+function tryCompleteCollectMaterialTask(taskId){
+  const task=STATE.sect.tasks.find(item=>item.id===taskId);
+  if(!task||task.type!=="collectMaterial"||task.state!=="进行中")return;
+
+  const totalMaterials=STATE.bag
+    .filter(item=>item.type==="材料")
+    .reduce((sum,item)=>sum+(item.count||0),0);
+
+  if(totalMaterials<task.count){
+    alert(`普通材料不足，需要 ${task.count} 份。当前 ${totalMaterials} 份。`);
+    return;
+  }
+
+  let need=task.count;
+
+  STATE.bag.forEach(item=>{
+    if(need<=0)return;
+    if(item.type!=="材料")return;
+    const use=Math.min(need,item.count||0);
+    item.count-=use;
+    need-=use;
+  });
+
+  cleanBag();
+  task.progress=task.count;
+  task.state="可领取";
+
+  pushLog(`<span class="gold">宗门材料委托已完成：</span>${task.title}`);
+  saveState();
+  render();
+}
+
+function claimSectTask(taskId){
+  const task=STATE.sect.tasks.find(item=>item.id===taskId);
+  if(!task)return;
+
+  if(task.state!=="可领取"){
+    alert("任务尚未完成。");
+    return;
+  }
+
+  const reward=getSectTaskReward(task);
+  gainReward(reward,"宗门任务:"+task.title);
+
+  task.state="已完成";
+  addNpcFavor(task.npcId,3);
+
+  pushLog(`<span class="good">领取宗门任务奖励：</span>${task.title}，${task.npcName} 好感 +3。`);
+  saveState();
+  render();
+}
 function renderSect(){
-  return `<div class="panel chat-art">
-    <h2>宗门</h2>
-    <p>第一阶段占位。后续实现宗门创建、加入、贡献、宗门商店、宗门 Boss。</p>
+  if(!STATE.sect){
+    STATE.sect={joined:null,favor:{},dailyTalk:{},tasks:[],selectedNpc:null};
+  }
+
+  if(!STATE.sect.joined){
+    return `<div class="panel">
+      <h2>宗门</h2>
+      <p class="cyan">请选择一个宗门加入。当前版本加入后暂不支持更换宗门。</p>
+
+      <div class="cards">
+        ${CONFIG.sects.map(sect=>`<div class="card" style="max-width:420px">
+          <h3>${sect.name}</h3>
+          <p class="gold">${sect.type}</p>
+          <p>${sect.description}</p>
+          <p class="muted">${sect.bonus}</p>
+          <button onclick="joinSect('${sect.id}')">加入${sect.name}</button>
+        </div>`).join("")}
+      </div>
+    </div>`;
+  }
+
+  const sect=getSectById(STATE.sect.joined);
+  if(!sect)return `<div class="panel"><h2>宗门异常</h2><p>宗门数据不存在。</p></div>`;
+
+  if(!STATE.sect.selectedNpc){
+    STATE.sect.selectedNpc=sect.npcs[0].id;
+  }
+
+  const selectedNpc=getNpcById(STATE.sect.selectedNpc)||{...sect.npcs[0],sectId:sect.id,sectName:sect.name};
+  const favor=getNpcFavor(selectedNpc.id);
+  const taskChance=Math.round(getSectTaskChance(selectedNpc.id)*100);
+  const today=new Date().toDateString();
+  const talkedToday=!!STATE.sect.dailyTalk[today+"_"+selectedNpc.id];
+  const npcTasks=STATE.sect.tasks.filter(task=>task.npcId===selectedNpc.id);
+const lastDialogue=STATE.sect.lastDialogues?.[selectedNpc.id];
+const npcLoading=!!STATE.sect.aiLoading?.[selectedNpc.id];
+
+  return `<div class="panel">
+    <h2>${sect.name}</h2>
+    <p class="cyan">${sect.description}</p>
+    <p class="muted">${sect.bonus}</p>
+
+    <div class="sect-npc-layout">
+      <div class="card" style="max-width:280px">
+        <h3>宗门人物</h3>
+        <div class="list">
+          ${sect.npcs.map(npc=>`<div class="item" onclick="selectSectNpc('${npc.id}')" style="cursor:pointer;border-color:${STATE.sect.selectedNpc===npc.id?'var(--gold)':'#2b3858'}">
+  <div class="sect-npc-list-item">
+    <img class="sect-npc-list-avatar" src="${npc.portrait||''}" onerror="this.style.display='none'">
+    <div>
+      <b>${npc.role} · ${npc.name}</b><br>
+      <span class="muted">好感：${getNpcFavor(npc.id)}/100</span>
+    </div>
+  </div>
+</div>`).join("")}
+        </div>
+      </div>
+
+      <div class="card" style="max-width:560px">
+        <h3>${selectedNpc.role} · ${selectedNpc.name}</h3>
+        <p class="gold">${selectedNpc.personality}</p>
+        <p><b>说话风格：</b>${selectedNpc.speechStyle}</p>
+        <p><b>背景：</b>${selectedNpc.background}</p>
+        <p><b>与你关系：</b>${selectedNpc.relation}</p>
+        <p><b>任务倾向：</b>${selectedNpc.taskTheme}</p>
+        <p><b>奖励倾向：</b>${selectedNpc.rewardStyle}</p>
+
+        <hr>
+
+        <div class="kv">
+          <b>好感度</b><span>${favor}/100</span>
+          <b>委托倾向</b><span>好感越高，AI 越可能交付任务（参考值：${taskChance}%）</span>
+          <b>今日互动</b><span>${talkedToday?"已互动":"未互动"}</span>
+        </div>
+
+        <div class="bar"><span style="width:${favor}%"></span></div>
+
+        <p class="cyan">“${selectedNpc.greeting}”</p>
+
+        ${lastDialogue?`
+  <div class="card" style="max-width:none">
+    <h3>最近对话</h3>
+    <p class="cyan">${selectedNpc.name}：${escapeHtml(lastDialogue.text)}</p>
+    <p class="muted">情绪：${lastDialogue.mood} ｜ 好感变化：${lastDialogue.favorDelta>0?"+"+lastDialogue.favorDelta:lastDialogue.favorDelta} ｜ ${lastDialogue.reason||""}</p>
+  </div>
+`:""}
+
+<div class="row">
+  <button ${talkedToday||npcLoading?"disabled":""} onclick="talkSectNpc('${selectedNpc.id}','闲聊','')">
+    ${npcLoading?"对话中...":talkedToday?"今日已闲聊":"闲聊"}
+  </button>
+
+  <button ${npcLoading?"disabled":""} onclick="talkSectNpc('${selectedNpc.id}','请教修行','弟子想向你请教修行上的困惑。')">
+    请教修行
+  </button>
+
+  <button ${npcLoading?"disabled":""} onclick="talkSectNpc('${selectedNpc.id}','表达亲近','弟子很敬佩你，想与你多亲近一些。')">
+    表达亲近
+  </button>
+
+  <button ${npcLoading?"disabled":""} onclick="requestSectNpcTask('${selectedNpc.id}')">
+    请求宗门任务
+  </button>
+</div>
+      </div>
+<div class="card sect-npc-portrait-card">
+  <div class="sect-npc-portrait-wrap">
+    <img class="sect-npc-portrait" src="${selectedNpc.portrait||''}" onerror="this.style.display='none'">
+    <div class="sect-npc-portrait-name">
+      <h3>${selectedNpc.name}</h3>
+      <p class="muted">${sect.name} · ${selectedNpc.role}</p>
+    </div>
+  </div>
+
+  <div class="sect-npc-dialogue-box">
+    ${lastDialogue?`
+      <span class="cyan">${selectedNpc.name}：</span>${escapeHtml(lastDialogue.text)}
+      <br>
+      <span class="muted">情绪：${lastDialogue.mood} ｜ 好感变化：${lastDialogue.favorDelta>0?"+"+lastDialogue.favorDelta:lastDialogue.favorDelta}</span>
+    `:`
+      <span class="cyan">${selectedNpc.name}：</span>${selectedNpc.greeting}
+    `}
+  </div>
+</div>
+      <div class="card" style="max-width:360px">
+        <h3>${selectedNpc.name} 的任务</h3>
+        <div class="list">
+          ${npcTasks.length?npcTasks.map(task=>`<div class="item">
+            <b>${task.title}</b>
+            <span class="muted">｜${task.state}</span>
+            <p>${task.description}</p>
+            <p class="cyan">进度：${task.progress}/${task.count} ｜ 难度：${task.difficulty}</p>
+
+            ${task.type==="collectMaterial"&&task.state==="进行中"?`<button onclick="tryCompleteCollectMaterialTask('${task.id}')">提交普通材料</button>`:""}
+            <button ${task.state==="可领取"?"":"disabled"} onclick="claimSectTask('${task.id}')">${task.state==="已完成"?"已完成":"领取奖励"}</button>
+          </div>`).join(""):"<span class='muted'>暂无该 NPC 的任务。</span>"}
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>全部宗门任务</h3>
+      <div class="list">
+        ${STATE.sect.tasks.length?STATE.sect.tasks.map(task=>`<div class="item">
+          <b>${task.npcName}：</b>${task.title}
+          <span class="muted">｜${task.state}</span>
+          <p>${task.description}</p>
+          <p>进度：${task.progress}/${task.count}</p>
+        </div>`).join(""):"<span class='muted'>暂无宗门任务。</span>"}
+      </div>
+    </div>
   </div>`;
 }
 

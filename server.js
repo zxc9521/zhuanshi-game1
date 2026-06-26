@@ -1414,6 +1414,123 @@ app.post("/api/ai/system-dialog", authMiddleware, async (req, res) => {
   }
 });
 
+function getSectNpcAiPrompt(){
+  return `
+你是网页文字修仙游戏《转世之修仙系统》中的宗门 NPC。
+
+你必须严格扮演传入的 NPC，不要说自己是 AI，不要跳出现代现实语境。
+
+对话要求：
+1. 始终保持 NPC 的身份、性格、说话风格。
+2. NPC 可以喜欢、冷淡、考验、调侃、拒绝玩家。
+3. 回复必须像宗门 NPC 与玩家面对面说话。
+4. 不要提真实充值、提现、现实交易、赌博。
+5. 不要给现实建议。
+6. 不要生成超出游戏设定的现代内容。
+7. 根据玩家行为和当前好感度，判断好感变化。
+8. 好感变化 favorDelta 必须在 -3 到 +5 之间。
+9. 如果玩家态度冒犯、敷衍、违背 NPC 性格偏好，可以降低好感。
+10. 如果玩家态度符合 NPC 喜好、完成请教、尊重其道路，可以提高好感。
+11. 是否给任务 allowTask 由 NPC 性格与好感决定。
+12. 好感越高，越容易愿意给任务。
+13. 低好感时可以拒绝给任务。
+14. 回复 80 到 180 字。
+
+只能返回 JSON，不要 markdown，不要解释。
+
+返回格式：
+{
+  "dialogue": "NPC 对玩家说的话",
+  "favorDelta": 0,
+  "allowTask": false,
+  "mood": "calm|pleased|annoyed|testing|warm",
+  "reason": "简短说明，好感变化原因，30字以内"
+}
+`;
+}
+
+app.post("/api/ai/sect-chat", authMiddleware, async (req, res) => {
+  try {
+    const record = getPlayerRecord(req.account);
+    const playerData = record?.playerData || req.body?.playerData || {};
+    const playerInfo = getCompactPlayerInfo(playerData);
+
+    const npc = req.body?.npc || {};
+    const sect = req.body?.sect || {};
+    const action = sanitizeText(req.body?.action || "闲聊", 40);
+    const playerText = sanitizeLongText(req.body?.playerText || "", 160);
+    const favor = Math.max(0, Math.min(100, Number(req.body?.favor || 0)));
+
+    const systemPrompt = getSectNpcAiPrompt();
+
+    const userPrompt = `
+玩家信息：
+姓名：${playerInfo.name}
+境界：${playerInfo.realmName}${playerInfo.subRealmName}
+当前好感：${favor}/100
+
+宗门信息：
+宗门：${sanitizeText(sect.name || "未知宗门", 30)}
+宗门定位：${sanitizeLongText(sect.description || "", 200)}
+
+NPC信息：
+姓名：${sanitizeText(npc.name || "未知NPC", 30)}
+身份：${sanitizeText(npc.role || "宗门弟子", 20)}
+性格：${sanitizeLongText(npc.personality || "", 200)}
+说话风格：${sanitizeLongText(npc.speechStyle || "", 200)}
+背景：${sanitizeLongText(npc.background || "", 240)}
+与玩家关系：${sanitizeLongText(npc.relation || "", 120)}
+任务倾向：${sanitizeText(npc.taskTheme || "", 40)}
+奖励倾向：${sanitizeText(npc.rewardStyle || "", 80)}
+
+玩家本次行为：
+${action}
+
+玩家补充内容：
+${playerText || "无"}
+
+请扮演该 NPC 回复玩家，并判断好感变化与是否愿意给任务。
+`;
+
+    const data = await callAiChatCompletion(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      0.75
+    );
+
+    const content = data.choices?.[0]?.message?.content || "";
+    const parsed = extractJsonFromText(content);
+
+    if (!parsed) {
+      return res.status(500).json({
+        ok: false,
+        message: "宗门 NPC AI 返回格式错误",
+        raw: content
+      });
+    }
+
+    const favorDelta = Math.max(-3, Math.min(5, Math.floor(Number(parsed.favorDelta || 0))));
+
+    res.json({
+      ok: true,
+      result: {
+        dialogue: sanitizeLongText(parsed.dialogue || "……", 220),
+        favorDelta,
+        allowTask: !!parsed.allowTask,
+        mood: sanitizeText(parsed.mood || "calm", 20),
+        reason: sanitizeText(parsed.reason || "", 40)
+      }
+    });
+  } catch (error) {
+    console.error("sect npc ai error:", error);
+    res.status(500).json({
+      ok: false,
+      message: error.message || "宗门 NPC AI 服务异常"
+    });
+  }
+});
 app.post("/api/ai/system-chat", authMiddleware, async (req, res) => {
   try {
     const record = getPlayerRecord(req.account);
