@@ -2035,6 +2035,17 @@ button:disabled{
   object-fit:contain;
   object-position:center bottom;
 }
+.activity-header{
+  min-height:0!important;
+  padding:10px 12px!important;
+  background:
+    linear-gradient(rgba(18,24,38,.82),rgba(18,24,38,.92)),
+    url("assets/images/ui/activity_panel.webp") center 28%/cover no-repeat;
+}
+
+.activity-header .subnav{
+  margin-bottom:0;
+}
 </style>
 </head>
 <body>
@@ -2249,9 +2260,39 @@ function canUseFashion(fashion){
   return fashion.gender==="通用"||fashion.gender===STATE.player.gender;
 }
 
+function getFashionLevel(fashionId){
+  return STATE.fashion?.levels?.[fashionId]||0;
+}
+
+function isFashionAnimatedActive(fashion){
+  if(!fashion||!fashion.animated)return false;
+  if(fashion.rarity!=="神话"&&fashion.rarity!=="GM")return false;
+
+  const level=getFashionLevel(fashion.id);
+  const enabled=STATE.fashion?.animatedEnabled?.[fashion.id];
+
+  return level>=12&&enabled!==false;
+}
+
 function getFashionBattleImage(fashion){
   if(!fashion)return "";
-  return fashion.animated||fashion.image;
+  return isFashionAnimatedActive(fashion)?fashion.animated:fashion.image;
+}
+
+function toggleFashionAnimated(fashionId){
+  const fashion=getFashionConfig(fashionId);
+  if(!fashion||!fashion.animated)return;
+
+  if(getFashionLevel(fashionId)<12){
+    alert("神话时装强化到 +12 后才能开启动效。");
+    return;
+  }
+
+  if(!STATE.fashion.animatedEnabled)STATE.fashion.animatedEnabled={};
+
+  STATE.fashion.animatedEnabled[fashionId]=STATE.fashion.animatedEnabled[fashionId]===false;
+  saveState();
+  safeRender();
 }
 
 function getEquippedFashion(){
@@ -2918,7 +2959,13 @@ CONFIG.forgeCategoryConfigs=[
     name:"幻化",
     description:"消耗特殊资源与元宝制作幻化卡。",
     slots:[]
-  }
+  },
+{
+  id:"时装强化",
+  name:"时装强化",
+  description:"消耗传说时装碎片与元宝强化传说/神话时装。",
+  slots:[]
+}
 ];
 
 CONFIG.forgeMaterialRules={
@@ -3281,7 +3328,9 @@ bossBattle:{
 fashion:{
   owned:[],
   equipped:null,
-  glamour:null
+  glamour:null,
+  levels:{},
+  animatedEnabled:{}
 },
 ui:{
   glamourOpen:false,
@@ -3289,7 +3338,8 @@ ui:{
   bgmEnabled:false,
   bgmRewardStartedAt:0,
   bgmRewardElapsed:0,
-  lastBgmRewardAt:0
+  lastBgmRewardAt:0,
+updateNoticeSeenVersion:0,
 },
     bag:[],
     store:[],
@@ -3700,6 +3750,7 @@ function startBgmRewardTimer(){
 function renderBgmPrompt(){
   if(!STATE.auth?.loggedIn||!STATE.player?.created)return "";
   if(STATE.ui?.bgmPromptShown)return "";
+if((STATE.ui?.updateNoticeSeenVersion||0)<CONFIG.updateNoticeVersion)return "";
 
   return `<div class="equip-mobile-mask" onclick="event.stopPropagation()">
     <div class="equip-mobile-dialog" onclick="event.stopPropagation()">
@@ -3902,10 +3953,12 @@ function loadState(){
 if(!saved.equipped)saved.equipped=base.equipped;
 if(saved.equipped.时装===undefined)saved.equipped.时装=null;
 
-if(!saved.fashion)saved.fashion={owned:[],equipped:null,glamour:null};
+if(!saved.fashion)saved.fashion={owned:[],equipped:null,glamour:null,levels:{},animatedEnabled:{}};
 if(!Array.isArray(saved.fashion.owned))saved.fashion.owned=[];
 if(saved.fashion.equipped===undefined)saved.fashion.equipped=null;
 if(saved.fashion.glamour===undefined)saved.fashion.glamour=null;
+if(!saved.fashion.levels)saved.fashion.levels={};
+if(!saved.fashion.animatedEnabled)saved.fashion.animatedEnabled={};
 
 if(!saved.ui)saved.ui={glamourOpen:false};
 if(saved.ui.glamourOpen===undefined)saved.ui.glamourOpen=false;
@@ -3914,6 +3967,7 @@ if(saved.ui.bgmEnabled===undefined)saved.ui.bgmEnabled=false;
 if(saved.ui.bgmRewardStartedAt===undefined)saved.ui.bgmRewardStartedAt=0;
 if(saved.ui.bgmRewardElapsed===undefined)saved.ui.bgmRewardElapsed=0;
 if(saved.ui.lastBgmRewardAt===undefined)saved.ui.lastBgmRewardAt=0;
+if(saved.ui.updateNoticeSeenVersion===undefined)saved.ui.updateNoticeSeenVersion=0;
     if(!saved.bag)saved.bag=[];
 if(saved.selectedBagItemId===undefined)saved.selectedBagItemId=null;
 if(saved.alchemyCount===undefined)saved.alchemyCount=1;
@@ -4400,14 +4454,21 @@ function equipFashion(fashionId){
   }
 
   STATE.fashion.equipped=fashionId;
-  STATE.equipped.时装={
-    id:fashion.id,
-    name:fashion.name,
-    slot:"时装",
-    attrs:fashion.attrs,
-    rarity:fashion.rarity,
-    fashionId:fashion.id
-  };
+  const level=getFashionLevel(fashion.id);
+const enhanceRate=1+level*.08;
+
+STATE.equipped.时装={
+  id:fashion.id,
+  name:fashion.name,
+  slot:"时装",
+  attrs:{
+    幸运:Math.floor((fashion.attrs?.幸运||0)*enhanceRate),
+    固伤:Math.floor((fashion.attrs?.固伤||0)*enhanceRate)
+  },
+  rarity:fashion.rarity,
+  fashionId:fashion.id,
+  level
+};
 
   pushLog(`<span class="gold">已穿戴时装：${fashion.name}</span>`);
   saveState();
@@ -4418,7 +4479,7 @@ function unequipFashion(){
   STATE.fashion.equipped=null;
   STATE.equipped.时装=null;
   saveState();
-  render();
+  safeRender();
 }
 
 function consumeItemByName(name,count=1){
@@ -4448,7 +4509,7 @@ function glamourRealm(realmIndex){
 
   pushLog(`<span class="gold">幻化成功：${CONFIG.realms[realmIndex]}形象。</span>`);
   saveState();
-  render();
+  safeRender();
 }
 
 function glamourFashion(fashionId){
@@ -4471,14 +4532,14 @@ function glamourFashion(fashionId){
 
   pushLog(`<span class="gold">幻化成功：${fashion.name}。</span>`);
   saveState();
-  render();
+  safeRender();
 }
 
 function clearGlamour(){
   STATE.fashion.glamour=null;
   pushLog(`<span class="muted">已取消幻化。</span>`);
   saveState();
-  render();
+  safeRender();
 }
 
 function openGlamourPanel(){
@@ -5960,6 +6021,82 @@ function craftGlamourCard(){
   saveState();
   safeRender();
 }
+function getFashionEnhanceCost(fashion){
+  const level=getFashionLevel(fashion.id);
+  const isMyth=fashion.rarity==="神话"||fashion.rarity==="GM";
+
+  return {
+    yuanbao:Math.floor((isMyth?1200:500)*Math.pow(1.22,level)),
+    fragments:isMyth?Math.max(2,level+2):Math.max(1,Math.ceil((level+1)/2))
+  };
+}
+
+function getFashionEnhanceRate(fashion){
+  const level=getFashionLevel(fashion.id);
+
+  if(level<3)return .95;
+  if(level<6)return .82;
+  if(level<9)return .68;
+  if(level<12)return .52;
+  if(level<15)return .36;
+  return .25;
+}
+
+function enhanceFashion(fashionId){
+  const fashion=getFashionConfig(fashionId);
+
+  if(!fashion||!hasFashion(fashionId)){
+    alert("你尚未拥有该时装。");
+    return;
+  }
+
+  if(!["传说","神话","GM"].includes(fashion.rarity)){
+    alert("该时装暂不支持强化。");
+    return;
+  }
+
+  const level=getFashionLevel(fashionId);
+
+  if(level>=15){
+    alert("该时装已强化到最高等级 +15。");
+    return;
+  }
+
+  const cost=getFashionEnhanceCost(fashion);
+  const fragmentItem=STATE.bag.find(item=>item.name==="传说时装碎片"&&item.count>=cost.fragments);
+
+  if(STATE.resources.yuanbao<cost.yuanbao){
+    alert(`元宝不足，需要 ${fmt(cost.yuanbao)} 元宝。`);
+    return;
+  }
+
+  if(!fragmentItem){
+    alert(`传说时装碎片不足，需要 ${cost.fragments} 个。`);
+    return;
+  }
+
+  STATE.resources.yuanbao-=cost.yuanbao;
+  fragmentItem.count-=cost.fragments;
+  cleanBag();
+
+  const rate=getFashionEnhanceRate(fashion);
+
+  if(chance(rate)){
+    STATE.fashion.levels[fashionId]=level+1;
+    pushLog(`<span class="gold">时装强化成功：</span>${fashion.name} +${level+1}`);
+
+    if((fashion.rarity==="神话"||fashion.rarity==="GM")&&level+1===12){
+      if(!STATE.fashion.animatedEnabled)STATE.fashion.animatedEnabled={};
+      STATE.fashion.animatedEnabled[fashionId]=true;
+      pushLog(`<span class="crit">神话动效激活：</span>${fashion.name} 已达到 +12，战斗动效开启。`);
+    }
+  }else{
+    pushLog(`<span class="bad">时装强化失败：</span>${fashion.name} 保持 +${level}。`);
+  }
+
+  saveState();
+  safeRender();
+}
 function hasGenericCost(cost){
   if(STATE.resources.yuanbao<cost.yuanbao)return false;
   return cost.items.every(item=>getOwnedItemCount(item.name)>=item.count);
@@ -7149,16 +7286,21 @@ function equipIconHtml(equip,size=""){
 }
 function equipHtml(equip){
   if(equip?.slot==="时装"){
-    return `<div class="equip-line">
-      <div class="equip-info">
-        <b class="gold">${equip.name}</b>
-        <span class="fashion-tag">${equip.rarity}时装</span><br>
-        <span class="muted">部位：时装</span><br>
-        幸运+${fmt(equip.attrs?.幸运||0)}，固伤+${fmt(equip.attrs?.固伤||0)}<br>
-        <button onclick="unequipFashion()">卸下时装</button>
-      </div>
-    </div>`;
-  }
+  const fashion=getFashionConfig(equip.fashionId);
+  const level=getFashionLevel(equip.fashionId);
+  const animated=fashion&&isFashionAnimatedActive(fashion);
+
+  return `<div class="equip-line">
+    <div class="equip-info">
+      <b class="gold">${equip.name} +${level}</b>
+      <span class="fashion-tag">${equip.rarity}时装</span><br>
+      <span class="muted">部位：时装</span><br>
+      幸运+${fmt(equip.attrs?.幸运||0)}，固伤+${fmt(equip.attrs?.固伤||0)}<br>
+      ${fashion?.animated?`<span class="${animated?"green":"muted"}">动效：${animated?"已开启":"未开启"}</span><br>`:""}
+      <button onclick="unequipFashion()">卸下时装</button>
+    </div>
+  </div>`;
+}
   return `<div class="equip-line">
     ${equipIconHtml(equip)}
     <div class="equip-info">
@@ -7454,6 +7596,36 @@ portrait:"assets/images/sects/npc/xinghe_junior_ye_liuying.webp",
     ]
   }
 ];
+CONFIG.updateNoticeVersion=3;
+
+CONFIG.updateNoticeItems=[
+  "新增时装系统：传说、神话、特殊、GM 时装。",
+  "新增幻化系统：可幻化已达到过的境界形象，也可幻化已拥有时装。",
+  "新增传说时装碎片：赤霄裂谷及之后怪物概率掉落。",
+  "新增传说时装自选箱：传说时装碎片×100 可合成。",
+  "新增 VIP15 神话时装奖励：根据当前性别自动获得神话时装。",
+  "新增 BGM 奖励：开启 BGM 后每播放 5 分钟获得 1 个传说时装碎片。",
+  "新增锻造子页：幻化卡合成与时装强化。",
+  "神话时装强化到 +12 后可激活动效，并可手动开启或关闭。"
+];
+
+function renderUpdateNotice(){
+  if(!STATE.auth?.loggedIn||!STATE.player?.created)return "";
+  if((STATE.ui?.updateNoticeSeenVersion||0)>=CONFIG.updateNoticeVersion)return "";
+
+  return `<div class="equip-mobile-mask" onclick="event.stopPropagation()">
+    <div class="equip-mobile-dialog" onclick="event.stopPropagation()">
+      <h3>更新公告</h3>
+      <p class="cyan">本次更新内容：</p>
+      <div class="list" style="max-height:300px">
+        ${CONFIG.updateNoticeItems.map(item=>`<div class="item">${item}</div>`).join("")}
+      </div>
+      <div class="row">
+        <button onclick="STATE.ui.updateNoticeSeenVersion=CONFIG.updateNoticeVersion;saveState();render()">知道了</button>
+      </div>
+    </div>
+  </div>`;
+}
 const mainTabs=["主页","装备","人物","背包","功法","活动","副本","系统","储物戒","锻造","丹炉","交易行","商城","聊天","充值","VIP","宗门","日常","邮件"];
 
 function safeRender(){
@@ -7472,6 +7644,7 @@ const forgeLog=document.getElementById("forgeWorkLog");
 const alchemyLog=document.getElementById("alchemyWorkLog");
 const tradeList=document.getElementById("tradeListingList");
 const tradeMineList=document.getElementById("tradeMineList");
+const glamourDialog=document.getElementById("glamourDialog");
 
 const bagListScroll=bagList?bagList.scrollTop:0;
 const bagLogScroll=bagLog?bagLog.scrollTop:0;
@@ -7480,6 +7653,7 @@ const forgeLogScroll=forgeLog?forgeLog.scrollTop:0;
 const alchemyLogScroll=alchemyLog?alchemyLog.scrollTop:0;
 const tradeListScroll=tradeList?tradeList.scrollTop:0;
 const tradeMineListScroll=tradeMineList?tradeMineList.scrollTop:0;
+const glamourDialogScroll=glamourDialog?glamourDialog.scrollTop:0;
 
   render();
 
@@ -7501,6 +7675,7 @@ const nextForgeLog=document.getElementById("forgeWorkLog");
 const nextAlchemyLog=document.getElementById("alchemyWorkLog");
 const nextTradeList=document.getElementById("tradeListingList");
 const nextTradeMineList=document.getElementById("tradeMineList");
+const nextGlamourDialog=document.getElementById("glamourDialog");
 
 if(nextBagList)nextBagList.scrollTop=bagListScroll;
 if(nextBagLog)nextBagLog.scrollTop=bagLogScroll;
@@ -7509,6 +7684,7 @@ if(nextForgeLog)nextForgeLog.scrollTop=forgeLogScroll;
 if(nextAlchemyLog)nextAlchemyLog.scrollTop=alchemyLogScroll;
 if(nextTradeList)nextTradeList.scrollTop=tradeListScroll;
 if(nextTradeMineList)nextTradeMineList.scrollTop=tradeMineListScroll;
+if(nextGlamourDialog)nextGlamourDialog.scrollTop=glamourDialogScroll;
 
 window.scrollTo(scrollX,scrollY);
 }
@@ -7801,6 +7977,7 @@ const tutorialAction=tutorialModal
     </div>
   </div>`:""}
 
+${renderUpdateNotice()}
 ${renderBgmPrompt()}`;
 }
 
@@ -8063,7 +8240,7 @@ function renderGlamourPanel(){
   const equippedFashion=getEquippedFashion();
 
   return `<div class="equip-mobile-mask" onclick="closeGlamourPanel()">
-    <div class="equip-mobile-dialog glamour-dialog" onclick="event.stopPropagation()">
+    <div id="glamourDialog" class="equip-mobile-dialog glamour-dialog" onclick="event.stopPropagation()">
       <h3>幻化</h3>
       <p class="muted">
         显示优先级：幻化 ＞ 穿戴时装 ＞ 当前境界形象。<br>
@@ -8100,11 +8277,13 @@ function renderGlamourPanel(){
         <div class="glamour-grid">
           ${ownedFashions.length?ownedFashions.map(fashion=>`<div class="item fashion-card">
             <img class="fashion-preview" src="${fashion.image}" onerror="this.style.display='none'">
-            <b>${fashion.name}</b><br>
-            <span class="fashion-tag">${fashion.rarity}</span><br>
-            <span class="muted">幸运+${fashion.attrs.幸运} ｜ 固伤+${fashion.attrs.固伤}</span><br>
-            <button onclick="glamourFashion('${fashion.id}')">幻化</button>
-            <button onclick="equipFashion('${fashion.id}')">穿戴</button>
+            <b>${fashion.name} +${getFashionLevel(fashion.id)}</b><br>
+<span class="fashion-tag">${fashion.rarity}</span><br>
+<span class="muted">幸运+${fashion.attrs.幸运} ｜ 固伤+${fashion.attrs.固伤}</span><br>
+${fashion.animated?`<span class="${isFashionAnimatedActive(fashion)?"green":"muted"}">动效：${getFashionLevel(fashion.id)>=12?(isFashionAnimatedActive(fashion)?"已开启":"已关闭"):"强化+12解锁"}</span><br>`:""}
+<button onclick="glamourFashion('${fashion.id}')">幻化</button>
+<button onclick="equipFashion('${fashion.id}')">穿戴</button>
+${fashion.animated?`<button ${getFashionLevel(fashion.id)>=12?"":"disabled"} onclick="toggleFashionAnimated('${fashion.id}')">${isFashionAnimatedActive(fashion)?"关闭动效":"开启动效"}</button>`:""}
           </div>`).join(""):"<span class='muted'>暂无已拥有时装。</span>"}
         </div>
       </div>
@@ -8433,7 +8612,7 @@ function renderSkills(){
 
 function renderActivities(){
   const tabs=["礼包","兑换码","首充礼包","仙缘累充","成长基金","冲级活动","Boss 首杀"];
-  return `<div class="panel activity-art">
+ return `<div class="panel activity-header">
     <h2 class="page-art-title">活动</h2>
     <p class="cyan">所有活动奖励、兑换码、首充、累充、成长基金、VIP、月卡奖励全部通过邮件发放。</p>
     <div class="subnav">${tabs.map(tab=>`<button class="${STATE.activityTab===tab?'active':''}" onclick="STATE.activityTab='${tab}';saveState();render()">${tab}</button>`).join("")}</div>
@@ -8773,6 +8952,51 @@ function renderForge(){
               </div>`).join(""):"<span class='muted'>暂无特殊资源。击败特定怪物有概率掉落特殊材料。</span>"}
             </div>
             <button onclick="craftGlamourCard()">合成幻化卡</button>
+          </div>
+        </div>
+
+        ${renderForgeSideLog()}
+      </div>
+    </div>`;
+  }
+  if(currentCategory==="时装强化"){
+    const ownedFashions=(STATE.fashion?.owned||[])
+      .map(getFashionConfig)
+      .filter(Boolean)
+      .filter(fashion=>["传说","神话","GM"].includes(fashion.rarity));
+
+    return `<div class="panel forge-art">
+      <h2 class="page-art-title">锻造</h2>
+      <p class="muted">传说与神话时装可强化。神话时装强化到 +12 后激活动效，并可手动开启或关闭。</p>
+
+      <div class="work-page-layout">
+        <div class="craft-sidebar">
+          ${CONFIG.forgeCategoryConfigs.map(cat=>`<button class="craft-category-title ${currentCategory===cat.id?"active":""}" onclick="STATE.forgeCategory='${cat.id}';saveState();safeRender()">
+            <span>${cat.name}</span><span>${currentCategory===cat.id?"▾":"▸"}</span>
+          </button>`).join("")}
+        </div>
+
+        <div>
+          <div class="cards">
+            ${ownedFashions.length?ownedFashions.map(fashion=>{
+              const level=getFashionLevel(fashion.id);
+              const cost=getFashionEnhanceCost(fashion);
+              const rate=Math.round(getFashionEnhanceRate(fashion)*100);
+              const animatedActive=isFashionAnimatedActive(fashion);
+              const canAnimated=fashion.animated&&level>=12;
+
+              return `<div class="card fashion-card">
+                <h3>${fashion.name} +${level}</h3>
+                <img class="fashion-preview large" src="${fashion.image}" onerror="this.style.display='none'">
+                <p><span class="fashion-tag">${fashion.rarity}</span></p>
+                <p>基础：幸运+${fashion.attrs.幸运} ｜ 固伤+${fashion.attrs.固伤}</p>
+                <p class="cyan">强化消耗：${resourceIconHtml("yuanbao")}${fmt(cost.yuanbao)} 元宝 + 传说时装碎片 ×${cost.fragments}</p>
+                <p>成功率：<span class="gold">${rate}%</span></p>
+                ${fashion.animated?`<p class="${canAnimated?"green":"muted"}">动效：${canAnimated?(animatedActive?"已开启":"已关闭"):"强化到 +12 解锁"}</p>`:""}
+                <button ${level>=15?"disabled":""} onclick="enhanceFashion('${fashion.id}')">${level>=15?"已满级":"强化"}</button>
+                ${fashion.animated?`<button ${canAnimated?"":"disabled"} onclick="toggleFashionAnimated('${fashion.id}')">${animatedActive?"关闭动效":"开启动效"}</button>`:""}
+              </div>`;
+            }).join(""):"<div class='card'><h3>暂无可强化时装</h3><p class='muted'>获得传说或神话时装后可在此强化。</p></div>"}
           </div>
         </div>
 
