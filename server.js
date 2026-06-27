@@ -25,6 +25,10 @@ const worldChatMessages = [];
 const WORLD_CHAT_LIMIT = 80;
 const TRADE_FEE_RATE = 0.05;
 const TRADE_PAGE_SIZE = 10;
+const GM_ACCOUNTS = String(process.env.GM_ACCOUNTS || "zxc9521a")
+  .split(",")
+  .map(item => item.trim())
+  .filter(Boolean);
 
 const app = express();
 const server = http.createServer(app);
@@ -255,7 +259,7 @@ function ensurePlayerMails(playerData) {
   return playerData.mails;
 }
 
-function sendServerMailToPlayer(account, title, body, attachment = null, source = "trade") {
+function sendServerMailToPlayer(account, title, body, attachment = null, source = "trade", from = "交易行") {
   const playerData = ensurePlayerData(account);
   const mails = ensurePlayerMails(playerData);
 
@@ -263,7 +267,7 @@ function sendServerMailToPlayer(account, title, body, attachment = null, source 
     id: uid("mail"),
     title,
     body,
-    from: "交易行",
+    from,
     created: Date.now(),
     expire: Date.now() + 1000 * 86400 * 30,
     read: false,
@@ -371,6 +375,233 @@ async function settleExpiredTrades() {
   }
 }
 
+const GM_FASHION_NAME_TO_ID = {
+  "苍雷镇岳袍": "male_legend_01_thunder_mountain",
+  "赤焰龙魂甲": "male_legend_02_dragon_flame",
+  "天工械羽仙装": "male_legend_03_mechanical_ascension",
+  "无相天权裁决袍": "male_legend_04_void_admin",
+  "九霄帝陨神袍": "male_myth_01_nine_heavens_emperor",
+
+  "霜月琉璃裳": "female_legend_01_frost_moon",
+  "赤莲凤仪衣": "female_legend_02_phoenix_lotus",
+  "星璃万象裙": "female_legend_03_star_glass",
+  "天工星羽仙衣": "female_legend_04_mechanical_ascension",
+  "太初神凰天衣": "female_myth_01_primordial_phoenix",
+
+  "无面玄令·归墟监察者": "gm_myth_03_faceless_abyss_warden",
+  "道罗天尊灵团装": "unisex_special_doro_spirit_blob"
+};
+
+const GM_ITEM_CATALOG = [
+  "回春丹","续命丹","凝血丹","双倍修行丹","三倍修行丹",
+  "筑基破境丹","金丹破境丹","元婴破境丹","化神破境丹","炼虚破境丹","合体破境丹","大乘破境丹","渡劫破境丹",
+  "壮骨丹","醒神丹","纳灵丹","固甲丹","清抗丹","轻身丹",
+
+  "破碎仙缘箱","普通仙缘箱","优秀仙缘箱","精良仙缘箱","卓越仙缘箱","传说仙缘箱","神话仙缘箱",
+  "破碎生命晶石","普通生命晶石","优秀生命晶石","精良生命晶石","卓越生命晶石","传说生命晶石","神话生命晶石",
+
+  "随机灵石","黄阶灵石","玄阶灵石","地阶灵石","天阶灵石",
+  "锻造石","鉴定符","背包扩展符","储物戒扩展符","副本挑战券",
+
+  "普通礼包","新手礼包","内测礼包","随机材料包","低级材料包","低级装备箱","未鉴定装备箱","随机装备箱",
+  "中级装备箱","高级装备箱","传说装备箱","神话装备箱","锻造装备箱","BOSS装备箱","装备宝箱","新手套装箱",
+
+  "功法残卷","神技残卷","心法玉简","丹方残页","照夜指残页",
+
+  "裂纹陶炉","青铜药炉","玄纹丹炉","赤霞灵炉","星砂宝炉","无垢仙炉","太微神炉",
+
+  "破碎灵酒","普通灵酒","优秀灵酒","精良灵酒","卓越灵酒","传说灵酒","神话灵酒",
+  "安神香囊","青竹风铃","镜水玉佩","千灯魂盏","雷纹护符","太微星匣",
+
+  "传说时装碎片","传说时装自选箱","幻化卡","更新礼包",
+
+  "苍雷镇岳袍","赤焰龙魂甲","天工械羽仙装","无相天权裁决袍","九霄帝陨神袍",
+  "霜月琉璃裳","赤莲凤仪衣","星璃万象裙","天工星羽仙衣","太初神凰天衣",
+  "无面玄令·归墟监察者","道罗天尊灵团装",
+
+  "腐灯魂芯","裂骨犬牙","残碑石心","青烬岩鳞","松火鸦羽","眠蛇藤须",
+  "风魈竹刃","青露蛾粉","风眠竹节","银藻灵丝","镜水蚌珠","沉星蛇鳞",
+  "残灯魂油","黑水尸木","魇童灯纸","玄瓦甲片","断钟铜屑","无灯影纱",
+  "霜纹冰核","寒钟魄晶","白魄狼毫","青芝灵冠","玉露毒囊","丹霞藤珠",
+  "潮骨鱼刺","暗珠蚌核","归墟潮泪","黑盐蝎尾","沉沙骨核","蚀风砂眼",
+  "焚碑火石","赤羽雷翎","焦玉兽核","电纹蛭液","残雷犀角","断云雷羽",
+  "落星岩核","尘光狐尾","古轨星环","星阶玉片","残庭星尘","太微阵骨",
+  "静劫影纤","虚命蛛丝","问终劫核"
+];
+
+function isGmAccount(account) {
+  return GM_ACCOUNTS.includes(account);
+}
+
+function isAccountBanned(account) {
+  const record = getPlayerRecord(account);
+  return !!record?.banned;
+}
+
+function getMuteUntil(account) {
+  const record = getPlayerRecord(account);
+  return Number(record?.mutedUntil || 0);
+}
+
+function isAccountMuted(account) {
+  return getMuteUntil(account) > Date.now();
+}
+
+function gmMiddleware(req, res, next) {
+  authMiddleware(req, res, () => {
+    if (!isGmAccount(req.account)) {
+      return res.status(403).json({
+        ok: false,
+        message: "无GM权限"
+      });
+    }
+
+    next();
+  });
+}
+
+function getRealmTitleFromPlayerData(playerData) {
+  const realms = ["炼气","筑基","金丹","元婴","化神","炼虚","合体","大乘","渡劫"];
+  const subRealms = ["一层","二层","三层","四层","五层","六层","七层","八层","九层","十层","小圆满","大圆满"];
+
+  const realmIndex = Math.max(0, Math.min(8, Number(playerData?.player?.realm || 0)));
+  const subRealmIndex = Math.max(0, Math.min(11, Number(playerData?.player?.subRealm || 0)));
+
+  return `${realms[realmIndex]}${subRealms[subRealmIndex]}`;
+}
+
+function compactGmPlayer(account, record) {
+  const playerData = record?.playerData || {};
+  const resources = playerData.resources || {};
+  const online = onlineClients.has(account);
+  const muteUntil = Number(record?.mutedUntil || 0);
+
+  return {
+    account,
+    name: sanitizeText(playerData?.player?.name || "未创建角色", 20),
+    realmName: getRealmTitleFromPlayerData(playerData),
+    online,
+    banned: !!record?.banned,
+    muted: muteUntil > Date.now(),
+    muteUntil,
+    coin: Number(resources.coin || 0),
+    yuanbao: Number(resources.yuanbao || 0),
+    xianyuan: Number(resources.xianyuan || 0),
+    updatedAt: record?.updatedAt || 0
+  };
+}
+
+function getGmItemCatalog() {
+  return [...new Set(GM_ITEM_CATALOG)].filter(Boolean).sort((a, b) => a.localeCompare(b, "zh-CN"));
+}
+
+function guessGmItemType(itemName, itemType = "") {
+  const name = sanitizeText(itemName, 80);
+  const type = sanitizeText(itemType, 20);
+
+  if (type) return type;
+  if (GM_FASHION_NAME_TO_ID[name]) return "时装";
+  if (name.includes("仙缘箱")) return "仙缘箱";
+  if (name.includes("装备箱") || name.includes("礼包") || name.includes("自选箱") || name.includes("宝箱")) return "礼包";
+  if (name.includes("破境丹") || name.includes("丹")) return "丹药";
+  if (name.includes("灵酒")) return "酒";
+  if (name.includes("灵石")) return "灵石";
+  if (name.includes("碎片")) return "材料";
+  if (name.includes("卡") || name.includes("符")) return "道具";
+  if (name.includes("炉")) return "炼丹炉";
+  return "道具";
+}
+
+function grantFashionToPlayer(account, itemName, count = 1) {
+  const fashionId = GM_FASHION_NAME_TO_ID[itemName];
+  if (!fashionId) return false;
+
+  const playerData = ensurePlayerData(account);
+
+  if (!playerData.fashion || typeof playerData.fashion !== "object") {
+    playerData.fashion = {
+      owned: [],
+      equipped: null,
+      glamour: null,
+      levels: {},
+      animatedEnabled: {}
+    };
+  }
+
+  if (!Array.isArray(playerData.fashion.owned)) {
+    playerData.fashion.owned = [];
+  }
+
+  let gained = 0;
+
+  for (let index = 0; index < count; index++) {
+    if (!playerData.fashion.owned.includes(fashionId)) {
+      playerData.fashion.owned.push(fashionId);
+      gained++;
+    } else {
+      const duplicate = playerData.bag.find(item => item.name === "传说时装碎片" && item.type === "材料" && !item.unique);
+      if (duplicate) {
+        duplicate.count = (duplicate.count || 0) + 10;
+      } else {
+        playerData.bag.push({
+          id: uid("item"),
+          name: "传说时装碎片",
+          count: 10,
+          type: "材料"
+        });
+      }
+    }
+  }
+
+  sendServerMailToPlayer(
+    account,
+    "GM时装发放通知",
+    gained > 0
+      ? `GM已为你发放时装【${itemName}】。`
+      : `你已拥有时装【${itemName}】，重复发放已转化为传说时装碎片。`,
+    null,
+    "gm_fashion",
+    "GM后台"
+  );
+
+  players[account].updatedAt = Date.now();
+  return true;
+}
+
+function grantItemToPlayer(account, itemName, count = 1, itemType = "") {
+  const name = sanitizeText(itemName, 80);
+  const safeCount = Math.max(1, Math.min(999999, Math.floor(Number(count || 1))));
+  const type = guessGmItemType(name, itemType);
+
+  if (!players[account]) return false;
+
+  if (type === "时装" && GM_FASHION_NAME_TO_ID[name]) {
+    return grantFashionToPlayer(account, name, safeCount);
+  }
+
+  sendServerMailToPlayer(
+    account,
+    "GM道具发放",
+    `GM已为你发放【${name}】×${safeCount}，请领取附件。`,
+    {
+      items: [[name, safeCount]]
+    },
+    "gm_item",
+    "GM后台"
+  );
+
+  players[account].updatedAt = Date.now();
+  return true;
+}
+
+function broadcastGmNotice(text) {
+  broadcast({
+    type: "system_notice",
+    level: "gm",
+    message: sanitizeText(text, 160),
+    time: Date.now()
+  });
+}
 function getSessionByToken(token) {
   if (!token) return null;
   return sessions[token] || null;
@@ -839,6 +1070,337 @@ function buildChatHistoryText(history = []) {
     .join("\n");
 }
 
+app.get("/api/gm/me", gmMiddleware, (req, res) => {
+  res.json({
+    ok: true,
+    account: req.account,
+    gmAccounts: GM_ACCOUNTS
+  });
+});
+
+app.get("/api/gm/items/catalog", gmMiddleware, (req, res) => {
+  res.json({
+    ok: true,
+    items: getGmItemCatalog()
+  });
+});
+
+app.post("/api/gm/players/search", gmMiddleware, (req, res) => {
+  try {
+    const keyword = sanitizeText(req.body?.keyword || "", 40).toLowerCase();
+
+    const result = Object.entries(players)
+      .filter(([account, record]) => {
+        if (!keyword) return true;
+
+        const name = String(record?.playerData?.player?.name || "").toLowerCase();
+        const lowerAccount = String(account || "").toLowerCase();
+
+        return lowerAccount.includes(keyword) || name.includes(keyword);
+      })
+      .map(([account, record]) => compactGmPlayer(account, record))
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, 100);
+
+    res.json({
+      ok: true,
+      players: result
+    });
+  } catch (error) {
+    console.error("gm players search error:", error);
+    res.status(500).json({
+      ok: false,
+      message: "查询玩家失败"
+    });
+  }
+});
+
+app.post("/api/gm/player/mute", gmMiddleware, async (req, res) => {
+  try {
+    const account = sanitizeText(req.body?.account || "", 24);
+    const minutes = Math.max(1, Math.min(10080, Math.floor(Number(req.body?.minutes || 60))));
+
+    const record = getPlayerRecord(account);
+    if (!record) {
+      return res.status(404).json({
+        ok: false,
+        message: "玩家不存在"
+      });
+    }
+
+    record.mutedUntil = Date.now() + minutes * 60 * 1000;
+    record.mutedBy = req.account;
+    record.updatedAt = Date.now();
+
+    await savePlayers(players);
+
+    const client = onlineClients.get(account);
+    if (client?.ws) {
+      sendWs(client.ws, {
+        type: "system_notice",
+        level: "warn",
+        message: `你已被禁言 ${minutes} 分钟。`,
+        time: Date.now()
+      });
+    }
+
+    res.json({
+      ok: true,
+      message: "禁言成功",
+      account,
+      mutedUntil: record.mutedUntil
+    });
+  } catch (error) {
+    console.error("gm mute error:", error);
+    res.status(500).json({
+      ok: false,
+      message: "禁言失败"
+    });
+  }
+});
+
+app.post("/api/gm/player/unmute", gmMiddleware, async (req, res) => {
+  try {
+    const account = sanitizeText(req.body?.account || "", 24);
+
+    const record = getPlayerRecord(account);
+    if (!record) {
+      return res.status(404).json({
+        ok: false,
+        message: "玩家不存在"
+      });
+    }
+
+    record.mutedUntil = 0;
+    record.updatedAt = Date.now();
+
+    await savePlayers(players);
+
+    res.json({
+      ok: true,
+      message: "解除禁言成功",
+      account
+    });
+  } catch (error) {
+    console.error("gm unmute error:", error);
+    res.status(500).json({
+      ok: false,
+      message: "解除禁言失败"
+    });
+  }
+});
+
+app.post("/api/gm/player/ban", gmMiddleware, async (req, res) => {
+  try {
+    const account = sanitizeText(req.body?.account || "", 24);
+    const reason = sanitizeText(req.body?.reason || "GM封禁", 120);
+
+    if (isGmAccount(account)) {
+      return res.status(400).json({
+        ok: false,
+        message: "不能封禁GM账号"
+      });
+    }
+
+    const record = getPlayerRecord(account);
+    if (!record) {
+      return res.status(404).json({
+        ok: false,
+        message: "玩家不存在"
+      });
+    }
+
+    record.banned = true;
+    record.banReason = reason;
+    record.bannedBy = req.account;
+    record.bannedAt = Date.now();
+    record.updatedAt = Date.now();
+
+    for (const [token, session] of Object.entries(sessions)) {
+      if (session.account === account) {
+        delete sessions[token];
+      }
+    }
+
+    const client = onlineClients.get(account);
+    if (client?.ws) {
+      sendWs(client.ws, {
+        type: "auth_error",
+        message: reason ? `账号已被封禁：${reason}` : "账号已被封禁"
+      });
+
+      try {
+        client.ws.close();
+      } catch {}
+    }
+
+    onlineClients.delete(account);
+
+    await savePlayers(players);
+    await saveSessions(sessions);
+
+    res.json({
+      ok: true,
+      message: "封号成功",
+      account
+    });
+  } catch (error) {
+    console.error("gm ban error:", error);
+    res.status(500).json({
+      ok: false,
+      message: "封号失败"
+    });
+  }
+});
+
+app.post("/api/gm/player/unban", gmMiddleware, async (req, res) => {
+  try {
+    const account = sanitizeText(req.body?.account || "", 24);
+
+    const record = getPlayerRecord(account);
+    if (!record) {
+      return res.status(404).json({
+        ok: false,
+        message: "玩家不存在"
+      });
+    }
+
+    record.banned = false;
+    record.banReason = "";
+    record.updatedAt = Date.now();
+
+    await savePlayers(players);
+
+    res.json({
+      ok: true,
+      message: "解封成功",
+      account
+    });
+  } catch (error) {
+    console.error("gm unban error:", error);
+    res.status(500).json({
+      ok: false,
+      message: "解封失败"
+    });
+  }
+});
+
+app.post("/api/gm/notice", gmMiddleware, (req, res) => {
+  try {
+    const text = sanitizeText(req.body?.text || "", 160);
+
+    if (!text) {
+      return res.status(400).json({
+        ok: false,
+        message: "公告内容不能为空"
+      });
+    }
+
+    broadcastGmNotice(text);
+
+    res.json({
+      ok: true,
+      message: "公告已发送"
+    });
+  } catch (error) {
+    console.error("gm notice error:", error);
+    res.status(500).json({
+      ok: false,
+      message: "公告发送失败"
+    });
+  }
+});
+
+app.post("/api/gm/items/send-player", gmMiddleware, async (req, res) => {
+  try {
+    const account = sanitizeText(req.body?.account || "", 24);
+    const itemName = sanitizeText(req.body?.itemName || "", 80);
+    const itemType = sanitizeText(req.body?.itemType || "", 20);
+    const count = Math.max(1, Math.min(999999, Math.floor(Number(req.body?.count || 1))));
+
+    if (!players[account]) {
+      return res.status(404).json({
+        ok: false,
+        message: "玩家不存在"
+      });
+    }
+
+    if (!itemName) {
+      return res.status(400).json({
+        ok: false,
+        message: "道具名不能为空"
+      });
+    }
+
+    grantItemToPlayer(account, itemName, count, itemType);
+
+    await savePlayers(players);
+
+    const client = onlineClients.get(account);
+    if (client?.ws) {
+      sendWs(client.ws, {
+        type: "system_notice",
+        level: "gm",
+        message: `GM已为你发放【${itemName}】×${count}，请查看邮件或时装列表。`,
+        time: Date.now()
+      });
+    }
+
+    res.json({
+      ok: true,
+      message: "发送成功"
+    });
+  } catch (error) {
+    console.error("gm send player item error:", error);
+    res.status(500).json({
+      ok: false,
+      message: "发送道具失败"
+    });
+  }
+});
+
+app.post("/api/gm/items/send-all", gmMiddleware, async (req, res) => {
+  try {
+    const itemName = sanitizeText(req.body?.itemName || "", 80);
+    const itemType = sanitizeText(req.body?.itemType || "", 20);
+    const count = Math.max(1, Math.min(999999, Math.floor(Number(req.body?.count || 1))));
+
+    if (!itemName) {
+      return res.status(400).json({
+        ok: false,
+        message: "道具名不能为空"
+      });
+    }
+
+    let sent = 0;
+
+    for (const account of Object.keys(players)) {
+      grantItemToPlayer(account, itemName, count, itemType);
+      sent++;
+    }
+
+    await savePlayers(players);
+
+    broadcast({
+      type: "system_notice",
+      level: "gm",
+      message: `GM全服发放【${itemName}】×${count}，请查看邮件或时装列表。`,
+      time: Date.now()
+    });
+
+    res.json({
+      ok: true,
+      message: "全服发送成功",
+      sent
+    });
+  } catch (error) {
+    console.error("gm send all item error:", error);
+    res.status(500).json({
+      ok: false,
+      message: "全服发送道具失败"
+    });
+  }
+});
 app.get("/api/health", (req, res) => {
   res.json({
     ok: true,
@@ -905,6 +1467,12 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ ok: false, message: "账号不存在" });
     }
 
+    if (record.banned) {
+      return res.status(403).json({
+        ok: false,
+        message: record.banReason ? `账号已被封禁：${record.banReason}` : "账号已被封禁"
+      });
+    }
     if (!record.passwordHash || !record.passwordSalt) {
       return res.status(400).json({ ok: false, message: "账号未配置密码" });
     }
@@ -1007,6 +1575,12 @@ app.post("/api/player/create", authMiddleware, async (req, res) => {
 
 app.post("/api/player/save", authMiddleware, async (req, res) => {
   try {
+    if (isAccountBanned(req.account)) {
+      return res.status(403).json({
+        ok: false,
+        message: "账号已被封禁，无法保存"
+      });
+    }
     const incoming = req.body?.playerData;
     if (!incoming || typeof incoming !== "object") {
       return res.status(400).json({ ok: false, message: "缺少 playerData" });
@@ -1646,6 +2220,14 @@ wss.on("connection", (ws, req) => {
     return;
   }
 
+  if (isAccountBanned(account)) {
+    sendWs(ws, {
+      type: "auth_error",
+      message: "账号已被封禁"
+    });
+    try { ws.close(); } catch {}
+    return;
+  }
   onlineClients.set(account, {
     ws,
     account,
@@ -1696,6 +2278,16 @@ wss.on("connection", (ws, req) => {
     }
 
     if (data.type === "world_chat") {
+      if (isAccountMuted(account)) {
+        const remainMs = Math.max(0, getMuteUntil(account) - Date.now());
+        const remainMinutes = Math.max(1, Math.ceil(remainMs / 60000));
+
+        sendWs(ws, {
+          type: "error",
+          message: `你已被禁言，剩余约 ${remainMinutes} 分钟`
+        });
+        return;
+      }
       const text = sanitizeText(data.text || "", 80);
       if (!text) {
         sendWs(ws, {

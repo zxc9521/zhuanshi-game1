@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>GM后台｜转世之修仙系统</title>
+<style>
+:root{
+  --bg:#070912;
+  --panel:#121826;
+  --panel2:#182033;
+  --line:#2a3858;
+  --text:#d9e6ff;
+  --muted:#8fa3c8;
+  --gold:#ffd36a;
+  --red:#ff6b6b;
+  --green:#7dff9e;
+  --cyan:#77e6ff;
+  --purple:#d997ff;
+  --orange:#ffb86c;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  background:
+    radial-gradient(circle at top,rgba(34,45,80,.42),rgba(7,9,18,.94) 58%),
+    linear-gradient(rgba(7,9,18,.72),rgba(7,9,18,.92));
+  color:var(--text);
+  font-family:"Microsoft YaHei",system-ui,sans-serif;
+}
+button,input,select,textarea{font:inherit}
+button{
+  cursor:pointer;
+  border:1px solid rgba(255,211,106,.34);
+  background:linear-gradient(rgba(28,39,64,.72),rgba(28,39,64,.92));
+  color:var(--text);
+  border-radius:8px;
+  padding:7px 10px;
+  margin:2px;
+}
+button:hover{
+  border-color:rgba(255,211,106,.65);
+  box-shadow:0 0 14px rgba(255,211,106,.12);
+}
+button:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+input,select,textarea{
+  background:#0c1322;
+  color:var(--text);
+  border:1px solid #405073;
+  border-radius:8px;
+  padding:7px;
+}
+textarea{resize:vertical}
+.app{
+  max-width:1420px;
+  margin:auto;
+  padding:14px;
+}
+.top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+  padding:14px;
+  border:1px solid rgba(255,211,106,.28);
+  border-radius:16px;
+  background:linear-gradient(90deg,rgba(12,18,32,.88),rgba(18,30,54,.92));
+  box-shadow:0 14px 38px rgba(0,0,0,.35);
+}
+.title{
+  font-size:24px;
+  font-weight:900;
+  color:var(--gold);
+}
+.notice{
+  color:var(--cyan);
+  font-size:13px;
+  line-height:1.6;
+}
+.badge{
+  display:inline-block;
+  padding:4px 8px;
+  border:1px solid rgba(64,80,115,.9);
+  border-radius:999px;
+  background:#18233a;
+  color:#dce8ff;
+  margin:2px;
+}
+.panel{
+  margin-top:12px;
+  padding:12px;
+  border:1px solid rgba(255,211,106,.20);
+  border-radius:14px;
+  background:linear-gradient(rgba(18,24,38,.92),rgba(18,24,38,.98));
+  box-shadow:0 12px 34px rgba(0,0,0,.32);
+}
+.cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(310px,1fr));
+  gap:12px;
+  align-items:start;
+}
+.card{
+  padding:12px;
+  border:1px solid rgba(119,230,255,.16);
+  border-radius:12px;
+  background:linear-gradient(rgba(20,28,46,.90),rgba(20,28,46,.98));
+}
+.card.wide{grid-column:span 2}
+h1,h2,h3{
+  margin:0 0 10px;
+  color:#fff;
+}
+hr{
+  border:0;
+  border-top:1px solid var(--line);
+  margin:12px 0;
+}
+.row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.kv{
+  display:grid;
+  grid-template-columns:110px 1fr;
+  gap:6px 8px;
+  font-size:14px;
+}
+.list{
+  max-height:430px;
+  overflow:auto;
+}
+.item{
+  padding:9px;
+  border:1px solid #2b3858;
+  border-radius:10px;
+  background:#101827;
+  margin:7px 0;
+}
+.item.active{
+  border-color:var(--gold);
+  box-shadow:0 0 0 2px rgba(255,211,106,.12);
+}
+.log{
+  height:250px;
+  overflow:auto;
+  padding:8px;
+  border:1px solid #25314c;
+  border-radius:10px;
+  background:#080c14;
+  font-size:13px;
+  line-height:1.65;
+}
+.muted{color:var(--muted)}
+.gold{color:var(--gold)}
+.red{color:var(--red)}
+.green{color:var(--green)}
+.cyan{color:var(--cyan)}
+.purple{color:var(--purple)}
+.warn{color:var(--orange)}
+.item-picker{
+  width:100%;
+  min-height:300px;
+}
+.login-wrap{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+}
+.login-card{
+  width:min(460px,96vw);
+  padding:18px;
+  border:1px solid rgba(255,211,106,.28);
+  border-radius:16px;
+  background:rgba(18,24,38,.96);
+  box-shadow:0 18px 44px rgba(0,0,0,.5);
+}
+.login-card input{
+  width:100%;
+  margin:7px 0;
+}
+.small{font-size:13px}
+.actions{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+@media(max-width:900px){
+  .card.wide{grid-column:auto}
+  .kv{grid-template-columns:90px 1fr}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const API_BASE="";
+const $=selector=>document.querySelector(selector);
+const fmt=value=>Math.floor(Number(value)||0).toLocaleString();
+const escapeHtml=text=>String(text??"")
+  .replace(/&/g,"&amp;")
+  .replace(/</g,"&lt;")
+  .replace(/>/g,"&gt;")
+  .replace(/"/g,"&quot;")
+  .replace(/'/g,"&#39;");
+
+const STATE={
+  booted:false,
+  loggedIn:false,
+  account:"",
+  token:localStorage.getItem("zs_xxxt_token")||"",
+  loading:false,
+
+  playerKeyword:"",
+  players:[],
+  selectedPlayer:null,
+  targetAccount:"",
+
+  itemKeyword:"",
+  itemCatalog:[],
+  selectedItem:"回春丹",
+  selectedItemCount:1,
+
+  noticeText:"",
+  muteMinutes:60,
+  banReason:"",
+
+  logs:[]
+};
+
+const FALLBACK_ITEMS=[
+  "回春丹","续命丹","凝血丹","双倍修行丹","三倍修行丹",
+  "筑基破境丹","金丹破境丹","元婴破境丹","化神破境丹","炼虚破境丹","合体破境丹","大乘破境丹","渡劫破境丹",
+  "壮骨丹","醒神丹","纳灵丹","固甲丹","清抗丹","轻身丹",
+
+  "破碎仙缘箱","普通仙缘箱","优秀仙缘箱","精良仙缘箱","卓越仙缘箱","传说仙缘箱","神话仙缘箱",
+  "破碎生命晶石","普通生命晶石","优秀生命晶石","精良生命晶石","卓越生命晶石","传说生命晶石","神话生命晶石",
+
+  "随机灵石","黄阶灵石","玄阶灵石","地阶灵石","天阶灵石",
+  "锻造石","鉴定符","背包扩展符","储物戒扩展符","副本挑战券",
+
+  "普通礼包","新手礼包","内测礼包","随机材料包","低级材料包","随机装备箱","低级装备箱","未鉴定装备箱",
+  "中级装备箱","高级装备箱","传说装备箱","神话装备箱","锻造装备箱","BOSS装备箱","装备宝箱","新手套装箱",
+
+  "功法残卷","神技残卷","心法玉简","丹方残页","照夜指残页",
+
+  "裂纹陶炉","青铜药炉","玄纹丹炉","赤霞灵炉","星砂宝炉","无垢仙炉","太微神炉",
+
+  "破碎灵酒","普通灵酒","优秀灵酒","精良灵酒","卓越灵酒","传说灵酒","神话灵酒",
+  "安神香囊","青竹风铃","镜水玉佩","千灯魂盏","雷纹护符","太微星匣",
+
+  "传说时装碎片","传说时装自选箱","幻化卡","更新礼包",
+
+  "苍雷镇岳袍","赤焰龙魂甲","天工械羽仙装","无相天权裁决袍","九霄帝陨神袍",
+  "霜月琉璃裳","赤莲凤仪衣","星璃万象裙","天工星羽仙衣","太初神凰天衣",
+  "无面玄令·归墟监察者","道罗天尊灵团装",
+
+  "雾纹草","青焰芝","听霜花","眠星藤","赤露参","玄尾兰","月砂莲","白烛苔","折光果","归息叶","冷萤蕊","玉髓菇","风铃芽","碎霞根",
+  "黑曜砂","澜星铁","赤雷晶","玄垣铜","雪魄银","碎月玉","沉钟石","青烬矿","无灯玄铁","虚命晶","碧鳞钢","焦玉髓","空纹石","寒枝金",
+  "魇鹿角","毒蛾粉","焰鸦羽","穴蛇胆","山魈牙","鬼蚌珠","狐灵尾","石奴核心","水魈鳞","星兽骨","潮皇须","劫主残壳","铃童骨片","裂尊血晶",
+  "无相尘","问终露","归墟盐","古轨星屑","晦明珠","劫火灰","静劫沙","镜水泪","霜纹絮","残碑墨","眠蛇蜕","冷月髓","天阶雪","暗珠泪",
+  "青烬木","霜铃枝","玄垣槐","赤霄根","无灯柏","潮骨藤","白魄竹","银藻木","焦玉木","碎星枝","雾骨木","归息桑","镜湾柳","黑曜松",
+  "冷萤液","赤露髓","澜星泉","晦明潮浆","眠火蜜","霜魄露","无相清液","玄瓦药汁","青苔灵液","归墟重水","碎月银浆","问终甘露","古轨星液","断钟铜露",
+
+  "腐灯魂芯","裂骨犬牙","残碑石心","青烬岩鳞","松火鸦羽","眠蛇藤须",
+  "风魈竹刃","青露蛾粉","风眠竹节","银藻灵丝","镜水蚌珠","沉星蛇鳞",
+  "残灯魂油","黑水尸木","魇童灯纸","玄瓦甲片","断钟铜屑","无灯影纱",
+  "霜纹冰核","寒钟魄晶","白魄狼毫","青芝灵冠","玉露毒囊","丹霞藤珠",
+  "潮骨鱼刺","暗珠蚌核","归墟潮泪","黑盐蝎尾","沉沙骨核","蚀风砂眼",
+  "焚碑火石","赤羽雷翎","焦玉兽核","电纹蛭液","残雷犀角","断云雷羽",
+  "落星岩核","尘光狐尾","古轨星环","星阶玉片","残庭星尘","太微阵骨",
+  "静劫影纤","虚命蛛丝","问终劫核"
+];
+
+function getAuthToken(){
+  return STATE.token||localStorage.getItem("zs_xxxt_token")||"";
+}
+
+function setAuthToken(token){
+  STATE.token=token||"";
+  localStorage.setItem("zs_xxxt_token",STATE.token);
+}
+
+function clearAuthToken(){
+  STATE.token="";
+  localStorage.removeItem("zs_xxxt_token");
+}
+
+async function apiRequest(path,options={}){
+  const headers={
+    "Content-Type":"application/json",
+    ...(options.headers||{})
+  };
+
+  const token=getAuthToken();
+  if(token){
+    headers.Authorization="Bearer "+token;
+  }
+
+  const response=await fetch(API_BASE+path,{
+    ...options,
+    headers
+  });
+
+  let data=null;
+  try{
+    data=await response.json();
+  }catch{
+    data={ok:false,message:"服务器返回格式错误"};
+  }
+
+  if(!response.ok||!data.ok){
+    throw new Error(data.message||"请求失败");
+  }
+
+  return data;
+}
+
+function setLoading(value){
+  STATE.loading=!!value;
+  render();
+}
+
+function pushLog(text){
+  STATE.logs.unshift(new Date().toLocaleTimeString()+" ｜ "+text);
+  STATE.logs=STATE.logs.slice(0,160);
+  render();
+}
+
+async function gmApi(path,body){
+  try{
+    setLoading(true);
+    const result=await apiRequest(path,{
+      method:"POST",
+      body:JSON.stringify(body||{})
+    });
+    setLoading(false);
+    return result;
+  }catch(error){
+    setLoading(false);
+    alert(error.message||"GM操作失败");
+    throw error;
+  }
+}
+
+function guessItemType(name){
+  const value=String(name||"");
+
+  if(value.includes("时装")||["苍雷镇岳袍","赤焰龙魂甲","天工械羽仙装","无相天权裁决袍","九霄帝陨神袍","霜月琉璃裳","赤莲凤仪衣","星璃万象裙","天工星羽仙衣","太初神凰天衣","无面玄令·归墟监察者","道罗天尊灵团装"].includes(value))return "时装";
+  if(value.includes("仙缘箱"))return "仙缘箱";
+  if(value.includes("装备箱")||value.includes("礼包")||value.includes("自选箱")||value.includes("宝箱"))return "礼包";
+  if(value.includes("破境丹")||value.includes("丹"))return "丹药";
+  if(value.includes("灵酒"))return "酒";
+  if(value.includes("灵石"))return "灵石";
+  if(value.includes("碎片"))return "材料";
+  if(value.includes("卡")||value.includes("符"))return "道具";
+  if(value.includes("炉"))return "炼丹炉";
+  if(value.includes("魂芯")||value.includes("犬牙")||value.includes("石心")||value.includes("鳞")||value.includes("羽")||value.includes("藤须")||value.includes("魄")||value.includes("核"))return "特殊材料";
+
+  return "道具";
+}
+
+function getAllItems(){
+  const source=STATE.itemCatalog.length?STATE.itemCatalog:FALLBACK_ITEMS;
+  return [...new Set(source)].filter(Boolean).sort((a,b)=>a.localeCompare(b,"zh-CN"));
+}
+
+function getFilteredItems(){
+  const keyword=(STATE.itemKeyword||"").trim();
+  const items=getAllItems();
+
+  if(!keyword)return items;
+
+  return items.filter(name=>name.includes(keyword));
+}
+
+async function loadItemCatalog(){
+  try{
+    const result=await apiRequest("/api/gm/items/catalog",{method:"GET"});
+    STATE.itemCatalog=Array.isArray(result.items)?result.items:[];
+    if(STATE.itemCatalog.length){
+      pushLog("道具目录已从服务器加载。");
+    }
+  }catch{
+    STATE.itemCatalog=[];
+  }
+}
+
+async function login(){
+  const account=$("#loginAccount")?.value.trim();
+  const password=$("#loginPassword")?.value.trim();
+
+  if(!account||!password){
+    alert("请输入账号和密码。");
+    return;
+  }
+
+  try{
+    setLoading(true);
+    const result=await apiRequest("/api/login",{
+      method:"POST",
+      body:JSON.stringify({account,password})
+    });
+
+    setAuthToken(result.token);
+    STATE.account=result.account||account;
+
+    const gmInfo=await apiRequest("/api/gm/me",{method:"GET"});
+    STATE.loggedIn=true;
+    STATE.account=gmInfo.account||STATE.account;
+
+    await loadItemCatalog();
+
+    setLoading(false);
+    pushLog("GM登录成功。");
+    render();
+  }catch(error){
+    setLoading(false);
+    clearAuthToken();
+    alert(error.message||"登录失败或无GM权限");
+    render();
+  }
+}
+
+async function restore(){
+  const token=getAuthToken();
+
+  if(!token){
+    STATE.booted=true;
+    render();
+    return;
+  }
+
+  try{
+    const result=await apiRequest("/api/gm/me",{method:"GET"});
+    STATE.loggedIn=true;
+    STATE.account=result.account||"GM";
+    await loadItemCatalog();
+  }catch{
+    clearAuthToken();
+    STATE.loggedIn=false;
+    STATE.account="";
+  }
+
+  STATE.booted=true;
+  render();
+}
+
+function logout(){
+  clearAuthToken();
+  STATE.loggedIn=false;
+  STATE.account="";
+  STATE.players=[];
+  STATE.selectedPlayer=null;
+  STATE.targetAccount="";
+  render();
+}
+
+async function searchPlayers(){
+  const keyword=(STATE.playerKeyword||"").trim();
+
+  const result=await gmApi("/api/gm/players/search",{keyword});
+
+  STATE.players=Array.isArray(result.players)?result.players:[];
+  STATE.selectedPlayer=STATE.players[0]||null;
+
+  if(STATE.selectedPlayer){
+    STATE.targetAccount=STATE.selectedPlayer.account||"";
+  }
+
+  pushLog("查询玩家：" + (keyword||"全部") + "，结果 " + STATE.players.length + " 条。");
+  render();
+}
+
+function selectPlayer(account){
+  STATE.selectedPlayer=STATE.players.find(player=>player.account===account)||null;
+  STATE.targetAccount=account;
+  render();
+}
+
+async function mutePlayer(){
+  const account=STATE.targetAccount||STATE.selectedPlayer?.account;
+  const minutes=Math.max(1,Number(STATE.muteMinutes||60));
+
+  if(!account){
+    alert("请选择或输入玩家账号。");
+    return;
+  }
+
+  await gmApi("/api/gm/player/mute",{account,minutes});
+  pushLog("禁言玩家：" + account + "，" + minutes + "分钟。");
+}
+
+async function unmutePlayer(){
+  const account=STATE.targetAccount||STATE.selectedPlayer?.account;
+
+  if(!account){
+    alert("请选择或输入玩家账号。");
+    return;
+  }
+
+  await gmApi("/api/gm/player/unmute",{account});
+  pushLog("解除禁言：" + account + "。");
+}
+
+async function banPlayer(){
+  const account=STATE.targetAccount||STATE.selectedPlayer?.account;
+
+  if(!account){
+    alert("请选择或输入玩家账号。");
+    return;
+  }
+
+  if(!confirm("确定封禁账号 " + account + "？")){
+    return;
+  }
+
+  await gmApi("/api/gm/player/ban",{
+    account,
+    reason:STATE.banReason||"GM封禁"
+  });
+
+  pushLog("封号玩家：" + account + "。");
+}
+
+async function unbanPlayer(){
+  const account=STATE.targetAccount||STATE.selectedPlayer?.account;
+
+  if(!account){
+    alert("请选择或输入玩家账号。");
+    return;
+  }
+
+  await gmApi("/api/gm/player/unban",{account});
+  pushLog("解除封号：" + account + "。");
+}
+
+async function sendNotice(){
+  const text=(STATE.noticeText||"").trim();
+
+  if(!text){
+    alert("请输入公告内容。");
+    return;
+  }
+
+  await gmApi("/api/gm/notice",{text});
+
+  STATE.noticeText="";
+  pushLog("全服公告已发送：" + text);
+}
+
+async function sendItemToPlayer(){
+  const account=STATE.targetAccount||STATE.selectedPlayer?.account;
+  const itemName=STATE.selectedItem;
+  const count=Math.max(1,Number(STATE.selectedItemCount||1));
+
+  if(!account){
+    alert("请选择或输入目标玩家账号。");
+    return;
+  }
+
+  if(!itemName){
+    alert("请选择道具。");
+    return;
+  }
+
+  await gmApi("/api/gm/items/send-player",{
+    account,
+    itemName,
+    count,
+    itemType:guessItemType(itemName)
+  });
+
+  pushLog("给玩家 " + account + " 发送 " + itemName + " ×" + count + "。");
+}
+
+async function sendItemToAll(){
+  const itemName=STATE.selectedItem;
+  const count=Math.max(1,Number(STATE.selectedItemCount||1));
+
+  if(!itemName){
+    alert("请选择道具。");
+    return;
+  }
+
+  if(!confirm("确定给全服发送 " + itemName + " ×" + count + "？")){
+    return;
+  }
+
+  await gmApi("/api/gm/items/send-all",{
+    itemName,
+    count,
+    itemType:guessItemType(itemName)
+  });
+
+  pushLog("全服发送 " + itemName + " ×" + count + "。");
+}
+
+function renderLogin(){
+  return `<div class="login-wrap">
+    <div class="login-card">
+      <h1>GM后台</h1>
+      <p class="notice">请使用GM账号登录。权限由服务器校验。</p>
+      <input id="loginAccount" placeholder="GM账号">
+      <input id="loginPassword" type="password" placeholder="密码" onkeydown="if(event.key==='Enter')login()">
+      <div class="row">
+        <button onclick="login()">登录GM后台</button>
+        <button onclick="location.href='/'">返回游戏</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderPlayers(){
+  if(!STATE.players.length){
+    return `<span class="muted">暂无查询结果。</span>`;
+  }
+
+  return STATE.players.map(player=>`<div class="item ${STATE.selectedPlayer?.account===player.account?"active":""}" onclick="selectPlayer('${escapeHtml(player.account)}')" style="cursor:pointer">
+    <b>${escapeHtml(player.name||"未创建角色")}</b>
+    <span class="muted">｜账号：${escapeHtml(player.account)}</span><br>
+    <span>境界：${escapeHtml(player.realmName||"-")}</span>
+    <span class="${player.online?"green":"muted"}">｜在线：${player.online?"是":"否"}</span>
+    <span class="${player.banned?"red":"green"}">｜封禁：${player.banned?"是":"否"}</span>
+    <span class="${player.muted?"red":"green"}">｜禁言：${player.muted?"是":"否"}</span><br>
+    <span class="muted">铜币：${fmt(player.coin)} ｜ 元宝：${fmt(player.yuanbao)} ｜ 仙缘：${fmt(player.xianyuan)}</span>
+  </div>`).join("");
+}
+
+function renderItemPicker(){
+  const items=getFilteredItems();
+
+  return `<div>
+    <input
+      placeholder="筛选道具，例如：时装、幻化卡、丹、装备箱"
+      value="${escapeHtml(STATE.itemKeyword)}"
+      oninput="STATE.itemKeyword=this.value;render()"
+      style="width:100%;margin-bottom:8px">
+
+    <select class="item-picker" size="12" onchange="STATE.selectedItem=this.value;render()">
+      ${items.map(name=>`<option value="${escapeHtml(name)}" ${STATE.selectedItem===name?"selected":""}>${escapeHtml(name)}</option>`).join("")}
+    </select>
+
+    <div class="item">
+      <b>当前选择：</b>
+      <span class="gold">${escapeHtml(STATE.selectedItem||"未选择")}</span><br>
+      <span class="muted">类型：${escapeHtml(guessItemType(STATE.selectedItem||""))}</span>
+    </div>
+  </div>`;
+}
+
+function renderMain(){
+  return `<div class="app">
+    <div class="top">
+      <div>
+        <div class="title">GM后台</div>
+        <div class="notice">玩家查询、禁言、封号、全服公告、全服发道具、指定玩家发道具。</div>
+      </div>
+      <div>
+        <span class="badge">账号：${escapeHtml(STATE.account)}</span>
+        <span class="badge ${STATE.loading?"gold":"green"}">${STATE.loading?"处理中":"空闲"}</span>
+        <button onclick="loadItemCatalog()">刷新道具目录</button>
+        <button onclick="location.href='/'">返回游戏</button>
+        <button onclick="logout()">退出</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="cards">
+        <div class="card">
+          <h3>查询玩家</h3>
+          <div class="row">
+            <input
+              placeholder="账号或角色名"
+              value="${escapeHtml(STATE.playerKeyword)}"
+              oninput="STATE.playerKeyword=this.value"
+              onkeydown="if(event.key==='Enter')searchPlayers()"
+              style="flex:1;min-width:220px">
+            <button ${STATE.loading?"disabled":""} onclick="searchPlayers()">查询</button>
+          </div>
+          <div class="list">${renderPlayers()}</div>
+        </div>
+
+        <div class="card">
+          <h3>玩家操作</h3>
+          <p class="muted">目标账号</p>
+          <input
+            value="${escapeHtml(STATE.targetAccount||STATE.selectedPlayer?.account||"")}"
+            placeholder="目标玩家账号"
+            oninput="STATE.targetAccount=this.value"
+            style="width:100%">
+
+          <hr>
+
+          <h3>禁言</h3>
+          <div class="row">
+            <span>分钟：</span>
+            <input type="number" min="1" value="${STATE.muteMinutes}" onchange="STATE.muteMinutes=+this.value||60" style="width:100px">
+            <button onclick="mutePlayer()">禁言</button>
+            <button onclick="unmutePlayer()">解禁</button>
+          </div>
+
+          <hr>
+
+          <h3>封号</h3>
+          <input
+            placeholder="封禁原因"
+            value="${escapeHtml(STATE.banReason)}"
+            oninput="STATE.banReason=this.value"
+            style="width:100%">
+          <div class="row">
+            <button onclick="banPlayer()">封号</button>
+            <button onclick="unbanPlayer()">解封</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>全服公告</h3>
+          <textarea
+            placeholder="输入公告内容"
+            oninput="STATE.noticeText=this.value"
+            style="width:100%;height:120px">${escapeHtml(STATE.noticeText)}</textarea>
+          <button onclick="sendNotice()">发送全服公告</button>
+
+          <hr>
+
+          <h3>GM操作日志</h3>
+          <div class="log">
+            ${STATE.logs.length?STATE.logs.map(escapeHtml).join("<br>"):"<span class='muted'>暂无操作记录。</span>"}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>道具发送</h2>
+      <div class="cards">
+        <div class="card">
+          <h3>道具筛选</h3>
+          ${renderItemPicker()}
+        </div>
+
+        <div class="card">
+          <h3>发送设置</h3>
+          <div class="kv">
+            <b>道具</b><span class="gold">${escapeHtml(STATE.selectedItem)}</span>
+            <b>类型</b><span>${escapeHtml(guessItemType(STATE.selectedItem))}</span>
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <span>数量：</span>
+            <input type="number" min="1" value="${STATE.selectedItemCount}" onchange="STATE.selectedItemCount=Math.max(1,+this.value||1)" style="width:120px">
+          </div>
+
+          <hr>
+
+          <h3>给指定玩家发送</h3>
+          <p class="muted">目标账号：${escapeHtml(STATE.targetAccount||STATE.selectedPlayer?.account||"未选择")}</p>
+          <button onclick="sendItemToPlayer()">发送给指定玩家</button>
+
+          <hr>
+
+          <h3>全服发送</h3>
+          <p class="warn">谨慎操作：全服发放会影响全部玩家。</p>
+          <button onclick="sendItemToAll()">全服发送该道具</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function render(){
+  const app=$("#app");
+
+  if(!app){
+    return;
+  }
+
+  if(!STATE.booted){
+    app.innerHTML=`<div class="login-wrap"><div class="login-card"><h1>GM后台</h1><p class="notice">正在校验登录状态...</p></div></div>`;
+    return;
+  }
+
+  if(!STATE.loggedIn){
+    app.innerHTML=renderLogin();
+    return;
+  }
+
+  app.innerHTML=renderMain();
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+  render();
+  restore();
+});
+</script>
+</body>
+</html>
