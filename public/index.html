@@ -1886,6 +1886,155 @@ button:disabled{
     height:360px;
   }
 }
+/* ===== 开局角色立绘 ===== */
+.create-role-layout{
+  display:grid;
+  grid-template-columns:1fr 360px;
+  gap:14px;
+  align-items:start;
+}
+
+.create-role-preview{
+  min-height:520px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  background:
+    radial-gradient(circle at center top,rgba(119,230,255,.14),rgba(8,12,20,.88) 62%),
+    url("assets/images/ui/card_bg.webp") center/cover repeat;
+  border:1px solid rgba(255,211,106,.25);
+  border-radius:14px;
+  padding:10px;
+}
+
+.create-role-portrait-wrap{
+  height:460px;
+  position:relative;
+  overflow:hidden;
+  border-radius:12px;
+}
+
+.create-role-portrait{
+  position:absolute;
+  left:50%;
+  bottom:0;
+  transform:translateX(-50%);
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  object-position:center bottom;
+  filter:drop-shadow(0 18px 26px rgba(0,0,0,.58));
+}
+
+.create-role-caption{
+  text-align:center;
+  padding:10px;
+  background:rgba(5,8,14,.68);
+  border-radius:10px;
+  margin-top:8px;
+}
+
+@media(max-width:900px){
+  .create-role-layout{
+    grid-template-columns:1fr;
+  }
+
+  .create-role-preview{
+    min-height:0;
+  }
+
+  .create-role-portrait-wrap{
+    height:360px;
+  }
+}
+/* ===== 战斗场景玩家立绘 ===== */
+.battle-player-portrait{
+  width:180px;
+  height:240px;
+  object-fit:contain;
+  object-position:center bottom;
+  filter:
+    drop-shadow(0 18px 18px rgba(0,0,0,.62))
+    drop-shadow(0 0 14px rgba(119,230,255,.16));
+  animation:battlePlayerFloat 2.6s ease-in-out infinite;
+}
+
+@keyframes battlePlayerFloat{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-5px)}
+}
+
+/* 如果战斗单位原来是剪影，可以让立绘站在底部 */
+.battle-unit.player,
+.battle-character.player,
+.battle-hero.player{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-end;
+  min-height:260px;
+}
+
+/* 小屏幕缩小 */
+@media(max-width:720px){
+  .battle-player-portrait{
+    width:130px;
+    height:180px;
+  }
+
+  .battle-unit.player,
+  .battle-character.player,
+  .battle-hero.player{
+    min-height:200px;
+  }
+}
+/* ===== 时装 / 幻化系统 ===== */
+.fashion-card{
+  position:relative;
+  overflow:hidden;
+}
+
+.fashion-preview{
+  width:100%;
+  height:180px;
+  object-fit:contain;
+  object-position:center bottom;
+  display:block;
+  filter:drop-shadow(0 12px 18px rgba(0,0,0,.55));
+  background:radial-gradient(circle at center,rgba(119,230,255,.10),rgba(8,12,20,.25) 60%);
+  border-radius:10px;
+}
+
+.fashion-preview.large{
+  height:260px;
+}
+
+.fashion-tag{
+  display:inline-block;
+  padding:2px 7px;
+  border-radius:999px;
+  border:1px solid rgba(255,211,106,.28);
+  background:rgba(8,12,20,.55);
+  color:var(--gold);
+  font-size:12px;
+}
+
+.glamour-dialog{
+  width:min(860px,96vw);
+  max-height:86vh;
+}
+
+.glamour-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:10px;
+}
+
+.battle-unit.battle-player{
+  object-fit:contain;
+  object-position:center bottom;
+}
 </style>
 </head>
 <body>
@@ -1938,6 +2087,194 @@ CONFIG.grades=[
 ];
 
 CONFIG.realms=["炼气","筑基","金丹","元婴","化神","炼虚","合体","大乘","渡劫"];
+CONFIG.playerPortraitPath="assets/images/player/portraits/";
+
+CONFIG.playerPortraitRealmKeys=[
+  "lianqi",
+  "zhuji",
+  "jindan",
+  "yuanying",
+  "huashen",
+  "lianxu",
+  "heti",
+  "dacheng",
+  "dujie"
+];
+
+function getPlayerPortrait(gender=null,realm=null){
+  const playerGender=gender||STATE.player.gender||"男";
+  const genderKey=playerGender==="女"?"female":"male";
+  const realmIndex=Math.max(0,Math.min(8,Number(realm!==null?realm:STATE.player.realm||0)));
+  const realmKey=CONFIG.playerPortraitRealmKeys[realmIndex]||"lianqi";
+
+  return `${CONFIG.playerPortraitPath}${genderKey}_realm_${realmIndex}_${realmKey}.webp`;
+}
+
+CONFIG.fashions=[
+  {
+    id:"male_legend_01_thunder_mountain",
+    name:"苍雷镇岳袍",
+    gender:"男",
+    rarity:"传说",
+    image:"assets/images/player/fashions/male_fashion_legend_01_thunder_mountain.webp",
+    animated:null,
+    attrs:{幸运:8,固伤:120}
+  },
+  {
+    id:"male_legend_02_dragon_flame",
+    name:"赤焰龙魂甲",
+    gender:"男",
+    rarity:"传说",
+    image:"assets/images/player/fashions/male_fashion_legend_02_dragon_flame.webp",
+    animated:null,
+    attrs:{幸运:8,固伤:135}
+  },
+  {
+    id:"male_legend_03_mechanical_ascension",
+    name:"天工械羽仙装",
+    gender:"男",
+    rarity:"传说",
+    image:"assets/images/player/fashions/male_fashion_legend_03_mechanical_ascension.webp",
+    animated:null,
+    attrs:{幸运:10,固伤:125}
+  },
+  {
+    id:"male_legend_04_void_admin",
+    name:"无相天权裁决袍",
+    gender:"男",
+    rarity:"传说",
+    image:"assets/images/player/fashions/male_fashion_legend_04_void_admin.webp",
+    animated:null,
+    attrs:{幸运:12,固伤:110}
+  },
+  {
+    id:"male_myth_01_nine_heavens_emperor",
+    name:"九霄帝陨神袍",
+    gender:"男",
+    rarity:"神话",
+    image:"assets/images/player/fashions/male_fashion_myth_01_nine_heavens_emperor.webp",
+    animated:"assets/images/player/fashions/animated/male_fashion_myth_01_nine_heavens_emperor_animated.webp",
+    attrs:{幸运:25,固伤:380}
+  },
+
+  {
+    id:"female_legend_01_frost_moon",
+    name:"霜月琉璃裳",
+    gender:"女",
+    rarity:"传说",
+    image:"assets/images/player/fashions/female_fashion_legend_01_frost_moon.webp",
+    animated:null,
+    attrs:{幸运:8,固伤:120}
+  },
+  {
+    id:"female_legend_02_phoenix_lotus",
+    name:"赤莲凤仪衣",
+    gender:"女",
+    rarity:"传说",
+    image:"assets/images/player/fashions/female_fashion_legend_02_phoenix_lotus.webp",
+    animated:null,
+    attrs:{幸运:8,固伤:135}
+  },
+  {
+    id:"female_legend_03_star_glass",
+    name:"星璃万象裙",
+    gender:"女",
+    rarity:"传说",
+    image:"assets/images/player/fashions/female_fashion_legend_03_star_glass.webp",
+    animated:null,
+    attrs:{幸运:10,固伤:125}
+  },
+  {
+    id:"female_legend_04_mechanical_ascension",
+    name:"天工星羽仙衣",
+    gender:"女",
+    rarity:"传说",
+    image:"assets/images/player/fashions/female_fashion_legend_04_mechanical_ascension.webp",
+    animated:null,
+    attrs:{幸运:12,固伤:110}
+  },
+  {
+    id:"female_myth_01_primordial_phoenix",
+    name:"太初神凰天衣",
+    gender:"女",
+    rarity:"神话",
+    image:"assets/images/player/fashions/female_fashion_myth_01_primordial_phoenix.webp",
+    animated:"assets/images/player/fashions/animated/female_fashion_myth_01_primordial_phoenix_animated.webp",
+    attrs:{幸运:25,固伤:380}
+  },
+
+  {
+    id:"gm_myth_03_faceless_abyss_warden",
+    name:"无面玄令·归墟监察者",
+    gender:"通用",
+    rarity:"GM",
+    image:"assets/images/player/fashions/gm_fashion_myth_03_faceless_abyss_warden.webp",
+    animated:"assets/images/player/fashions/animated/gm_fashion_myth_03_faceless_abyss_warden_animated.webp",
+    attrs:{幸运:99,固伤:9999},
+    gmOnly:true
+  },
+  {
+    id:"unisex_special_doro_spirit_blob",
+    name:"道罗天尊灵团装",
+    gender:"通用",
+    rarity:"特殊",
+    image:"assets/images/player/fashions/unisex_fashion_special_doro_spirit_blob.webp",
+    animated:null,
+    attrs:{幸运:18,固伤:188}
+  }
+];
+
+function getFashionConfig(fashionId){
+  return CONFIG.fashions.find(fashion=>fashion.id===fashionId)||null;
+}
+
+function getGenderLegendFashions(gender=STATE.player.gender){
+  return CONFIG.fashions.filter(fashion=>{
+    return fashion.rarity==="传说"
+      && !fashion.gmOnly
+      && (fashion.gender===gender||fashion.gender==="通用");
+  });
+}
+
+function getGenderMythFashion(gender=STATE.player.gender){
+  return CONFIG.fashions.find(fashion=>fashion.rarity==="神话"&&fashion.gender===gender)||null;
+}
+
+function hasFashion(fashionId){
+  return !!STATE.fashion?.owned?.includes(fashionId);
+}
+
+function canUseFashion(fashion){
+  if(!fashion)return false;
+  return fashion.gender==="通用"||fashion.gender===STATE.player.gender;
+}
+
+function getFashionBattleImage(fashion){
+  if(!fashion)return "";
+  return fashion.animated||fashion.image;
+}
+
+function getEquippedFashion(){
+  return getFashionConfig(STATE.fashion?.equipped);
+}
+
+function getPlayerDisplayImage(){
+  const glamour=STATE.fashion?.glamour;
+
+  if(glamour?.type==="realm"){
+    return getPlayerPortrait(glamour.gender||STATE.player.gender,glamour.realm);
+  }
+
+  if(glamour?.type==="fashion"){
+    const fashion=getFashionConfig(glamour.fashionId);
+    if(fashion)return getFashionBattleImage(fashion);
+  }
+
+  const equippedFashion=getEquippedFashion();
+  if(equippedFashion)return getFashionBattleImage(equippedFashion);
+
+  return getPlayerPortrait(STATE.player.gender||"男",STATE.player.realm||0);
+}
 CONFIG.subRealms=["一层","二层","三层","四层","五层","六层","七层","八层","九层","十层","小圆满","大圆满"];
 
 CONFIG.realmConfigs=CONFIG.realms.map((realm,index)=>({
@@ -2187,6 +2524,7 @@ CONFIG.bossImages={
 };
 
 CONFIG.equipSlots=["武器","头盔","上身","下装","鞋","护臂","项链","手镯1","手镯2","戒指1","戒指2","戒指3"];
+CONFIG.displayEquipSlots=[...CONFIG.equipSlots,"时装"];
 
 CONFIG.weaponIconStyles=[
   "weapon_sword",
@@ -2348,6 +2686,10 @@ CONFIG.itemIconMap={
   "随机材料包":CONFIG.iconPaths.packages+"random_material_pack.webp",
   "低级材料包":CONFIG.iconPaths.packages+"random_material_pack.webp",
   "随机灵石":CONFIG.iconPaths.packages+"random_spirit_stone_pack.webp",
+"传说时装碎片":CONFIG.iconPaths.skillItems+"skill_page.webp",
+"传说时装自选箱":CONFIG.iconPaths.packages+"normal_gift_pack.webp",
+"幻化卡":CONFIG.iconPaths.tools+"identify_talisman.webp",
+"更新礼包":CONFIG.iconPaths.packages+"normal_gift_pack.webp",
 "黄阶灵石":CONFIG.iconPaths.spiritStones+"huang_spirit_stone.webp",
 "玄阶灵石":CONFIG.iconPaths.spiritStones+"xuan_spirit_stone.webp",
 "地阶灵石":CONFIG.iconPaths.spiritStones+"di_spirit_stone.webp",
@@ -2928,7 +3270,15 @@ bossBattle:{
       dailyXianyuan:0,
       lastDay:new Date().toDateString()
     },
-    equipped:Object.fromEntries(CONFIG.equipSlots.map(slot=>[slot,null])),
+    equipped:Object.fromEntries(CONFIG.displayEquipSlots.map(slot=>[slot,null])),
+fashion:{
+  owned:[],
+  equipped:null,
+  glamour:null
+},
+ui:{
+  glamourOpen:false
+},
     bag:[],
     store:[],
     alchemy:{furnace:null,failCompensation:0,logs:[]},
@@ -3428,6 +3778,16 @@ function loadState(){
       }
     }
     if(!saved.equipped&&saved.eq)saved.equipped=saved.eq;
+if(!saved.equipped)saved.equipped=base.equipped;
+if(saved.equipped.时装===undefined)saved.equipped.时装=null;
+
+if(!saved.fashion)saved.fashion={owned:[],equipped:null,glamour:null};
+if(!Array.isArray(saved.fashion.owned))saved.fashion.owned=[];
+if(saved.fashion.equipped===undefined)saved.fashion.equipped=null;
+if(saved.fashion.glamour===undefined)saved.fashion.glamour=null;
+
+if(!saved.ui)saved.ui={glamourOpen:false};
+if(saved.ui.glamourOpen===undefined)saved.ui.glamourOpen=false;
     if(!saved.bag)saved.bag=[];
 if(saved.selectedBagItemId===undefined)saved.selectedBagItemId=null;
 if(saved.alchemyCount===undefined)saved.alchemyCount=1;
@@ -3614,18 +3974,30 @@ function totalAttrs(){
     灵力:STATE.player.attrs.灵力,
     耐力:STATE.player.attrs.耐力,
     抗性:STATE.player.attrs.抗性,
-    速度:STATE.player.attrs.速度
+    速度:STATE.player.attrs.速度,
+    幸运:0,
+    固伤:0
   };
+
   Object.values(STATE.equipped).filter(Boolean).forEach(equip=>{
-    for(const key in equip.attrs) attrs[key]=(attrs[key]||0)+equip.attrs[key];
+    const equipAttrs=equip.attrs||{};
+    for(const key in equipAttrs){
+      attrs[key]=(attrs[key]||0)+equipAttrs[key];
+    }
   });
+
   const vipConfig=CONFIG.vip[STATE.vip.level]||CONFIG.vip[0];
-  const monthBonus = STATE.month.active ? .02 : 0;
+  const monthBonus=STATE.month.active ? .02 : 0;
+
   if(STATE.buffs?.wine&&STATE.buffs.wine.until>now()){
     const wine=STATE.buffs.wine;
     attrs[wine.attr]=(attrs[wine.attr]||0)+wine.value;
   }
-  for(const key in attrs) attrs[key]=Math.floor(attrs[key]*(1+(vipConfig.bonus||0)+monthBonus));
+
+  for(const key in attrs){
+    attrs[key]=Math.floor(attrs[key]*(1+(vipConfig.bonus||0)+monthBonus));
+  }
+
   return attrs;
 }
 
@@ -3839,6 +4211,10 @@ function guessItemType(name){
   if(getSpecialMaterialConfigByName(name))return "特殊材料";
   if(CONFIG.giftRecipes?.some(item=>item.name===name))return "礼物";
   if(CONFIG.wineRecipes?.some(item=>item.name===name))return "酒";
+  if(name==="传说时装碎片")return "材料";
+  if(name==="传说时装自选箱")return "礼包";
+  if(name==="幻化卡")return "道具";
+  if(name==="更新礼包")return "礼包";
   if(name.includes("仙缘箱"))return "仙缘箱";
   if(name.includes("丹"))return "丹药";
   if(name.includes("灵石"))return "灵石";
@@ -3863,6 +4239,135 @@ function cleanBag(){
   STATE.bag=STATE.bag.filter(item=>item.count>0);
 }
 
+function addFashion(fashionId,source="获得"){
+  const fashion=getFashionConfig(fashionId);
+  if(!fashion)return false;
+
+  if(!STATE.fashion){
+    STATE.fashion={owned:[],equipped:null,glamour:null};
+  }
+
+  if(!STATE.fashion.owned.includes(fashionId)){
+    STATE.fashion.owned.push(fashionId);
+    pushLog(`<span class="gold">${source}：获得时装【${fashion.name}】。</span>`);
+    pushUseLog(`${source}：获得时装 ${fashion.name}`);
+    return true;
+  }
+
+  addItem("传说时装碎片",10,"材料");
+  pushLog(`<span class="muted">已拥有【${fashion.name}】，自动转化为传说时装碎片 ×10。</span>`);
+  return false;
+}
+
+function equipFashion(fashionId){
+  const fashion=getFashionConfig(fashionId);
+  if(!fashion)return;
+
+  if(!hasFashion(fashionId)){
+    alert("你尚未拥有该时装。");
+    return;
+  }
+
+  if(!canUseFashion(fashion)){
+    alert("该时装与你当前性别不符。");
+    return;
+  }
+
+  STATE.fashion.equipped=fashionId;
+  STATE.equipped.时装={
+    id:fashion.id,
+    name:fashion.name,
+    slot:"时装",
+    attrs:fashion.attrs,
+    rarity:fashion.rarity,
+    fashionId:fashion.id
+  };
+
+  pushLog(`<span class="gold">已穿戴时装：${fashion.name}</span>`);
+  saveState();
+  render();
+}
+
+function unequipFashion(){
+  STATE.fashion.equipped=null;
+  STATE.equipped.时装=null;
+  saveState();
+  render();
+}
+
+function consumeItemByName(name,count=1){
+  const item=STATE.bag.find(bagItem=>bagItem.name===name&&bagItem.count>=count);
+  if(!item)return false;
+  item.count-=count;
+  cleanBag();
+  return true;
+}
+
+function glamourRealm(realmIndex){
+  if(realmIndex>STATE.player.realm){
+    alert("不能幻化尚未达到的境界形象。");
+    return;
+  }
+
+  if(!consumeItemByName("幻化卡",1)){
+    alert("幻化卡不足。");
+    return;
+  }
+
+  STATE.fashion.glamour={
+    type:"realm",
+    gender:STATE.player.gender||"男",
+    realm:realmIndex
+  };
+
+  pushLog(`<span class="gold">幻化成功：${CONFIG.realms[realmIndex]}形象。</span>`);
+  saveState();
+  render();
+}
+
+function glamourFashion(fashionId){
+  const fashion=getFashionConfig(fashionId);
+
+  if(!fashion||!hasFashion(fashionId)){
+    alert("你尚未拥有该时装。");
+    return;
+  }
+
+  if(!canUseFashion(fashion)){
+    alert("该时装与你当前性别不符。");
+    return;
+  }
+
+  STATE.fashion.glamour={
+    type:"fashion",
+    fashionId
+  };
+
+  pushLog(`<span class="gold">幻化成功：${fashion.name}。</span>`);
+  saveState();
+  render();
+}
+
+function clearGlamour(){
+  STATE.fashion.glamour=null;
+  pushLog(`<span class="muted">已取消幻化。</span>`);
+  saveState();
+  render();
+}
+
+function openGlamourPanel(){
+  if(!STATE.ui)STATE.ui={glamourOpen:false};
+  STATE.ui.glamourOpen=true;
+  saveState();
+  render();
+}
+
+function closeGlamourPanel(){
+  if(!STATE.ui)STATE.ui={glamourOpen:false};
+  STATE.ui.glamourOpen=false;
+  saveState();
+  render();
+}
 function gainXianyuan(amount,source){
   const today=new Date().toDateString();
   if(STATE.progress.lastDay!==today){
@@ -4137,7 +4642,7 @@ function getBattleBackground(){
 }
 
 function getPlayerBattleImage(){
-  return CONFIG.battleAssets.playerMale;
+  return getPlayerDisplayImage();
 }
 
 function pickBattleFxBySkill(skill){
@@ -4259,6 +4764,11 @@ if(chance(critChance)){
   isCrit=true;
   damage=Math.floor(damage*1.8);
   battleLogs.push(`<span class="crit">暴击！</span>`);
+}
+
+const fixedDamage=attrs.固伤||0;
+if(fixedDamage>0){
+  damage+=fixedDamage;
 }
 
 monsterHp-=damage;
@@ -4420,6 +4930,13 @@ updateSectTaskProgress({
   if(chance(.035)){
     addItem("功法残卷",rnd(1,3),"功法残卷");
     pushLog(`<span class="cyan">怪物掉落：功法残卷。</span>`);
+  }
+
+    const fashionFragmentRate=.035+Math.min(.02,(totalAttrs().幸运||0)*0.0005);
+
+  if(mapIndex>=10&&chance(fashionFragmentRate)){
+    addItem("传说时装碎片",rnd(1,3),"材料");
+    pushLog(`<span class="gold">怪物掉落：传说时装碎片。</span>`);
   }
 
   if(chance(.0005)){
@@ -4708,6 +5225,45 @@ function useSpiritStone(item){
   saveState();
   safeRender();
 }
+function openLegendFashionChoiceBox(item){
+  if(!item||item.count<=0)return;
+
+  const fashions=getGenderLegendFashions(STATE.player.gender);
+
+  if(!fashions.length){
+    alert("当前性别暂无可选传说时装。");
+    return;
+  }
+
+  const text=fashions.map((fashion,index)=>{
+    return `${index+1}. ${fashion.name}（幸运+${fashion.attrs.幸运}，固伤+${fashion.attrs.固伤}）`;
+  }).join("\n");
+
+  const input=prompt(`请选择传说时装：\n${text}`);
+  const selected=fashions[Number(input)-1];
+
+  if(!selected){
+    alert("选择无效。");
+    return;
+  }
+
+  item.count--;
+  addFashion(selected.id,"传说时装自选箱");
+  cleanBag();
+  saveState();
+  render();
+}
+
+function openUpdateGiftBox(item){
+  if(!item||item.count<=0)return;
+
+  item.count--;
+  addFashion("unisex_special_doro_spirit_blob","更新礼包");
+
+  cleanBag();
+  saveState();
+  render();
+}
 function openXianyuanBox(item){
   const box=CONFIG.xianyuanBoxes.find(box=>item.name===box.name);
   if(!box)return;
@@ -4859,6 +5415,33 @@ function usePillBatch(item,amount){
 }
 function useItem(item){
   if(!item)return;
+
+  if(item.name==="传说时装碎片"){
+    const need=100;
+
+    if(item.count<need){
+      alert(`传说时装碎片不足，需要 ${need} 个合成传说时装自选箱。`);
+      return;
+    }
+
+    item.count-=need;
+    addItem("传说时装自选箱",1,"礼包");
+    cleanBag();
+    pushLog(`<span class="gold">传说时装碎片 ×${need} 合成为传说时装自选箱。</span>`);
+    saveState();
+    safeRender();
+    return;
+  }
+
+  if(item.name==="传说时装自选箱"){
+    openLegendFashionChoiceBox(item);
+    return;
+  }
+
+  if(item.name==="更新礼包"){
+    openUpdateGiftBox(item);
+    return;
+  }
 
   const pillBaseName=getPillBaseName(item.name);
   const pillGradeIndex=getPillGradeIndexFromName(item.name);
@@ -5617,6 +6200,19 @@ function claimActivity(activityId){
     STATE.tutorial.newbieStep=1;
     STATE.tutorial.currentGuide=null;
   }
+  saveState();
+  render();
+}
+function claimUpdateGift(){
+  if(STATE.activity.claimed.updateGift){
+    alert("你已经领取过更新礼包。");
+    return;
+  }
+
+  STATE.activity.claimed.updateGift=true;
+  addItem("更新礼包",1,"礼包");
+  pushLog(`<span class="gold">你领取了更新礼包。</span>`);
+
   saveState();
   render();
 }
@@ -6381,6 +6977,17 @@ function equipIconHtml(equip,size=""){
   </span>`;
 }
 function equipHtml(equip){
+  if(equip?.slot==="时装"){
+    return `<div class="equip-line">
+      <div class="equip-info">
+        <b class="gold">${equip.name}</b>
+        <span class="fashion-tag">${equip.rarity}时装</span><br>
+        <span class="muted">部位：时装</span><br>
+        幸运+${fmt(equip.attrs?.幸运||0)}，固伤+${fmt(equip.attrs?.固伤||0)}<br>
+        <button onclick="unequipFashion()">卸下时装</button>
+      </div>
+    </div>`;
+  }
   return `<div class="equip-line">
     ${equipIconHtml(equip)}
     <div class="equip-info">
@@ -6938,18 +7545,18 @@ function renderCreateRole(){
   return `<div class="create-role-wrap">
     <div class="create-role-card">
       <h1 class="title">创建角色</h1>
-      <p class="notice">第一次进入游戏需要选择性别并起名。性别第一阶段只影响立绘展示，后续可扩展角色外观。</p>
+      <p class="notice">第一次进入游戏需要选择性别并起名。性别会影响角色立绘，后续战斗场景会根据性别与境界自动切换立绘。</p>
 
       <div class="gender-grid">
         <div class="gender-card ${STATE.player.gender==='男'?'active':''}" onclick="STATE.player.gender='男';saveState();render()">
-          <img src="assets/images/characters/male_cultivator.webp" onerror="this.style.display='none'">
+          <img src="${getPlayerPortrait('男',0)}" onerror="this.style.display='none'">
           <h3>男修</h3>
-          <p class="muted">剑意沉稳，适合作为默认男修立绘。</p>
+          <p class="muted">当前预览：男修 · 炼气境立绘。</p>
         </div>
         <div class="gender-card ${STATE.player.gender==='女'?'active':''}" onclick="STATE.player.gender='女';saveState();render()">
-          <img src="assets/images/characters/female_cultivator.webp" onerror="this.style.display='none'">
+          <img src="${getPlayerPortrait('女',0)}" onerror="this.style.display='none'">
           <h3>女修</h3>
-          <p class="muted">灵气清冷，适合作为默认女修立绘。</p>
+          <p class="muted">当前预览：女修 · 炼气境立绘。</p>
         </div>
       </div>
 
@@ -7268,6 +7875,72 @@ function renderBossBattleModal(){
     </div>
   </div>`;
 }
+function renderGlamourPanel(){
+  const ownedFashions=(STATE.fashion?.owned||[])
+    .map(getFashionConfig)
+    .filter(Boolean)
+    .filter(fashion=>canUseFashion(fashion));
+
+  const realmOptions=CONFIG.realms
+    .map((realm,index)=>({realm,index}))
+    .filter(item=>item.index<=STATE.player.realm);
+
+  const currentGlamour=STATE.fashion?.glamour;
+  const equippedFashion=getEquippedFashion();
+
+  return `<div class="equip-mobile-mask" onclick="closeGlamourPanel()">
+    <div class="equip-mobile-dialog glamour-dialog" onclick="event.stopPropagation()">
+      <h3>幻化</h3>
+      <p class="muted">
+        显示优先级：幻化 ＞ 穿戴时装 ＞ 当前境界形象。<br>
+        幻化过往境界形象消耗幻化卡；幻化已拥有时装不消耗幻化卡。
+      </p>
+
+      <div class="card" style="max-width:none">
+        <h3>当前显示</h3>
+        <p>当前幻化：${
+          currentGlamour
+            ? currentGlamour.type==="realm"
+              ? `${CONFIG.realms[currentGlamour.realm]}境界形象`
+              : getFashionConfig(currentGlamour.fashionId)?.name||"未知时装"
+            : "未幻化"
+        }</p>
+        <p>穿戴时装：${equippedFashion?equippedFashion.name:"未穿戴"}</p>
+        <button onclick="clearGlamour()">取消幻化</button>
+      </div>
+
+      <div class="card" style="max-width:none">
+        <h3>过往境界形象</h3>
+        <div class="glamour-grid">
+          ${realmOptions.map(item=>`<div class="item">
+            <img class="fashion-preview" src="${getPlayerPortrait(STATE.player.gender,item.index)}" onerror="this.style.display='none'">
+            <b>${item.realm}</b><br>
+            <span class="muted">消耗幻化卡×1</span><br>
+            <button onclick="glamourRealm(${item.index})">幻化</button>
+          </div>`).join("")}
+        </div>
+      </div>
+
+      <div class="card" style="max-width:none">
+        <h3>已拥有时装</h3>
+        <div class="glamour-grid">
+          ${ownedFashions.length?ownedFashions.map(fashion=>`<div class="item fashion-card">
+            <img class="fashion-preview" src="${fashion.image}" onerror="this.style.display='none'">
+            <b>${fashion.name}</b><br>
+            <span class="fashion-tag">${fashion.rarity}</span><br>
+            <span class="muted">幸运+${fashion.attrs.幸运} ｜ 固伤+${fashion.attrs.固伤}</span><br>
+            <button onclick="glamourFashion('${fashion.id}')">幻化</button>
+            <button onclick="equipFashion('${fashion.id}')">穿戴</button>
+          </div>`).join(""):"<span class='muted'>暂无已拥有时装。</span>"}
+        </div>
+      </div>
+
+      <div class="equip-mobile-actions">
+        <button onclick="closeGlamourPanel()">关闭</button>
+      </div>
+    </div>
+  </div>`;
+}
 function renderHome(){
   const map=CONFIG.maps[STATE.progress.map];
   const monster=currentMonster(false);
@@ -7362,6 +8035,8 @@ return `<div class="map-hero">
           <b>总耐力</b><span>${fmt(total.耐力)}</span>
           <b>总抗性</b><span>${fmt(total.抗性)}</span>
           <b>总速度</b><span>${fmt(total.速度)}</span>
+<b>幸运</b><span>${fmt(total.幸运||0)}</span>
+<b>固伤</b><span>${fmt(total.固伤||0)}</span>
           <b>基础力量</b><span>${fmt(baseAttrs.力量)}</span>
           <b>基础精神</b><span>${fmt(baseAttrs.精神)}</span>
           <b>基础灵力</b><span>${fmt(baseAttrs.灵力)}</span>
@@ -7378,6 +8053,7 @@ return `<div class="map-hero">
         <button onclick="battle(false);safeRender()">手动打一只</button>
         <button ${nextReady?"":"disabled"} onclick="STATE.progress.zone++;STATE.currentMonsterHp=null;saveState();render()">进入下一层</button>
         <button ${bossReady?"":"disabled"} onclick="openBossBattleModal()">Boss 战</button>
+<button onclick="openGlamourPanel()">幻化</button>
         <label class="row"><input type="checkbox" ${STATE.hideLog?"checked":""} onchange="STATE.hideLog=this.checked;saveState()">隐藏战斗日志</label>
         <label class="row"><input type="checkbox" ${STATE.autoHeal?"checked":""} onchange="STATE.autoHeal=this.checked;saveState()">低血量自动用生命晶石</label>
         <div>阈值 <input id="autoHealPctInput" type="number" value="${STATE.autoHealPct}" min="5" max="90" style="width:80px" onchange="STATE.autoHealPct=+this.value;saveState()">%</div>
@@ -7408,7 +8084,8 @@ return `<div class="map-hero">
     </div>
   </div>
   <div class="panel"><h3>挂机战斗日志</h3><div id="homeBattleLog" class="log">${STATE.logs.join("<br>")}</div></div>
-${renderBossBattleModal()}`;
+${renderBossBattleModal()}
+${STATE.ui?.glamourOpen?renderGlamourPanel():""}`;
 }
 
 function renderEquipPage(){
@@ -7416,7 +8093,7 @@ function renderEquipPage(){
     <h2>装备</h2>
     <button onclick="bestEquip()">一键穿戴最优装备</button>
     <div class="cards">
-      ${CONFIG.equipSlots.map(slot=>{
+      ${CONFIG.displayEquipSlots.map(slot=>{
         const equip=STATE.equipped[slot];
         return `<div class="card"><h3>${slot}</h3>${equip?equipHtml(equip):"<span class='muted'>未穿戴</span>"}</div>`;
       }).join("")}
@@ -7444,6 +8121,8 @@ function renderPerson(){
       <div class="card">
         <h3>属性</h3>
         ${["力量","精神","灵力","耐力","抗性","速度"].map(attr=>`<div class="row"><b>${attr}</b><span>${fmt(attrs[attr])}</span><button onclick="addPoint('${attr}')">加点</button></div>`).join("")}
+<div class="row"><b>幸运</b><span>${fmt(attrs.幸运||0)}</span><span class="muted">来自时装</span></div>
+<div class="row"><b>固伤</b><span>${fmt(attrs.固伤||0)}</span><span class="muted">来自时装</span></div>
       </div>
       <div class="card">
         <h3>仙缘与 VIP</h3>
@@ -7597,6 +8276,15 @@ function renderActivitySubPage(tab){
       <p>基础铜币、低级丹药、仙缘箱、装备箱、新手套装箱。</p>
       <button ${STATE.activity.claimed.newbie?"disabled":""} onclick="claimActivity('newbie')">
         ${STATE.activity.claimed.newbie?"已领取":"领取到邮件"}
+      </button>
+    </div>
+
+    <div class="card">
+      <h3>更新礼包</h3>
+      ${itemIconHtml("更新礼包","礼包","large")}
+      <p>领取后获得更新礼包，使用后获得特殊时装【道罗天尊灵团装】。</p>
+      <button ${STATE.activity.claimed.updateGift?"disabled":""} onclick="claimUpdateGift()">
+        ${STATE.activity.claimed.updateGift?"已领取":"领取更新礼包"}
       </button>
     </div>
   </div></div>`;
@@ -8603,7 +9291,9 @@ function renderRecharge(){
 function claimVipLevelReward(level){
   if(STATE.vip.level<level)return alert("VIP 等级不足。");
   if(STATE.vip.claimed[level])return alert("该 VIP 奖励已领取。");
+
   STATE.vip.claimed[level]=true;
+
   sendMail("mail_vip","vip_level:"+level,{
     yuanbao:500*level,
     coin:3000*level,
@@ -8613,6 +9303,14 @@ function claimVipLevelReward(level){
       ["普通生命晶石",level]
     ]
   });
+
+  if(level===15){
+    const mythFashion=getGenderMythFashion(STATE.player.gender);
+    if(mythFashion){
+      addFashion(mythFashion.id,"VIP15礼包");
+    }
+  }
+
   saveState();
   render();
 }
@@ -8648,6 +9346,7 @@ function renderVip(){
 </div>
       <p>挂机收益 +${Math.round(vip.bonus*100)}%，副本次数 +${vip.dungeon}</p>
       <p>炼丹 +${Math.round(vip.alchemy*100)}%，炼器 +${Math.round(vip.forge*100)}%</p>
+${vip.level===15?`<p class="crit">VIP15额外奖励：自动获得与当前性别一致的神话时装。</p>`:""}
       <button ${STATE.vip.claimed[vip.level]?"disabled":""} onclick="claimVipLevelReward(${vip.level})">${STATE.vip.claimed[vip.level]?"已领取":"领取 VIP 奖励邮件"}</button>
     </div>`).join("")}
   </div>
