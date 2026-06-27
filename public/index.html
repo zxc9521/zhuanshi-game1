@@ -2639,6 +2639,7 @@ CONFIG.iconPaths={
   packages:"assets/images/icons/items/packages/",
   tools:"assets/images/icons/items/tools/",
   items:"assets/images/icons/items/",
+  fashion:"assets/images/icons/items/fashion/",
   xianyuanBoxes:"assets/images/icons/items/xianyuan_boxes/",
   lifeCrystals:"assets/images/icons/items/life_crystals/",
   spiritStones:"assets/images/icons/items/spirit_stones/",
@@ -2686,9 +2687,9 @@ CONFIG.itemIconMap={
   "随机材料包":CONFIG.iconPaths.packages+"random_material_pack.webp",
   "低级材料包":CONFIG.iconPaths.packages+"random_material_pack.webp",
   "随机灵石":CONFIG.iconPaths.packages+"random_spirit_stone_pack.webp",
-"传说时装碎片":CONFIG.iconPaths.skillItems+"skill_page.webp",
-"传说时装自选箱":CONFIG.iconPaths.packages+"normal_gift_pack.webp",
-"幻化卡":CONFIG.iconPaths.tools+"identify_talisman.webp",
+"传说时装碎片":CONFIG.iconPaths.fashion+"legend_fashion_fragment.webp",
+"传说时装自选箱":CONFIG.iconPaths.packages+"legend_fashion_choice_box.webp",
+"幻化卡":CONFIG.iconPaths.fashion+"glamour_card.webp",
 "更新礼包":CONFIG.iconPaths.packages+"normal_gift_pack.webp",
 "黄阶灵石":CONFIG.iconPaths.spiritStones+"huang_spirit_stone.webp",
 "玄阶灵石":CONFIG.iconPaths.spiritStones+"xuan_spirit_stone.webp",
@@ -2910,6 +2911,12 @@ CONFIG.forgeCategoryConfigs=[
     id:"礼物",
     name:"礼物",
     description:"制作可赠送好友或 NPC 的礼物。",
+    slots:[]
+  },
+  {
+    id:"幻化",
+    name:"幻化",
+    description:"消耗特殊资源与元宝制作幻化卡。",
     slots:[]
   }
 ];
@@ -3277,7 +3284,12 @@ fashion:{
   glamour:null
 },
 ui:{
-  glamourOpen:false
+  glamourOpen:false,
+  bgmPromptShown:false,
+  bgmEnabled:false,
+  bgmRewardStartedAt:0,
+  bgmRewardElapsed:0,
+  lastBgmRewardAt:0
 },
     bag:[],
     store:[],
@@ -3592,6 +3604,115 @@ function sendWorldChat(){
   saveState();
   updateWorldChatDom();
 }
+let GAME_BGM_AUDIO=null;
+let BGM_REWARD_TIMER=null;
+
+function getGameBgmAudio(){
+  if(!GAME_BGM_AUDIO){
+    GAME_BGM_AUDIO=new Audio("assets/audio/bgm/main_theme.mp3");
+    GAME_BGM_AUDIO.loop=true;
+    GAME_BGM_AUDIO.volume=.45;
+  }
+
+  return GAME_BGM_AUDIO;
+}
+
+function startBgm(){
+  if(!STATE.ui){
+    STATE.ui={glamourOpen:false,bgmPromptShown:false,bgmEnabled:false,bgmRewardStartedAt:0,bgmRewardElapsed:0,lastBgmRewardAt:0};
+  }
+
+  const audio=getGameBgmAudio();
+
+  audio.play().then(()=>{
+    STATE.ui.bgmEnabled=true;
+    STATE.ui.bgmPromptShown=true;
+    STATE.ui.bgmRewardStartedAt=Date.now();
+    saveState();
+    startBgmRewardTimer();
+    pushUseLog("BGM 已开启。");
+  }).catch(()=>{
+    alert("浏览器阻止了自动播放，请再点击一次开启 BGM。");
+  });
+}
+
+function stopBgm(){
+  const audio=getGameBgmAudio();
+  audio.pause();
+
+  STATE.ui.bgmEnabled=false;
+  STATE.ui.bgmRewardStartedAt=0;
+  saveState();
+
+  if(BGM_REWARD_TIMER){
+    clearInterval(BGM_REWARD_TIMER);
+    BGM_REWARD_TIMER=null;
+  }
+
+  pushUseLog("BGM 已关闭。");
+}
+
+function toggleBgm(){
+  if(STATE.ui?.bgmEnabled){
+    stopBgm();
+  }else{
+    startBgm();
+  }
+
+  render();
+}
+
+function startBgmRewardTimer(){
+  if(BGM_REWARD_TIMER){
+    clearInterval(BGM_REWARD_TIMER);
+  }
+
+  BGM_REWARD_TIMER=setInterval(()=>{
+    if(!STATE.ui?.bgmEnabled)return;
+
+    const audio=getGameBgmAudio();
+
+    if(audio.paused){
+      return;
+    }
+
+    STATE.ui.bgmRewardElapsed=(STATE.ui.bgmRewardElapsed||0)+1000;
+
+    if(STATE.ui.bgmRewardElapsed>=5*60*1000){
+      STATE.ui.bgmRewardElapsed-=5*60*1000;
+      STATE.ui.lastBgmRewardAt=Date.now();
+
+      addItem("传说时装碎片",1,"材料");
+      pushLog(`<span class="gold">BGM 灵韵奖励：</span>获得传说时装碎片 ×1。`);
+      pushUseLog("BGM播放满5分钟，获得传说时装碎片×1。");
+
+      saveState();
+
+      if(STATE.tab==="背包"||STATE.tab==="主页"){
+        safeRender();
+      }
+    }else{
+      saveState();
+    }
+  },1000);
+}
+
+function renderBgmPrompt(){
+  if(!STATE.auth?.loggedIn||!STATE.player?.created)return "";
+  if(STATE.ui?.bgmPromptShown)return "";
+
+  return `<div class="equip-mobile-mask" onclick="event.stopPropagation()">
+    <div class="equip-mobile-dialog" onclick="event.stopPropagation()">
+      <h3>是否开启 BGM？</h3>
+      <p class="cyan">开启 BGM 后，每播放 5 分钟可获得 1 个传说时装碎片。</p>
+      <p class="muted">浏览器要求音乐必须由玩家点击后播放，所以需要你手动确认。</p>
+      <div class="row">
+        <button onclick="startBgm();render()">开启 BGM</button>
+        <button onclick="STATE.ui.bgmPromptShown=true;saveState();render()">暂不开启</button>
+      </div>
+    </div>
+  </div>`;
+}
 function getAccountSaveKey(account){
   return "zs_xxxt_save_"+account;
 }
@@ -3788,6 +3909,11 @@ if(saved.fashion.glamour===undefined)saved.fashion.glamour=null;
 
 if(!saved.ui)saved.ui={glamourOpen:false};
 if(saved.ui.glamourOpen===undefined)saved.ui.glamourOpen=false;
+if(saved.ui.bgmPromptShown===undefined)saved.ui.bgmPromptShown=false;
+if(saved.ui.bgmEnabled===undefined)saved.ui.bgmEnabled=false;
+if(saved.ui.bgmRewardStartedAt===undefined)saved.ui.bgmRewardStartedAt=0;
+if(saved.ui.bgmRewardElapsed===undefined)saved.ui.bgmRewardElapsed=0;
+if(saved.ui.lastBgmRewardAt===undefined)saved.ui.lastBgmRewardAt=0;
     if(!saved.bag)saved.bag=[];
 if(saved.selectedBagItemId===undefined)saved.selectedBagItemId=null;
 if(saved.alchemyCount===undefined)saved.alchemyCount=1;
@@ -5789,6 +5915,51 @@ function getOwnedItemCount(name){
   return STATE.bag.find(item=>item.name===name)?.count||0;
 }
 
+function getSpecialResourceItems(){
+  return STATE.bag.filter(item=>{
+    return item.count>0&&(
+      item.type==="特殊材料"||
+      item.type==="天地奇物"||
+      getSpecialMaterialConfigByName(item.name)
+    );
+  });
+}
+
+function craftGlamourCard(){
+  const specialItems=getSpecialResourceItems();
+
+  if(!specialItems.length){
+    alert("缺少特殊资源。任意特殊材料、特殊掉落、天地奇物均可用于合成幻化卡。");
+    return;
+  }
+
+  const yuanbaoCost=500;
+
+  if(STATE.resources.yuanbao<yuanbaoCost){
+    alert(`元宝不足，需要 ${yuanbaoCost} 元宝。`);
+    return;
+  }
+
+  const text=specialItems.map((item,index)=>`${index+1}. ${item.name} ×${item.count}`).join("\n");
+  const input=prompt(`请选择消耗的特殊资源：\n${text}`);
+  const selected=specialItems[Number(input)-1];
+
+  if(!selected){
+    alert("选择无效。");
+    return;
+  }
+
+  selected.count--;
+  STATE.resources.yuanbao-=yuanbaoCost;
+  addItem("幻化卡",1,"道具");
+
+  cleanBag();
+  pushLog(`<span class="gold">锻造成功：</span>消耗 ${selected.name} 与 ${yuanbaoCost} 元宝，合成幻化卡 ×1。`);
+  pushForgeLog(`合成幻化卡：消耗 ${selected.name} + ${yuanbaoCost} 元宝。`);
+
+  saveState();
+  safeRender();
+}
 function hasGenericCost(cost){
   if(STATE.resources.yuanbao<cost.yuanbao)return false;
   return cost.items.every(item=>getOwnedItemCount(item.name)>=item.count);
@@ -7604,6 +7775,7 @@ const tutorialAction=tutorialModal
       <span class="badge">${resourceIconHtml("coin")}铜币：${fmt(STATE.resources.coin)}</span>
       <span class="badge ${unread?'mail-unread':''}">邮件：${unread}/${unclaimed}</span>
       <span class="badge">账号：${STATE.auth.account}</span>
+<button onclick="toggleBgm()">${STATE.ui?.bgmEnabled?"关闭BGM":"开启BGM"}</button>
       <button onclick="logoutAccount()">退出</button>
     </div>
   </div>
@@ -7627,7 +7799,9 @@ const tutorialAction=tutorialModal
         <button onclick="closeTutorialModal()">关闭</button>
       </div>
     </div>
-  </div>`:""}`;
+  </div>`:""}
+
+${renderBgmPrompt()}`;
 }
 
 function renderPage(tab){
@@ -8560,7 +8734,52 @@ function renderForgeSideLog(){
 }
 function renderForge(){
   const currentCategory=STATE.forgeCategory||"装备";
+  if(currentCategory==="幻化"){
+    const specialItems=getSpecialResourceItems();
+    const yuanbaoCost=500;
 
+    return `<div class="panel forge-art">
+      <h2 class="page-art-title">锻造</h2>
+      <p class="muted">幻化卡可用于幻化过往境界形象。合成需要任意一个特殊资源与元宝。</p>
+
+      <div class="work-page-layout">
+        <div class="craft-sidebar">
+          ${CONFIG.forgeCategoryConfigs.map(cat=>`<button class="craft-category-title ${currentCategory===cat.id?"active":""}" onclick="STATE.forgeCategory='${cat.id}';saveState();safeRender()">
+            <span>${cat.name}</span><span>${currentCategory===cat.id?"▾":"▸"}</span>
+          </button>`).join("")}
+        </div>
+
+        <div>
+          <div class="card">
+            <h3>幻化卡</h3>
+            <div class="craft-preview">
+              <div>${itemIconHtml("幻化卡","道具","large")}</div>
+              <div>
+                <p><b class="gold">幻化卡</b></p>
+                <p>用途：在主页【幻化】中幻化已达到过的境界形象。</p>
+                <p class="cyan">消耗：任意特殊资源 ×1 + 元宝 ×${yuanbaoCost}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>可用特殊资源</h3>
+            <p>${resourceIconHtml("yuanbao")}元宝：<span class="${STATE.resources.yuanbao>=yuanbaoCost?"green":"red"}">${fmt(STATE.resources.yuanbao)} / ${fmt(yuanbaoCost)}</span></p>
+            <div class="list">
+              ${specialItems.length?specialItems.map(item=>`<div class="item">
+                ${itemIconHtml(item.name,item.type)}
+                <b>${item.name}</b> × ${item.count}
+                <br><span class="muted">${item.type}</span>
+              </div>`).join(""):"<span class='muted'>暂无特殊资源。击败特定怪物有概率掉落特殊材料。</span>"}
+            </div>
+            <button onclick="craftGlamourCard()">合成幻化卡</button>
+          </div>
+        </div>
+
+        ${renderForgeSideLog()}
+      </div>
+    </div>`;
+  }
   if(currentCategory==="礼物"){
     const selected=CONFIG.giftRecipes.find(item=>item.name===STATE.craftGift)||CONFIG.giftRecipes[0];
     const cost=recipeToCost(selected);
@@ -10027,7 +10246,11 @@ setInterval(()=>{
   }
 },30000);
 render();
-restoreServerSession();
+restoreServerSession().then(()=>{
+  if(STATE.ui?.bgmEnabled){
+    startBgmRewardTimer();
+  }
+});
 </script>
 </body>
 </html>
